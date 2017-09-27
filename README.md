@@ -1,2 +1,2 @@
-# DeepDIVA
-Deep Learning Framework for PyTorch
+Deep Learning Framework using PyTorch.
+
