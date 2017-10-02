@@ -9,11 +9,13 @@ import os.path
 import pickle
 
 import numpy as np
-import torch.utils.data as data
 from PIL import Image
 
 import torch.utils.data as data
 from util.misc import download_url, check_integrity
+
+
+# TODO: Add num_classes, width, height, RGB-mean/std as attributes of dataset.
 
 
 class CIFAR10(data.Dataset):
