@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 from torchvision import models
 from tensorboardX import SummaryWriter
 
-from dataset import CIFAR10, CIFAR100
+from dataset import CIFAR
 from model import CNN_basic
 from util.misc import AverageMeter, accuracy
 
@@ -78,7 +78,6 @@ logging.basicConfig(format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)
                     level=logging.INFO)
 logging.info('Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
 
-
 # Save args to logs_folder
 logging.info('Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
 with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
@@ -89,33 +88,30 @@ logging.info('Initialize Tensorboard SummaryWriter')
 writer = SummaryWriter(log_dir=log_folder)
 
 
-
-
 def main():
-
     logging.info('Initalizing dataset {}'.format(args.dataset))
-    if args.dataset is 'CIFAR10':
-        train_ds = CIFAR10(root='.data/',
-                           train=True,
-                           download=True,
-                           transform=transforms.Compose([transforms.ToTensor()]))
 
-        test_ds = CIFAR10(root='.data/',
-                          train=False,
-                          download=True,
-                          transform=transforms.Compose([transforms.ToTensor()]))
-        num_outputs = 10
-    else:
-        train_ds = CIFAR100(root='.data/',
-                           train=True,
-                           download=True,
-                           transform=transforms.Compose([transforms.ToTensor()]))
+    model_expected_input_size = [32, 32]
+    logging.info('Model {} expects input size of {}'.format(args.dataset,
+                                                            model_expected_input_size))
 
-        test_ds = CIFAR100(root='.data/',
-                          train=False,
-                          download=True,
-                          transform=transforms.Compose([transforms.ToTensor()]))
-        num_outputs = 100
+    train_ds = CIFAR.__dict__[args.dataset](root='.data/',
+                                      train=True,
+                                      download=True)
+
+    train_ds.transform = transforms.Compose([
+        transforms.Scale(model_expected_input_size),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std),
+        transforms.ToTensor()])
+
+    test_ds = CIFAR.__dict__[args.dataset](root='.data/',
+                                     train=False,
+                                     download=True)
+
+    train_ds.transform = transforms.Compose([
+        transforms.Scale(model_expected_input_size),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std),
+        transforms.ToTensor()])
 
     logging.info('Set up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
@@ -129,7 +125,7 @@ def main():
                                               pin_memory=True)
 
     logging.info('Initialize model')
-    model = CNN_basic.CNN_Basic(num_outputs)
+    model = CNN_basic.CNN_Basic(train_ds.num_classes)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -146,7 +142,6 @@ def main():
 
     logging.info('Training completed')
     writer.close()
-
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -182,8 +177,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         top5.update(prec5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('train/loss', loss.data[0], epoch*len(train_loader) + i)
-        writer.add_scalar('train/accuracy', prec1.cpu().numpy(), epoch*len(train_loader) + i)
+        writer.add_scalar('train/loss', loss.data[0], epoch * len(train_loader) + i)
+        writer.add_scalar('train/accuracy', prec1.cpu().numpy(), epoch * len(train_loader) + i)
 
         # Compute gradient and do optimizer step
         optimizer.zero_grad()
@@ -196,11 +191,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         if i % args.log_interval == 0:
             logging.info('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                         'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                         'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                         'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
 
@@ -242,12 +237,12 @@ def validate(val_loader, model, criterion, epoch):
 
         if i % args.log_interval == 0:
             logging.info('Test: [{0}/{1}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                   i, len(val_loader), batch_time=batch_time, loss=losses,
-                   top1=top1, top5=top5))
+                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                         'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                         'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                i, len(val_loader), batch_time=batch_time, loss=losses,
+                top1=top1, top5=top5))
 
     print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
@@ -256,8 +251,6 @@ def validate(val_loader, model, criterion, epoch):
 
 
 if __name__ == "__main__":
-
-
     # Set up logging to console
     fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
     stderr_handler = logging.StreamHandler()
