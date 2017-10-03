@@ -15,9 +15,6 @@ import torch.utils.data as data
 from util.misc import download_url, check_integrity
 
 
-# TODO: Add num_classes, width, height, RGB-mean/std as attributes of dataset.
-
-
 class CIFAR10(data.Dataset):
     """`CIFAR10 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
 
@@ -50,6 +47,7 @@ class CIFAR10(data.Dataset):
     test_list = [
         ['test_batch', '40351d587109b95175f43aff81a1287e'],
     ]
+    num_classes = 10
 
     def __init__(self, root, train=True,
                  transform=None, target_transform=None,
@@ -58,6 +56,11 @@ class CIFAR10(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
+        self.width = 32
+        self.height = 32
+        self.mean = None
+        self.std = None
+
 
         if download:
             self.download()
@@ -98,6 +101,21 @@ class CIFAR10(data.Dataset):
             fo.close()
             self.test_data = self.test_data.reshape((10000, 3, 32, 32))
             self.test_data = self.test_data.transpose((0, 2, 3, 1))  # convert to HWC
+
+
+        self.mean, self.std = self._compute_mean_std()
+
+
+    def _compute_mean_std(self):
+        """
+        Computes the mean and std for R,G,B channels
+        :return:
+        """
+        flatten_train = np.transpose(self.train_data.reshape((50000,3,1024)),[1,0,2]).reshape(3,51200000)
+        mean = np.mean(flatten_train,1)
+        std = np.std(flatten_train,1)
+        return mean, std
+
 
     def __getitem__(self, index):
         """
@@ -170,3 +188,4 @@ class CIFAR100(CIFAR10):
     test_list = [
         ['test', 'f0ef6b0ae62326f3e7ffdfab6717acfc'],
     ]
+    num_classes = 100
