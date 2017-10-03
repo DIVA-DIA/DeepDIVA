@@ -101,8 +101,8 @@ def main():
 
     train_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std),
-        transforms.ToTensor()])
+        transforms.ToTensor(),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)])
 
     test_ds = CIFAR.__dict__[args.dataset](root='.data/',
                                      train=False,
@@ -110,8 +110,8 @@ def main():
 
     train_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std),
-        transforms.ToTensor()])
+        transforms.ToTensor(),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)])
 
     logging.info('Set up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
