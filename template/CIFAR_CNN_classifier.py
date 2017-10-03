@@ -108,7 +108,7 @@ def main():
                                      train=False,
                                      download=True)
 
-    train_ds.transform = transforms.Compose([
+    test_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=train_ds.mean, std=train_ds.std)])
