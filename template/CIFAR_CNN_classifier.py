@@ -94,7 +94,7 @@ writer = SummaryWriter(log_dir=log_folder)
 def main():
 
     logging.info('Initalizing dataset {}'.format(args.dataset))
-    if args.dataset is 'CIFAR10':
+    if args.dataset == 'CIFAR10':
         train_ds = CIFAR10(root='.data/',
                            train=True,
                            download=True,
@@ -204,7 +204,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
 
-        return
+    return
 
 
 def validate(val_loader, model, criterion, epoch):
