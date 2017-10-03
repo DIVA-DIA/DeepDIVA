@@ -61,7 +61,6 @@ class CIFAR10(data.Dataset):
         self.mean = None
         self.std = None
 
-
         if download:
             self.download()
 
@@ -88,6 +87,7 @@ class CIFAR10(data.Dataset):
             self.train_data = np.concatenate(self.train_data)
             self.train_data = self.train_data.reshape((50000, 3, 32, 32))
             self.train_data = self.train_data.transpose((0, 2, 3, 1))  # convert to HWC
+            self.mean, self.std = self._compute_mean_std()
         else:
             f = self.test_list[0][0]
             file = os.path.join(self.root, self.base_folder, f)
@@ -102,20 +102,15 @@ class CIFAR10(data.Dataset):
             self.test_data = self.test_data.reshape((10000, 3, 32, 32))
             self.test_data = self.test_data.transpose((0, 2, 3, 1))  # convert to HWC
 
-
-        self.mean, self.std = self._compute_mean_std()
-
-
     def _compute_mean_std(self):
         """
-        Computes the mean and std for R,G,B channels
+        Computes the mean and std for R,G   ,B channels
         :return:
         """
-        flatten_train = np.transpose(self.train_data.reshape((50000,3,1024)),[1,0,2]).reshape(3,51200000)
-        mean = np.mean(flatten_train,1)
-        std = np.std(flatten_train,1)
+        flatten_train = np.transpose(self.train_data.reshape((50000, 3, 1024)), [1, 0, 2]).reshape(3, 51200000)
+        mean = np.mean(flatten_train, 1)
+        std = np.std(flatten_train, 1)
         return mean, std
-
 
     def __getitem__(self, index):
         """
