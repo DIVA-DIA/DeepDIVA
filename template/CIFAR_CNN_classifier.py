@@ -1,8 +1,8 @@
 import argparse
+import json
+import logging
 import os
 import time
-import logging
-import json
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -11,7 +11,6 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
-from torchvision import models
 from tensorboardX import SummaryWriter
 
 from dataset import CIFAR10, CIFAR100
@@ -65,6 +64,11 @@ args = parser.parse_args()
 # Set visible GPUs
 if args.gpu_id is not None:
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
+
+# Set the seed
+torch.manual_seed(args.seed)
+if args.cuda:
+    torch.cuda.manual_seed(args.seed)
 
 # Setup Logging
 basename = args.log_dir
