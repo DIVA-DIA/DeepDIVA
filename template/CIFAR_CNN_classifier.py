@@ -4,7 +4,6 @@ import logging
 import os
 import time
 
-import torch
 import torch.backends.cudnn as cudnn
 import torch.nn  as nn
 import torch.nn.parallel
@@ -14,14 +13,16 @@ import torchvision.transforms as transforms
 from tensorboardX import SummaryWriter
 
 from dataset import CIFAR10, CIFAR100
+from init.init import *
 from model import CNN_basic
 from util.misc import AverageMeter, accuracy
 
 # Argument Parser
 
 # Training Settings
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                 description='Template for training CNN on CIFAR')
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    description='Template for training CNN on CIFAR')
 
 # General Options
 parser.add_argument('--experiment-name',
@@ -36,55 +37,62 @@ parser.add_argument('--log-dir',
 
 # Training Options
 parser.add_argument('--lr',
-                    help='learning rate to be used for training', type=float, default=0.0001)
+                    help='learning rate to be used for training',
+                    type=float, default=0.0001)
 parser.add_argument('--optimizer',
-                    help='optimizer to be used for training. {Adam, SGD}', default='Adam')
+                    help='optimizer to be used for training. {Adam, SGD}',
+                    default='Adam')
 parser.add_argument('--batch-size',
-                    help='input batch size for training', type=int, default=64)
+                    help='input batch size for training',
+                    type=int, default=64)
 parser.add_argument('--test-batch-size',
-                    help='input batch size for testing', type=int, default=64)
+                    help='input batch size for testing',
+                    type=int, default=64)
 parser.add_argument('--epochs',
-                    help='how many epochs to train', type=int, default=30)
+                    help='how many epochs to train',
+                    type=int, default=100)
 parser.add_argument('--resume',
-                    help='path to latest checkpoint', default=None, type=str)
+                    help='path to latest checkpoint',
+                    default=None, type=str)
 
 # System Options
 parser.add_argument('--gpu-id',
-                    default=None, help='which GPUs to use for training (use all by default)')
+                    default=None,
+                    help='which GPUs to use for training (use all by default)')
 parser.add_argument('--no-cuda',
                     default=False, action='store_true', help='run on CPU')
 parser.add_argument('--seed',
                     default=None, help='random seed')
 parser.add_argument('--log-interval',
-                    default=10, type=int, help='print loss/accuracy every N batches')
+                    default=10, type=int,
+                    help='print loss/accuracy every N batches')
 parser.add_argument('-j', '--workers',
-                    default=4, type=int, help='workers used for train/val loaders')
+                    default=4, type=int,
+                    help='workers used for train/val loaders')
 args = parser.parse_args()
 
 # Set visible GPUs
 if args.gpu_id is not None:
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 
-# Set the seed
-torch.manual_seed(args.seed)
-if args.cuda:
-    torch.cuda.manual_seed(args.seed)
-
 # Setup Logging
 basename = args.log_dir
 experiment_name = args.experiment_name
-log_folder = os.path.join(basename, experiment_name, '{}'.format(time.strftime(('%y-%m-%d-%Hh-%Mm-%Ss'))))
+log_folder = os.path.join(basename, experiment_name,
+                          '{}'.format(time.strftime(('%y-%m-%d-%Hh-%Mm-%Ss'))))
 logfile = 'logs.txt'
 if not os.path.exists(log_folder):
     os.makedirs(log_folder)
-logging.basicConfig(format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
-                    filename=os.path.join(log_folder, logfile),
-                    level=logging.INFO)
-logging.info('Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
-
+logging.basicConfig(
+    format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
+    filename=os.path.join(log_folder, logfile),
+    level=logging.INFO)
+logging.info(
+    'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
 
 # Save args to logs_folder
-logging.info('Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
+logging.info(
+    'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
 with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
     f.write(json.dumps(vars(args)))
 
@@ -93,16 +101,14 @@ logging.info('Initialize Tensorboard SummaryWriter')
 writer = SummaryWriter(log_dir=log_folder)
 
 
-
-
 def main():
-
     logging.info('Initalizing dataset {}'.format(args.dataset))
     if args.dataset == 'CIFAR10':
         train_ds = CIFAR10(root='.data/',
                            train=True,
                            download=True,
-                           transform=transforms.Compose([transforms.ToTensor()]))
+                           transform=transforms.Compose(
+                               [transforms.ToTensor()]))
 
         test_ds = CIFAR10(root='.data/',
                           train=False,
@@ -111,14 +117,16 @@ def main():
         num_outputs = 10
     else:
         train_ds = CIFAR100(root='.data/',
-                           train=True,
-                           download=True,
-                           transform=transforms.Compose([transforms.ToTensor()]))
+                            train=True,
+                            download=True,
+                            transform=transforms.Compose(
+                                [transforms.ToTensor()]))
 
         test_ds = CIFAR100(root='.data/',
-                          train=False,
-                          download=True,
-                          transform=transforms.Compose([transforms.ToTensor()]))
+                           train=False,
+                           download=True,
+                           transform=transforms.Compose(
+                               [transforms.ToTensor()]))
         num_outputs = 100
 
     logging.info('Set up dataloaders')
@@ -134,7 +142,11 @@ def main():
 
     logging.info('Initialize model')
     model = CNN_basic.CNN_Basic(num_outputs)
-    optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
+    # Init the model
+    init(model, train_loader, num_points=100)
+
+    optimizer = torch.optim.__dict__[args.optimizer](model.parameters(),
+                                                     args.lr)
     criterion = nn.CrossEntropyLoss()
 
     if not args.no_cuda:
@@ -150,7 +162,6 @@ def main():
 
     logging.info('Training completed')
     writer.close()
-
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -186,8 +197,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
         top5.update(prec5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('train/loss', loss.data[0], epoch*len(train_loader) + i)
-        writer.add_scalar('train/accuracy', prec1.cpu().numpy(), epoch*len(train_loader) + i)
+        writer.add_scalar('train/loss', loss.data[0],
+                          epoch * len(train_loader) + i)
+        writer.add_scalar('train/accuracy', prec1.cpu().numpy(),
+                          epoch * len(train_loader) + i)
 
         # Compute gradient and do optimizer step
         optimizer.zero_grad()
@@ -200,11 +213,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         if i % args.log_interval == 0:
             logging.info('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                         'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                         'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                         'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
 
@@ -237,8 +250,10 @@ def validate(val_loader, model, criterion, epoch):
         top5.update(prec5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('test/loss', loss.data[0], epoch * len(val_loader) + i)
-        writer.add_scalar('test/accuracy', prec1.cpu().numpy(), epoch * len(val_loader) + i)
+        writer.add_scalar('test/loss', loss.data[0],
+                          epoch * len(val_loader) + i)
+        writer.add_scalar('test/accuracy', prec1.cpu().numpy(),
+                          epoch * len(val_loader) + i)
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -246,12 +261,12 @@ def validate(val_loader, model, criterion, epoch):
 
         if i % args.log_interval == 0:
             logging.info('Test: [{0}/{1}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                   i, len(val_loader), batch_time=batch_time, loss=losses,
-                   top1=top1, top5=top5))
+                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                         'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                         'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                i, len(val_loader), batch_time=batch_time, loss=losses,
+                top1=top1, top5=top5))
 
     print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
@@ -260,8 +275,6 @@ def validate(val_loader, model, criterion, epoch):
 
 
 if __name__ == "__main__":
-
-
     # Set up logging to console
     fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
     stderr_handler = logging.StreamHandler()

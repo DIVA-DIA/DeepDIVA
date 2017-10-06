@@ -3,23 +3,26 @@ import torch
 
 def init(model, data, *args, **kwargs):
     ###############################################################################################
+    # Collect initial data
+    X = []
+    y = []
+    for i, (input, target) in enumerate(data, 1):
+        X.append(torch.autograd.Variable(input))
+        y.append(torch.autograd.Variable(target))
+        if i * data.batch_size >= kwargs['num_points']:
+            break
+
+    ###############################################################################################
     # Iterate over all layers
-    layer = 0
+    for module in model.children():
+        # Forward pass on data
+        # module.set(W, C)
+        # if size of X != size of input of module then:
+        if 'conv' not in str(type(list(module.children())[0])):
+            X = X.view(X.size(0), -1)
 
-    X, y = assign
-    the
-    data
-
-    for module in model.modules():
-        W, C = computeLDA(X, args.num_points)  # where args.init is ref to LDA(*args)
         X = forward(module, X)
-
-
-def forward(layer, input):
-    output = []
-    for x in range(len(input)):
-        output.append(layer.forward(input))
-    return output
+        W, C = computeLDA(X, y)  # where args.init is ref to LDA(*args)
 
 
 def initialize_model_lda(model, train_loader, num_points_lda):
