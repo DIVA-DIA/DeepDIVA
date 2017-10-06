@@ -21,8 +21,9 @@ from util.misc import AverageMeter, accuracy
 # Argument Parser
 
 # Training Settings
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                 description='Template for training CNN on CIFAR')
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    description='Template for training CNN on CIFAR')
 
 # General Options
 parser.add_argument('--experiment-name',
@@ -37,9 +38,11 @@ parser.add_argument('--log-dir',
 
 # Training Options
 parser.add_argument('--lr',
-                    help='learning rate to be used for training', type=float, default=0.0001)
+                    help='learning rate to be used for training', type=float,
+                    default=0.0001)
 parser.add_argument('--optimizer',
-                    help='optimizer to be used for training. {Adam, SGD}', default='Adam')
+                    help='optimizer to be used for training. {Adam, SGD}',
+                    default='Adam')
 parser.add_argument('--batch-size',
                     help='input batch size for training', type=int, default=64)
 parser.add_argument('--test-batch-size',
@@ -51,15 +54,18 @@ parser.add_argument('--resume',
 
 # System Options
 parser.add_argument('--gpu-id',
-                    default=None, help='which GPUs to use for training (use all by default)')
+                    default=None,
+                    help='which GPUs to use for training (use all by default)')
 parser.add_argument('--no-cuda',
                     default=False, action='store_true', help='run on CPU')
 parser.add_argument('--seed',
                     default=None, help='random seed')
 parser.add_argument('--log-interval',
-                    default=10, type=int, help='print loss/accuracy every N batches')
+                    default=10, type=int,
+                    help='print loss/accuracy every N batches')
 parser.add_argument('-j', '--workers',
-                    default=4, type=int, help='workers used for train/val loaders')
+                    default=4, type=int,
+                    help='workers used for train/val loaders')
 args = parser.parse_args()
 
 # Set visible GPUs
@@ -69,17 +75,21 @@ if args.gpu_id is not None:
 # Setup Logging
 basename = args.log_dir
 experiment_name = args.experiment_name
-log_folder = os.path.join(basename, experiment_name, '{}'.format(time.strftime(('%y-%m-%d-%Hh-%Mm-%Ss'))))
+log_folder = os.path.join(basename, experiment_name,
+                          '{}'.format(time.strftime(('%y-%m-%d-%Hh-%Mm-%Ss'))))
 logfile = 'logs.txt'
 if not os.path.exists(log_folder):
     os.makedirs(log_folder)
-logging.basicConfig(format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
-                    filename=os.path.join(log_folder, logfile),
-                    level=logging.INFO)
-logging.info('Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
+logging.basicConfig(
+    format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
+    filename=os.path.join(log_folder, logfile),
+    level=logging.INFO)
+logging.info(
+    'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
 
 # Save args to logs_folder
-logging.info('Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
+logging.info(
+    'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
 with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
     f.write(json.dumps(vars(args)))
 
@@ -91,27 +101,29 @@ writer = SummaryWriter(log_dir=log_folder)
 def main():
     logging.info('Initalizing dataset {}'.format(args.dataset))
 
-    model_expected_input_size = [32, 32]
+    model_expected_input_size = (32, 32)
     logging.info('Model {} expects input size of {}'.format(args.dataset,
                                                             model_expected_input_size))
 
     train_ds = CIFAR.__dict__[args.dataset](root='.data/',
-                                      train=True,
-                                      download=True)
+                                            train=True,
+                                            download=True)
 
     train_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)])
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+    ])
 
     test_ds = CIFAR.__dict__[args.dataset](root='.data/',
-                                     train=False,
-                                     download=True)
+                                           train=False,
+                                           download=True)
 
     test_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)])
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+    ])
 
     logging.info('Set up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
@@ -126,7 +138,9 @@ def main():
 
     logging.info('Initialize model')
     model = CNN_basic.CNN_Basic(train_ds.num_classes)
-    optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
+    # model = models.resnet18(pretrained=False, num_classes=10)
+    optimizer = torch.optim.__dict__[args.optimizer](model.parameters(),
+                                                     args.lr)
     criterion = nn.CrossEntropyLoss()
 
     if not args.no_cuda:
@@ -177,8 +191,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
         top5.update(prec5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('train/loss', loss.data[0], epoch * len(train_loader) + i)
-        writer.add_scalar('train/accuracy', prec1.cpu().numpy(), epoch * len(train_loader) + i)
+        writer.add_scalar('train/loss', loss.data[0],
+                          epoch * len(train_loader) + i)
+        writer.add_scalar('train/accuracy', prec1.cpu().numpy(),
+                          epoch * len(train_loader) + i)
 
         # Compute gradient and do optimizer step
         optimizer.zero_grad()
@@ -199,7 +215,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
 
-        return
+    return
 
 
 def validate(val_loader, model, criterion, epoch):
@@ -228,8 +244,10 @@ def validate(val_loader, model, criterion, epoch):
         top5.update(prec5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('test/loss', loss.data[0], epoch * len(val_loader) + i)
-        writer.add_scalar('test/accuracy', prec1.cpu().numpy(), epoch * len(val_loader) + i)
+        writer.add_scalar('test/loss', loss.data[0],
+                          epoch * len(val_loader) + i)
+        writer.add_scalar('test/accuracy', prec1.cpu().numpy(),
+                          epoch * len(val_loader) + i)
 
         # measure elapsed time
         batch_time.update(time.time() - end)
