@@ -2,10 +2,10 @@
 General purpose utility code from https://raw.githubusercontent.com/pytorch/vision/master/torchvision/datasets/utils.py
 """
 
+import errno
+import hashlib
 import os
 import os.path
-import hashlib
-import errno
 
 
 def check_integrity(fpath, md5):
@@ -43,8 +43,11 @@ def download_url(url, root, filename, md5):
         print('Downloading ' + url + ' to ' + fpath)
         urllib.request.urlretrieve(url, fpath)
 
+
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    """
+    Computes and stores the average and current value
+    """
     def __init__(self):
         self.reset()
 
@@ -61,7 +64,18 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
+    """
+    Computes the precision@k for the specified values of k
+    :param output:
+        The output of the model
+    :param target:
+        The GT for the corresponding output
+    :param topk:
+        Top@k return value. It can be a tuple (1,5) and it return Top1 and Top5
+    :return:
+        Top@k precisions
+    """
+
     maxk = max(topk)
     batch_size = target.size(0)
 

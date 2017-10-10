@@ -14,9 +14,6 @@ class CNN_Basic(nn.Module):
 
     :var fc      : torch.nn.Linear
         Final fully connected layer
-
-    :var af      : torch.nn.Softsign
-        Activation function
     """
 
     def __init__(self, num_classes):

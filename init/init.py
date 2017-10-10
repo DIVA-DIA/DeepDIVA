@@ -1,4 +1,7 @@
+import numpy as np
 import torch
+
+import util.lda as lda
 
 
 def init(model, data, *args, **kwargs):
@@ -12,24 +15,38 @@ def init(model, data, *args, **kwargs):
         if i * data.batch_size >= kwargs['num_points']:
             break
 
+    # TODO select the input patches of the right size of the filter of 1st layer
+
+    ###############################################################################################
+    # Compute first layer param
+    W, C = lda.transform(minibatches_to_matrix(X), minibatches_to_matrix(
+        y))  # where args.init is ref to LDA(*args)
+
     ###############################################################################################
     # Iterate over all layers
     for module in model.children():
-        # Forward pass on data
-        # module.set(W, C)
-        # if size of X != size of input of module then:
+        # TODO select from LDA the relevant columns for as many filters there are
+        list(module.parameters())[0] = W
+        list(module.parameters())[1] = C
+
+        # If the layer is not convolutional then flatten the data because
+        # we assume it is a fully connected one
         if 'conv' not in str(type(list(module.children())[0])):
             X = X.view(X.size(0), -1)
 
-        X = forward(module, X)
-        W, C = computeLDA(X, y)  # where args.init is ref to LDA(*args)
+        # Forward pass
+        X = module(X)
+
+        # Compute data-driven parameters
+        W, C = lda.transform(X, y)  # where args.init is ref to LDA(*args)
 
 
-def initialize_model_lda(model, train_loader, num_points_lda):
-    from torch.autograd import Variable as V
-    # model = LDA_init_net(8)
-    le = LabelEncoder()
-    t = time.time()
+def minibatches_to_matrix(X):
+    return np.array([x.data.view(-1).numpy() for m in X for x in m])
+
+
+"""
+def fuck_i_deleted_something_here():
     data = [item for item in train_loader]
     X, y = np.vstack([item[0].numpy() for item in data]), np.concatenate([item[1].numpy() for item in data])
     del data
@@ -104,3 +121,4 @@ def initialize_model_lda(model, train_loader, num_points_lda):
     print("LDA initialization took {} seconds".format(time.time() - t))
 
     return model
+    """
