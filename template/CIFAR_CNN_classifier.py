@@ -142,9 +142,6 @@ def main():
 
     logging.info('Initialize model')
     model = CNN_basic.CNN_Basic(num_outputs)
-    # Init the model
-    init(model, train_loader, num_points=100)
-
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(),
                                                      args.lr)
     criterion = nn.CrossEntropyLoss()
