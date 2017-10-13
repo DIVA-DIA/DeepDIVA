@@ -19,8 +19,10 @@ def init(model, data, *args, **kwargs):
 
     ###############################################################################################
     # Compute first layer param
-    W, C = lda.transform(minibatches_to_matrix(X), minibatches_to_matrix(
-        y))  # where args.init is ref to LDA(*args)
+    W, C = lda.transform(
+        X=minibatches_to_matrix(X),
+        y=np.squeeze(minibatches_to_matrix(y))
+    )
 
     ###############################################################################################
     # Iterate over all layers

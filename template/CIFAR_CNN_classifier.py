@@ -14,20 +14,19 @@ import logging
 import os
 import time
 
+# Tensor board
+import tensorboardX
 # Torch related stuff
 import torch.backends.cudnn as cudnn
-import torch.nn  as nn
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
-# Tensor board
-from tensorboardX import SummaryWriter
 
 # DeepDIVA
 from dataset import CIFAR10, CIFAR100
 from init.init import *
-from model import CNN_basic
+from model import *
 from util.misc import AverageMeter, accuracy
 
 ###############################################################################
@@ -52,7 +51,7 @@ parser.add_argument('--log-dir',
 # Training Options
 parser.add_argument('--lr',
                     help='learning rate to be used for training',
-                    type=float, default=0.0001)
+                    type=float, default=0.001)
 parser.add_argument('--optimizer',
                     help='optimizer to be used for training. {Adam, SGD}',
                     default='Adam')
@@ -90,7 +89,7 @@ args = parser.parse_args()
 basename = args.log_dir
 experiment_name = args.experiment_name
 log_folder = os.path.join(basename, experiment_name,
-                          '{}'.format(time.strftime(('%y-%m-%d-%Hh-%Mm-%Ss'))))
+                          '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
 logfile = 'logs.txt'
 if not os.path.exists(log_folder):
     os.makedirs(log_folder)
@@ -110,7 +109,7 @@ with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
 
 # Define Tensorboard SummaryWriter
 logging.info('Initialize Tensorboard SummaryWriter')
-writer = SummaryWriter(log_dir=log_folder)
+writer = tensorboardX.SummaryWriter(log_dir=log_folder)
 
 # Set visible GPUs
 if args.gpu_id is not None:
@@ -127,6 +126,7 @@ def main():
 
     # Loading dataset
     # TODO load the validation set (if any)
+    # TODO load a ds passed from parameter NICELY
     logging.info('Initalizing dataset {}'.format(args.dataset))
     if args.dataset == 'CIFAR10':
         train_ds = CIFAR10(root='.data/',
@@ -169,7 +169,10 @@ def main():
     # Initialize the model
     logging.info('Initialize model')
     # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = CNN_basic.CNN_Basic(num_outputs)
+    model = LDA_simple()
+    # model = CNN_Basic(10)
+    # Init the model
+    init(model=model, data=train_loader, num_points=100)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -183,9 +186,11 @@ def main():
     # Begin training
     logging.info('Begin training')
     for i in range(args.epochs):
-        train(train_loader, model, criterion, optimizer, i)
         # TODO pass the validation loader (if any)
         validate(test_loader, model, criterion, i)
+        train(train_loader, model, criterion, optimizer, i)
+
+
 
     logging.info('Training completed')
 
@@ -225,6 +230,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # Measure data loading time
         data_time.update(time.time() - end)
 
+        # Moving data to GPU
         if not args.no_cuda:
             input = input.cuda(async=True)
             target = target.cuda(async=True)
@@ -241,15 +247,14 @@ def train(train_loader, model, criterion, optimizer, epoch):
         losses.update(loss.data[0], input.size(0))
 
         # Compute and record the accuracy
-        # TODO disturbing use of accuracy and precision in the same place
-        prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
-        top1.update(prec1[0], input.size(0))
-        top5.update(prec5[0], input.size(0))
+        acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
+        top1.update(acc1[0], input.size(0))
+        top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
         writer.add_scalar('train/loss', loss.data[0],
                           epoch * len(train_loader) + i)
-        writer.add_scalar('train/accuracy', prec1.cpu().numpy(),
+        writer.add_scalar('train/accuracy', acc1.cpu().numpy(),
                           epoch * len(train_loader) + i)
 
         # Reset gradient
@@ -269,8 +274,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                         'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                         'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
     return
@@ -304,12 +309,10 @@ def validate(val_loader, model, criterion, epoch):
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
 
-        # TODO why in the training we have this and here is flat without the if ?
-        # if not args.no_cuda:
-        #    input = input.cuda(async=True)
-        #    target = target.cuda(async=True)
-
-        target = target.cuda(async=True)
+        # Moving data to GPU
+        if not args.no_cuda:
+            input = input.cuda(async=True)
+            target = target.cuda(async=True)
 
         # Convert the input and its labels to Torch Variables
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -323,15 +326,14 @@ def validate(val_loader, model, criterion, epoch):
         losses.update(loss.data[0], input.size(0))
 
         # Compute and record the accuracy
-        # TODO disturbing use of accuracy and precision in the same place
-        prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
-        top1.update(prec1[0], input.size(0))
-        top5.update(prec5[0], input.size(0))
+        acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
+        top1.update(acc1[0], input.size(0))
+        top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
         writer.add_scalar('val/loss', loss.data[0],
                           epoch * len(val_loader) + i)
-        writer.add_scalar('val/accuracy', prec1.cpu().numpy(),
+        writer.add_scalar('val/accuracy', acc1.cpu().numpy(),
                           epoch * len(val_loader) + i)
 
         # Measure elapsed time
@@ -342,13 +344,12 @@ def validate(val_loader, model, criterion, epoch):
             logging.info('Epoch [{0}][{1}/{2}]\t'
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                         'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                         'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(val_loader), batch_time=batch_time, loss=losses,
                 top1=top1, top5=top5))
 
-
-    print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
+    print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
 
     return

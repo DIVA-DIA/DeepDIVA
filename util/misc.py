@@ -65,7 +65,7 @@ class AverageMeter(object):
 
 def accuracy(output, target, topk=(1,)):
     """
-    Computes the precision@k for the specified values of k
+    Computes the accuracy@k for the specified values of k
     :param output:
         The output of the model
     :param target:
@@ -73,7 +73,7 @@ def accuracy(output, target, topk=(1,)):
     :param topk:
         Top@k return value. It can be a tuple (1,5) and it return Top1 and Top5
     :return:
-        Top@k precisions
+        Top@k accuracy
     """
 
     maxk = max(topk)
