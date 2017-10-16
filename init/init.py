@@ -48,10 +48,13 @@ def init(model, data, *args, **kwargs):
     ###############################################################################################
     # Compute first layer param
     logging.info('Compute first layer param')
-    W, C = lda.transform(
-        X=minibatches_to_matrix(X),
-        y=np.squeeze(minibatches_to_matrix(y))
-    )
+    # W, C = lda.transform(
+    #     X=minibatches_to_matrix(X),
+    #     y=np.squeeze(minibatches_to_matrix(y))
+    # )
+
+    W = np.zeros((16, 16))
+    B = np.zeros(16)
 
     ###############################################################################################
     # Iterate over all layers
@@ -62,8 +65,8 @@ def init(model, data, *args, **kwargs):
         # Assign parameters
         logging.info('Assign parameters')
         # TODO select from LDA the relevant columns for as many filters there are
-        # list(module.parameters())[0] = W
-        # list(module.parameters())[1] = C
+        module[0].weight.data = torch.Tensor(W)
+        module[0].bias.data = torch.Tensor(B)
 
         # If the layer is not convolutional then flatten the data because
         # we assume it is a fully connected one

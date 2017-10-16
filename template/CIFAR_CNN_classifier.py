@@ -10,7 +10,6 @@ and they should be used instead of hard-coding stuff.
 # Utils
 import argparse
 import json
-import logging
 import os
 import time
 
@@ -357,10 +356,11 @@ def validate(val_loader, model, criterion, epoch):
 
 if __name__ == "__main__":
     # Set up logging to console
-    fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
+    formatter = logging.Formatter(
+        fmt='%(asctime)s %(funcName)s %(levelname)-8s %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S')
     stderr_handler = logging.StreamHandler()
-    stderr_handler.formatter = fmtr
+    stderr_handler.formatter = formatter
     logging.getLogger().addHandler(stderr_handler)
     logging.info('Printing activity to the console')
-
     main()
