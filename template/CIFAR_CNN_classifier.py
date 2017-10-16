@@ -23,9 +23,10 @@ import torch.utils.data
 import torchvision.transforms as transforms
 
 # DeepDIVA
-from dataset import CIFAR10, CIFAR100
+from dataset.CIFAR import CIFAR10, CIFAR100
 from init.init import *
-from model import *
+from model.LDA_test import LDA_simple
+from model.CNN_basic import CNN_Basic
 from util.misc import AverageMeter, accuracy
 
 ###############################################################################
@@ -171,7 +172,7 @@ def main():
     model = LDA_simple()
     # model = CNN_Basic(10)
     # Init the model
-    init(model=model, data=train_loader, num_points=100)
+    init(model=model, data_loader=train_loader, num_points=100)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 

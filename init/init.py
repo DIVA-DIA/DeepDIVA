@@ -9,12 +9,25 @@ import logging
 
 import numpy as np
 import torch
+from sklearn.feature_extraction.image import extract_patches_2d
 
 # Init tools
 import util.lda as lda
 
+def get_patches(X, y, kernel_size):
+    all_patches, labels = None, None
+    for image, label in zip(X,y):
+        image = np.transpose(image, axes=[1,2,0])
+        patches = extract_patches_2d(image, kernel_size)
+        if all_patches is None:
+            all_patches = np.transpose(patches, axes=[0,3,1,2])
+            labels = np.repeat(label, len(patches))
+        else:
+            all_patches = np.append(all_patches, np.transpose(patches, axes=[0,3,1,2]), axis=0)
+            labels = np.append(labels, np.repeat(label, len(patches)), axis=0)
+    return all_patches, labels
 
-def init(model, data, *args, **kwargs):
+def init(model, data_loader, *args, **kwargs):
     """
     Initialize a standard CNN composed by convolutional layer followed by fully
     connected layers.
@@ -37,24 +50,27 @@ def init(model, data, *args, **kwargs):
     logging.debug('Collect initial data')
     X = []
     y = []
-    for i, (input, target) in enumerate(data, 1):
+    for i, (input, target) in enumerate(data_loader, 1):
         X.append(torch.autograd.Variable(input))
         y.append(torch.autograd.Variable(target))
-        if i * data.batch_size >= kwargs['num_points']:
+        if i * data_loader.batch_size >= kwargs['num_points']:
             break
 
     # TODO select the input patches of the right size of the filter of 1st layer
 
     ###############################################################################################
+    # Get kernel size of first layer
+    kernel_size = list(model.children())[0][0].kernel_size
+    # Reshape input
+    tmp_X = np.array([element.data.numpy() for minibatch in X for element in minibatch])
+    # Generate exhaustive patches for each input
+    patches, labels = get_patches(tmp_X, np.squeeze(minibatches_to_matrix(y)), kernel_size=kernel_size)
     # Compute first layer param
     logging.info('Compute first layer param')
-    # W, C = lda.transform(
-    #     X=minibatches_to_matrix(X),
-    #     y=np.squeeze(minibatches_to_matrix(y))
-    # )
-
-    W = np.zeros((16, 16))
-    B = np.zeros(16)
+    W, B = lda.transform(
+        X=patches.reshape(patches.shape[0], -1),
+        y=labels
+    )
 
     ###############################################################################################
     # Iterate over all layers
@@ -87,7 +103,13 @@ def init(model, data, *args, **kwargs):
 
 
 def minibatches_to_matrix(X):
-    return np.array([s.data.view(-1).numpy() for m in X for s in m])
+    """
+    Flattens the a list of matrices of shape[[minibatch, dim_1, ..., dim_n], [minibatch, dim_1, ..., dim_n] ...] such
+    that it becomes [minibatch * len(list), dim_1 * dim_2 ... *dim_n]
+    :param X: list of matrices
+    :return: flattened matrix
+    """
+    return np.array([sample.data.view(-1).numpy() for minibatch in X for sample in minibatch])
 
 
 """
