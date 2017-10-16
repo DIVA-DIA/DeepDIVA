@@ -22,10 +22,10 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
+import torch.nn as nn
 
 # DeepDIVA
 from dataset import CIFAR10, CIFAR100
-from init.init import *
 from model import *
 from util.misc import AverageMeter, accuracy
 
@@ -169,10 +169,8 @@ def main():
     # Initialize the model
     logging.info('Initialize model')
     # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = LDA_simple()
-    # model = CNN_Basic(10)
+    model = CNN_Basic(10)
     # Init the model
-    init(model=model, data=train_loader, num_points=100)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 
