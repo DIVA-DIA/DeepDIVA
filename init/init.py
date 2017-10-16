@@ -1,7 +1,17 @@
+"""
+Here are defined the basic methods to initialize a CNN in a data driven way.
+For initializing complex architecture or using more articulated stuff (e.g LDA
+has two functions) one should implement his own init function.
+"""
+
+# Utils
+import logging
+
 import numpy as np
 import torch
 from sklearn.feature_extraction.image import extract_patches_2d
 
+# Init tools
 import util.lda as lda
 
 def get_patches(X, y, kernel_size):
@@ -15,12 +25,12 @@ def get_patches(X, y, kernel_size):
         else:
             all_patches = np.append(all_patches, np.transpose(patches, axes=[0,3,1,2]), axis=0)
             labels = np.append(labels, np.repeat(label, len(patches)), axis=0)
-
     return all_patches, labels
 
 def init(model, data_loader, *args, **kwargs):
     ###############################################################################################
     # Collect initial data
+    logging.debug('Collect initial data')
     X = []
     y = []
     for i, (input, target) in enumerate(data_loader, 1):
@@ -39,6 +49,7 @@ def init(model, data_loader, *args, **kwargs):
     # Generate exhaustive patches for each input
     patches, labels = get_patches(tmp_X, np.squeeze(minibatches_to_matrix(y)), kernel_size=kernel_size)
     # Compute first layer param
+    logging.info('Compute first layer param')
     W, B = lda.transform(
         X=patches.reshape(patches.shape[0], -1),
         y=labels
@@ -46,21 +57,32 @@ def init(model, data_loader, *args, **kwargs):
 
     ###############################################################################################
     # Iterate over all layers
-    for module in model.children():
+    logging.info('Iterate over all layers')
+    for index, module in enumerate(model.children()):
+        logging.info('Layer: {}'.format(index))
+
+        # Assign parameters
+        logging.info('Assign parameters')
         # TODO select from LDA the relevant columns for as many filters there are
-        list(module.parameters())[0] = W
-        list(module.parameters())[1] = C
+        # list(module.parameters())[0] = W
+        # list(module.parameters())[1] = C
 
         # If the layer is not convolutional then flatten the data because
         # we assume it is a fully connected one
         if 'conv' not in str(type(list(module.children())[0])):
+            logging.info('Flattening input')
             X = X.view(X.size(0), -1)
 
         # Forward pass
-        X = module(X)
+        logging.info('Forward pass')
+        for i, minibatch in enumerate(X):
+            X[i] = module(X[i])
 
         # Compute data-driven parameters
-        W, C = lda.transform(X, y)  # where args.init is ref to LDA(*args)
+        W, C = lda.transform(
+            X=minibatches_to_matrix(X),
+            y=np.squeeze(minibatches_to_matrix(y))
+        )
 
 
 def minibatches_to_matrix(X):
