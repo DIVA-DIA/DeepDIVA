@@ -25,8 +25,8 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 
 # DeepDIVA
-from dataset import CIFAR10, CIFAR100
-from model import *
+from dataset.CIFAR import CIFAR10, CIFAR100
+from model.CNN_basic import *
 from util.misc import AverageMeter, accuracy
 
 ###############################################################################
