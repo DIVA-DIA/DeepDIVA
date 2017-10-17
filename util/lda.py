@@ -94,10 +94,15 @@ def transform(X, y):
     # Biases are zero in LDA transform
     B = np.zeros(X.shape[1])
 
-    return L, B
+    # We return the transpose because PYTORCH WANT THE MATRIX to be flipped!! BE CAREFUL WHEN THINKING ABOUT THIS!
+    return L.T, B.T
 
 
 def discriminants(X, y):
+    # Check for sizes
+    assert len(X.shape) == 2
+    assert len(y.shape) == 1
+
     # Compute linear discriminants
     NUM_CLASSES = len(np.unique(y))
     pooled_conv = np.zeros((X.shape[1], X.shape[1]))
@@ -124,7 +129,8 @@ def discriminants(X, y):
     W = W.T
     C = C.T
 
-    return W, C
+    # We return the transpose because PYTORCH WANT THE MATRIX to be flipped!! BE CAREFUL WHEN THINKING ABOUT THIS!
+    return W.T, C.T
 
     """
     L = np.matmul(X,W)+ C

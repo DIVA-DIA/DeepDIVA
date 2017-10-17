@@ -25,8 +25,8 @@ import torchvision.transforms as transforms
 # DeepDIVA
 from dataset.CIFAR import CIFAR10, CIFAR100
 from init.init import *
-from model.LDA_test import LDA_simple
 from model.CNN_basic import CNN_Basic
+from model.LDA_test import *
 from util.misc import AverageMeter, accuracy
 
 ###############################################################################
@@ -63,7 +63,7 @@ parser.add_argument('--test-batch-size',
                     type=int, default=64)
 parser.add_argument('--epochs',
                     help='how many epochs to train',
-                    type=int, default=100)
+                    type=int, default=5)
 parser.add_argument('--resume',
                     help='path to latest checkpoint',
                     default=None, type=str)
@@ -169,10 +169,10 @@ def main():
     # Initialize the model
     logging.info('Initialize model')
     # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = LDA_simple()
+    model = CNN_Basic(10)
     # model = CNN_Basic(10)
     # Init the model
-    init(model=model, data_loader=train_loader, num_points=100)
+    init(model=model, data_loader=train_loader, num_points=50000)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 

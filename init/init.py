@@ -14,18 +14,20 @@ from sklearn.feature_extraction.image import extract_patches_2d
 # Init tools
 import util.lda as lda
 
+
 def get_patches(X, y, kernel_size):
-    all_patches, labels = None, None
-    for image, label in zip(X,y):
-        image = np.transpose(image, axes=[1,2,0])
-        patches = extract_patches_2d(image, kernel_size)
-        if all_patches is None:
-            all_patches = np.transpose(patches, axes=[0,3,1,2])
-            labels = np.repeat(label, len(patches))
-        else:
-            all_patches = np.append(all_patches, np.transpose(patches, axes=[0,3,1,2]), axis=0)
-            labels = np.append(labels, np.repeat(label, len(patches)), axis=0)
+    all_patches, labels = [], []
+    for image, label in zip(X, y):
+        image = np.transpose(image, axes=[1, 2, 0])
+        patches = extract_patches_2d(image, kernel_size, max_patches=0.5)
+        all_patches.append(np.transpose(patches, axes=[0, 3, 1, 2]))
+        labels.append(np.repeat(label, len(patches)))
+
+    # Flatten them
+    all_patches = np.array([sample for minibatch in all_patches for sample in minibatch])
+    labels = np.array([sample for minibatch in labels for sample in minibatch])
     return all_patches, labels
+
 
 def init(model, data_loader, *args, **kwargs):
     """
@@ -45,7 +47,7 @@ def init(model, data_loader, *args, **kwargs):
     :return:
         nothing, the parameters of the network are modified in place
     """
-    ###############################################################################################
+
     # Collect initial data
     logging.debug('Collect initial data')
     X = []
@@ -56,50 +58,70 @@ def init(model, data_loader, *args, **kwargs):
         if i * data_loader.batch_size >= kwargs['num_points']:
             break
 
-    # TODO select the input patches of the right size of the filter of 1st layer
-
-    ###############################################################################################
-    # Get kernel size of first layer
-    kernel_size = list(model.children())[0][0].kernel_size
-    # Reshape input
-    tmp_X = np.array([element.data.numpy() for minibatch in X for element in minibatch])
-    # Generate exhaustive patches for each input
-    patches, labels = get_patches(tmp_X, np.squeeze(minibatches_to_matrix(y)), kernel_size=kernel_size)
-    # Compute first layer param
-    logging.info('Compute first layer param')
-    W, B = lda.transform(
-        X=patches.reshape(patches.shape[0], -1),
-        y=labels
-    )
-
     ###############################################################################################
     # Iterate over all layers
     logging.info('Iterate over all layers')
     for index, module in enumerate(model.children()):
         logging.info('Layer: {}'.format(index))
 
+        #######################################################################
+        # Get the patches of data
+        logging.info('Get the patches of data')
+
+        # Generate exhaustive patches for each input
+        if index != len(list(model.children())) - 1:
+            # Get kernel size of current layer
+            kernel_size = module[0].kernel_size
+
+            patches, labels = get_patches(
+                np.array([element.data.numpy() for minibatch in X for element in minibatch]),
+                np.squeeze(minibatches_to_matrix(y)),
+                kernel_size=kernel_size
+            )
+
+        #######################################################################
+        # Compute data-driven parameters
+        logging.info('Compute data-driven parameters')
+        if index != len(list(model.children())) - 1:
+            logging.info('LDA Transform')
+            W, B = lda.transform(
+                X=patches.reshape(patches.shape[0], -1),
+                y=labels
+            )
+        else:
+            logging.info('LDA Discriminants')
+            W, B = lda.discriminants(
+                X=minibatches_to_matrix(X),
+                y=np.squeeze(minibatches_to_matrix(y))
+            )
+
+        #######################################################################
+        # Reshape / Crop the parameters matrix to the proper size
+        if 'conv' in str(type(list(module.children())[0])):
+            # The T belongs to the reshape operation! It is NOT transposing the input! It is necessary to select columns
+            W = W.T.reshape(W.shape[0], module[0].in_channels, kernel_size[0], kernel_size[1])[:module[0].out_channels]
+            B = B[:module[0].out_channels]
+        else:
+            W = W  # / max(np.max(np.abs(B)),np.max(np.abs(W)))
+            B = B  # / max(np.max(np.abs(B)),np.max(np.abs(W)))
+
         # Assign parameters
         logging.info('Assign parameters')
-        # TODO select from LDA the relevant columns for as many filters there are
         module[0].weight.data = torch.Tensor(W)
         module[0].bias.data = torch.Tensor(B)
 
         # If the layer is not convolutional then flatten the data because
         # we assume it is a fully connected one
-        if 'conv' not in str(type(list(module.children())[0])):
+        # if 'conv' not in str(type(list(model.children())[index+1][0])):
+        if index == len(list(model.children())) - 1:
             logging.info('Flattening input')
-            X = X.view(X.size(0), -1)
+            for i, minibatch in enumerate(X):
+                X[i] = X[i].view(X[i].size(0), -1)
 
         # Forward pass
         logging.info('Forward pass')
         for i, minibatch in enumerate(X):
             X[i] = module(X[i])
-
-        # Compute data-driven parameters
-        W, C = lda.transform(
-            X=minibatches_to_matrix(X),
-            y=np.squeeze(minibatches_to_matrix(y))
-        )
 
 
 def minibatches_to_matrix(X):
