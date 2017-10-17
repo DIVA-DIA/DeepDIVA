@@ -6,6 +6,7 @@ has two functions) one should implement his own init function.
 
 # Utils
 import logging
+import math
 
 import numpy as np
 import torch
@@ -13,20 +14,6 @@ from sklearn.feature_extraction.image import extract_patches_2d
 
 # Init tools
 import util.lda as lda
-
-
-def get_patches(X, y, kernel_size):
-    all_patches, labels = [], []
-    for image, label in zip(X, y):
-        image = np.transpose(image, axes=[1, 2, 0])
-        patches = extract_patches_2d(image, kernel_size, max_patches=0.5)
-        all_patches.append(np.transpose(patches, axes=[0, 3, 1, 2]))
-        labels.append(np.repeat(label, len(patches)))
-
-    # Flatten them
-    all_patches = np.array([sample for minibatch in all_patches for sample in minibatch])
-    labels = np.array([sample for minibatch in labels for sample in minibatch])
-    return all_patches, labels
 
 
 def init(model, data_loader, *args, **kwargs):
@@ -102,8 +89,8 @@ def init(model, data_loader, *args, **kwargs):
             W = W.T.reshape(W.shape[0], module[0].in_channels, kernel_size[0], kernel_size[1])[:module[0].out_channels]
             B = B[:module[0].out_channels]
         else:
-            W = W / max(np.max(np.abs(B)), np.max(np.abs(W)))
-            B = B / max(np.max(np.abs(B)), np.max(np.abs(W)))
+            W = W / (max(np.max(np.abs(B)), np.max(np.abs(W))) * math.sqrt(W.shape[0]))
+            B = B / (max(np.max(np.abs(B)), np.max(np.abs(W))) * math.sqrt(W.shape[0]))
 
         # Assign parameters
         logging.info('Assign parameters')
@@ -122,6 +109,20 @@ def init(model, data_loader, *args, **kwargs):
         logging.info('Forward pass')
         for i, minibatch in enumerate(X):
             X[i] = module(X[i])
+
+
+def get_patches(X, y, kernel_size):
+    all_patches, labels = [], []
+    for image, label in zip(X, y):
+        image = np.transpose(image, axes=[1, 2, 0])
+        patches = extract_patches_2d(image, kernel_size, max_patches=None)
+        all_patches.append(np.transpose(patches, axes=[0, 3, 1, 2]))
+        labels.append(np.repeat(label, len(patches)))
+
+    # Flatten them
+    all_patches = np.array([sample for minibatch in all_patches for sample in minibatch])
+    labels = np.array([sample for minibatch in labels for sample in minibatch])
+    return all_patches, labels
 
 
 def minibatches_to_matrix(X):
