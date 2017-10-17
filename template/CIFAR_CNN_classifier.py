@@ -11,6 +11,7 @@ and they should be used instead of hard-coding stuff.
 import argparse
 import json
 import os
+import random
 import time
 
 # Tensor board
@@ -49,6 +50,9 @@ parser.add_argument('--log-dir',
                     help='where to save logs', default='./data/')
 
 # Training Options
+parser.add_argument('--init',
+                    help='specifies whether the network should be initialized or not ',
+                    default=False, action='store_true')
 parser.add_argument('--lr',
                     help='learning rate to be used for training',
                     type=float, default=0.001)
@@ -63,7 +67,7 @@ parser.add_argument('--test-batch-size',
                     type=int, default=64)
 parser.add_argument('--epochs',
                     help='how many epochs to train',
-                    type=int, default=5)
+                    type=int, default=20)
 parser.add_argument('--resume',
                     help='path to latest checkpoint',
                     default=None, type=str)
@@ -75,7 +79,7 @@ parser.add_argument('--gpu-id',
 parser.add_argument('--no-cuda',
                     default=False, action='store_true', help='run on CPU')
 parser.add_argument('--seed',
-                    default=None, help='random seed')
+                    type=int, default=None, help='random seed')
 parser.add_argument('--log-interval',
                     default=10, type=int,
                     help='print loss/accuracy every N batches')
@@ -84,12 +88,31 @@ parser.add_argument('-j', '--workers',
                     help='workers used for train/val loaders')
 args = parser.parse_args()
 
+# Experiment name override
+if args.experiment_name is None:
+    vars(args)['experiment_name'] = input("Experiment name:")
+
+###############################################################################
+# Seed the random
+
+if args.seed:
+    # Python
+    random.seed(args.seed)
+
+    # Numpy random
+    np.random.seed(args.seed)
+
+    # Torch random
+    torch.manual_seed(args.seed)
+    if not args.no_cuda:
+        torch.cuda.manual_seed_all(args.seed)
+        torch.backends.cudnn.enabled = False
+
 ###############################################################################
 # Setup Logging
 basename = args.log_dir
 experiment_name = args.experiment_name
-log_folder = os.path.join(basename, experiment_name,
-                          '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
+log_folder = os.path.join(basename, experiment_name, '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
 logfile = 'logs.txt'
 if not os.path.exists(log_folder):
     os.makedirs(log_folder)
@@ -114,7 +137,6 @@ writer = tensorboardX.SummaryWriter(log_dir=log_folder)
 # Set visible GPUs
 if args.gpu_id is not None:
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
-
 
 ###############################################################################
 def main():
@@ -172,7 +194,8 @@ def main():
     model = CNN_Basic(10)
     # model = CNN_Basic(10)
     # Init the model
-    init(model=model, data_loader=train_loader, num_points=50000)
+    if args.init:
+        init(model=model, data_loader=train_loader, num_points=50000)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -252,10 +275,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('train/loss', loss.data[0],
-                          epoch * len(train_loader) + i)
-        writer.add_scalar('train/accuracy', acc1.cpu().numpy(),
-                          epoch * len(train_loader) + i)
+        writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
+        writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
 
         # Reset gradient
         optimizer.zero_grad()
@@ -278,6 +299,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
                          'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
+
+    # Logging the epoch-wise accuracy
+    writer.add_scalar('train/accuracy', top1.avg, epoch)
+
     return
 
 
@@ -331,9 +356,9 @@ def validate(val_loader, model, criterion, epoch):
         top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('val/loss', loss.data[0],
+        writer.add_scalar('val/mb_loss', loss.data[0],
                           epoch * len(val_loader) + i)
-        writer.add_scalar('val/accuracy', acc1.cpu().numpy(),
+        writer.add_scalar('val/mb_accuracy', acc1.cpu().numpy(),
                           epoch * len(val_loader) + i)
 
         # Measure elapsed time
@@ -348,6 +373,9 @@ def validate(val_loader, model, criterion, epoch):
                          'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(val_loader), batch_time=batch_time, loss=losses,
                 top1=top1, top5=top5))
+
+    # Logging the epoch-wise accuracy
+    writer.add_scalar('val/accuracy', top1.avg, epoch - 1)
 
     print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))

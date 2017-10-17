@@ -102,8 +102,8 @@ def init(model, data_loader, *args, **kwargs):
             W = W.T.reshape(W.shape[0], module[0].in_channels, kernel_size[0], kernel_size[1])[:module[0].out_channels]
             B = B[:module[0].out_channels]
         else:
-            W = W  # / max(np.max(np.abs(B)),np.max(np.abs(W)))
-            B = B  # / max(np.max(np.abs(B)),np.max(np.abs(W)))
+            W = W / max(np.max(np.abs(B)), np.max(np.abs(W)))
+            B = B / max(np.max(np.abs(B)), np.max(np.abs(W)))
 
         # Assign parameters
         logging.info('Assign parameters')
