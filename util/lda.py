@@ -4,6 +4,8 @@ Linear Discriminant Analysis Algorithm
 It computes both the transformation matrix and the linear discriminants
 """
 
+import logging
+
 import numpy as np
 
 """
@@ -76,7 +78,18 @@ def transform(X, y):
     ###########################################################################
     # Step 3: Solving the generalized eigenvalue problem
     # beware of pinv() instead of inv()!!
-    eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(S_W).dot(S_B))
+    try:
+        eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(S_W).dot(S_B))
+    except np.linalg.LinAlgError:
+        # Not invertible. Skip this one.
+        pass
+
+    eig_vals = np.real(eig_vals)
+    eig_vecs = np.real(eig_vecs)
+
+    # continue with what you were doing
+
+    # eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(S_W).dot(S_B))
 
     ###########################################################################
     # Step 4: Selecting linear discriminants for the new feature subspace
@@ -99,36 +112,44 @@ def transform(X, y):
 
 
 def discriminants(X, y):
+
     # Check for sizes
     assert len(X.shape) == 2
     assert len(y.shape) == 1
 
     # Compute linear discriminants
+    logging.debug('Compute linear discriminants')
     NUM_CLASSES = len(np.unique(y))
     pooled_conv = np.zeros((X.shape[1], X.shape[1]))
+
     # Step 1: Computing the mean vectors
+    logging.debug('Step 1: Computing the mean vectors')
     for cl in range(NUM_CLASSES):
         pooled_conv += (float(len(X[y == cl]) - 1) / (
         len(X) - NUM_CLASSES)) * np.cov(np.transpose(X[y == cl]))
 
     # print('Pooled_cov: \n{}'.format(pooled_conv))
 
+    # Step 2: Computing prior probabilities
+    logging.debug('Step 2: Computing prior probabilities')
     prior_prob = []
     for cl in range(NUM_CLASSES):
         prior_prob.append(float(len(X[y == cl])) / len(X))
 
+    # Step 3: Main routine
+    logging.debug('Step 3: Main routine')
     W = np.zeros((NUM_CLASSES, X.shape[1]))
-    C = np.zeros((NUM_CLASSES))
+    C = np.zeros(NUM_CLASSES)
     for cl in range(NUM_CLASSES):
+        logging.debug('Class {}'.format(cl))
         mean_vector = np.mean(X[y == cl], axis=0)
         W[cl] = np.linalg.lstsq(pooled_conv, mean_vector)[0]
-        C[cl] = -0.5 * np.matmul(W[cl],
-                                 np.expand_dims(mean_vector, 0).T) + np.log(
-            prior_prob[cl])
+        C[cl] = -0.5 * np.matmul(W[cl], np.expand_dims(mean_vector, 0).T) + np.log(prior_prob[cl])
 
     W = W.T
     C = C.T
 
+    logging.debug('Finish')
     # We return the transpose because PYTORCH WANT THE MATRIX to be flipped!! BE CAREFUL WHEN THINKING ABOUT THIS!
     return W.T, C.T
 

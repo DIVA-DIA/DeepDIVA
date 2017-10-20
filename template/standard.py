@@ -18,6 +18,7 @@ import time
 import tensorboardX
 # Torch related stuff
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
@@ -25,12 +26,11 @@ import torchvision.transforms as transforms
 
 # DeepDIVA
 from dataset.CIFAR import CIFAR10, CIFAR100
-from init.init import *
-from model.CNN_basic import CNN_Basic
-from model.LDA_test import *
+from init.initializer import *
+from model import *
 from util.misc import AverageMeter, accuracy
 
-###############################################################################
+#######################################################################################################################
 # Argument Parser
 
 # Training Settings
@@ -92,7 +92,7 @@ args = parser.parse_args()
 if args.experiment_name is None:
     vars(args)['experiment_name'] = input("Experiment name:")
 
-###############################################################################
+#######################################################################################################################
 # Seed the random
 
 if args.seed:
@@ -108,7 +108,7 @@ if args.seed:
         torch.cuda.manual_seed_all(args.seed)
         torch.backends.cudnn.enabled = False
 
-###############################################################################
+#######################################################################################################################
 # Setup Logging
 basename = args.log_dir
 experiment_name = args.experiment_name
@@ -138,7 +138,8 @@ writer = tensorboardX.SummaryWriter(log_dir=log_folder)
 if args.gpu_id is not None:
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 
-###############################################################################
+
+#######################################################################################################################
 def main():
     """
     This is the main routine where train() and validate() are called.
@@ -155,12 +156,14 @@ def main():
                            train=True,
                            download=True,
                            transform=transforms.Compose(
+                               # [transforms.Scale((224,224)),transforms.ToTensor()]))
                                [transforms.ToTensor()]))
-
         test_ds = CIFAR10(root='.data/',
                           train=False,
                           download=True,
-                          transform=transforms.Compose([transforms.ToTensor()]))
+                          transform=transforms.Compose(
+                              # [transforms.Scale((224,224)),transforms.ToTensor()]))
+                              [transforms.ToTensor()]))
         num_outputs = 10
     else:
         train_ds = CIFAR100(root='.data/',
@@ -191,11 +194,11 @@ def main():
     # Initialize the model
     logging.info('Initialize model')
     # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = CNN_Basic(10)
-    # model = CNN_Basic(10)
+    model = AlexNet.AlexNet(num_outputs)
+    # model = CNN_Basic(num_outputs)
     # Init the model
     if args.init:
-        init(model=model, data_loader=train_loader, num_points=50000)
+        init_model(model=model, data_loader=train_loader, num_points=500)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -219,6 +222,9 @@ def main():
 
     #TODO being testing
     writer.close()
+
+
+#######################################################################################################################
 
 def train(train_loader, model, criterion, optimizer, epoch):
     """
@@ -391,5 +397,6 @@ if __name__ == "__main__":
     stderr_handler = logging.StreamHandler()
     stderr_handler.formatter = formatter
     logging.getLogger().addHandler(stderr_handler)
+    logging.getLogger().setLevel(logging.DEBUG)
     logging.info('Printing activity to the console')
     main()
