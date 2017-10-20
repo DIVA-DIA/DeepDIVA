@@ -25,8 +25,8 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 
 # DeepDIVA
-from dataset.CIFAR import CIFAR10, CIFAR100
-from model.CNN_basic import *
+import dataset
+import model as models
 from util.misc import AverageMeter, accuracy
 
 ###############################################################################
@@ -49,6 +49,9 @@ parser.add_argument('--log-dir',
                     help='where to save logs', default='./data/')
 
 # Training Options
+parser.add_argument('--model',
+                    help='which model to use for training',
+                    type=str, default='CNN_Basic')
 parser.add_argument('--lr',
                     help='learning rate to be used for training',
                     type=float, default=0.001)
@@ -125,14 +128,14 @@ def main():
 
     # Loading dataset
     # TODO load the validation set (if any)
-    # TODO load a ds passed from parameter NICELY
     logging.info('Initalizing dataset {}'.format(args.dataset))
 
+    # TODO Load model expected size from the actual model
     model_expected_input_size = (32, 32)
-    logging.info('Model {} expects input size of {}'.format(args.dataset,
+    logging.info('Model {} expects input size of {}'.format(args.model,
                                                             model_expected_input_size))
 
-    train_ds = CIFAR.__dict__[args.dataset](root='.data/',
+    train_ds = dataset.__dict__[args.dataset](root='.data/',
                                             train=True,
                                             download=True)
 
@@ -142,7 +145,7 @@ def main():
         transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
-    test_ds = CIFAR.__dict__[args.dataset](root='.data/',
+    test_ds = dataset.__dict__[args.dataset](root='.data/',
                                            train=False,
                                            download=True)
 
@@ -167,8 +170,7 @@ def main():
     # Initialize the model
     logging.info('Initialize model')
     # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = CNN_basic.CNN_Basic(train_ds.num_classes)
-    # model = models.resnet18(pretrained=False, num_classes=10)
+    model = models.__dict__[args.model](train_ds.num_classes)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(),
                                                      args.lr)
     criterion = nn.CrossEntropyLoss()
