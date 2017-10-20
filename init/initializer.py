@@ -112,14 +112,37 @@ def init(model, data_loader, *args, **kwargs):
 
 
 def get_patches(X, y, kernel_size):
+    """
+    Extract patches out of a set of N images passed as parameter. Additionally returns the relative set of labels
+    corresponding to each patch
+    :param X: ndarray(N,depth,width,height)
+        set of images to take the patch from.
+    :param y: ndarray(N,)
+        set of labels (GT). There must be one for each of the images contained in X.
+    :param kernel_size: tuple(width,height)
+        size of the kernel to use to extract the patches.
+    :return:
+    all_patches: ndarray(N*patch_per_image,depth*width*height)
+        list of patches flattened
+    labels: ndarray(N*patch_per_image,)
+        list of labels for each of the elements of 'all_patches'
+    """
+    # Init the return values
     all_patches, labels = [], []
+
+    # For all images in X
     for image, label in zip(X, y):
+        # Transform the image in the right format for extract_patches_2d(). Needed as channels are not in same order
         image = np.transpose(image, axes=[1, 2, 0])
-        patches = extract_patches_2d(image, kernel_size, max_patches=None)
+        # Extract the patches
+        # TODO upload a fix to sklearn of wherever the bug is!
+        patches = extract_patches_2d(image, kernel_size, max_patches=0.9999999)
+        # Append the patches to the list of all patches extracted and "restore" the order of the channels.
         all_patches.append(np.transpose(patches, axes=[0, 3, 1, 2]))
+        # Append the labels to the list of labels, by replicating the current one for as many patches has been extracted
         labels.append(np.repeat(label, len(patches)))
 
-    # Flatten them
+    # Flatten everything (here 'all_patches' is a list of lists in which each element is a 3D  patch )
     all_patches = np.array([sample for minibatch in all_patches for sample in minibatch])
     labels = np.array([sample for minibatch in labels for sample in minibatch])
     return all_patches, labels
@@ -129,8 +152,10 @@ def minibatches_to_matrix(X):
     """
     Flattens the a list of matrices of shape[[minibatch, dim_1, ..., dim_n], [minibatch, dim_1, ..., dim_n] ...] such
     that it becomes [minibatch * len(list), dim_1 * dim_2 ... *dim_n]
-    :param X: list of matrices
-    :return: flattened matrix
+    :param X:
+        list of matrices
+    :return:
+        flattened matrix
     """
     return np.array([sample.data.view(-1).numpy() for minibatch in X for sample in minibatch])
 
