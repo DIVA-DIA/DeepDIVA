@@ -2,10 +2,10 @@
 CNN with 3 conv layers and a fully connected classification layer
 """
 
-import torch
+import torch.nn as nn
 
 
-class CNN_Basic(torch.nn.Module):
+class CNN_Basic(nn.Module):
     """
     :var conv1   : torch.nn.Conv2d
     :var conv2   : torch.nn.Conv2d
@@ -14,9 +14,6 @@ class CNN_Basic(torch.nn.Module):
 
     :var fc      : torch.nn.Linear
         Final fully connected layer
-
-    :var af      : torch.nn.Softsign
-        Activation function
     """
 
     def __init__(self, num_classes):
@@ -25,15 +22,25 @@ class CNN_Basic(torch.nn.Module):
         """
         super(CNN_Basic, self).__init__()
         # First layer
-        self.conv1 = torch.nn.Conv2d(3, 24, kernel_size=5, stride=3)
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 24, kernel_size=5, stride=3),
+            nn.Softsign()
+        )
         # Second layer
-        self.conv2 = torch.nn.Conv2d(24, 48, kernel_size=3, stride=2)
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(24, 48, kernel_size=3, stride=2),
+            nn.Softsign()
+        )
         # Third layer
-        self.conv3 = torch.nn.Conv2d(48, 72, kernel_size=3, stride=2)
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(48, 72, kernel_size=3, stride=1),
+            nn.Softsign()
+        )
+
         # Classification layer
-        self.fc = torch.nn.Linear(72, num_classes)
-        # Activation function
-        self.af = torch.nn.Softsign()
+        self.fc = nn.Sequential(
+            nn.Linear(288, num_classes)
+        )
 
     def forward(self, x):
         """
@@ -43,15 +50,9 @@ class CNN_Basic(torch.nn.Module):
         :return: torch.Tensor
             Activations of the fully connected layer
         """
-        # Forward first layer
-        c1 = self.conv1(x)
-        c1_ss = self.af(c1)
-        # Forward second layer
-        c2 = self.conv2(c1_ss)
-        c2_ss = self.af(c2)
-        # Forward third layer
-        c3 = self.conv3(c2_ss)
-        c3_ss = self.af(c3)
-        # Forward fully connected layer
-        fc = self.fc(c3_ss.view(c3_ss.size()[0], -1))
-        return fc
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
