@@ -68,7 +68,7 @@ def init_model(model, data_loader, *args, **kwargs):
             init_input = patches.reshape(patches.shape[0], -1)
             init_labels = labels
         else:
-            init_input = minibatches_to_matrix(X),
+            init_input = minibatches_to_matrix(X)
             init_labels = np.squeeze(minibatches_to_matrix(y))
 
         #######################################################################
