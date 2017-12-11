@@ -21,7 +21,7 @@ class LDA_CIFAR(nn.Module):
         Final fully connected layer for classification
     """
 
-    def __init__(self):
+    def __init__(self, num_classes):
         super(LDA_CIFAR, self).__init__()
         # First layer
         self.conv1 = nn.Sequential(  # in: 32x32x3 out: 32x32x16
@@ -62,7 +62,7 @@ class LDA_CIFAR(nn.Module):
 
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(in_features=4 * 4 * 128, out_features=10),
+            nn.Linear(in_features=4 * 4 * 128, out_features=num_classes),
         )
 
     def forward(self, x):
