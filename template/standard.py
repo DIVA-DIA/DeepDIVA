@@ -31,7 +31,7 @@ from init.initializer import *
 from model import *
 from util.misc import AverageMeter, accuracy
 
-#######################################################################################################################
+###############################################################################
 # Argument Parser
 
 # Training Settings
@@ -58,6 +58,9 @@ parser.add_argument('--log-folder',
 parser.add_argument('--init',
                     help='specifies whether the network should be initialized or not ',
                     default=False, action='store_true')
+parser.add_argument('--model',
+                    help='which model to use for training',
+                    type=str, default='CNN_Basic')
 parser.add_argument('--lr',
                     help='learning rate to be used for training',
                     type=float, default=0.001)
@@ -164,59 +167,35 @@ def main():
     # TODO load the validation set (if any)
     # TODO load a ds passed from parameter NICELY
     logging.info('Initalizing dataset {}'.format(args.dataset))
-    if args.dataset == 'CIFAR10':
-        train_ds = CIFAR10(root='.data/',
-                           train=True,
-                           download=True,
-                           )
-        val_ds = CIFAR10(root='.data/',
-                         train=False,
-                         val=True,
-                         download=True,
-                         )
-        test_ds = CIFAR10(root='.data/',
-                          train=False,
-                          download=True,
-                          )
-        num_outputs = 10
-    else:
-        train_ds = CIFAR100(root='.data/',
-                            train=True,
-                            download=True,
-                            )
 
-        test_ds = CIFAR100(root='.data/',
-                           train=False,
-                           download=True,
-                           )
-        num_outputs = 100
+    # TODO Load model expected size from the actual model
+    model_expected_input_size = (32, 32)
+    logging.info('Model {} expects input size of {}'.format(args.model,
+                                                            model_expected_input_size))
+
+    train_ds = dataset.__dict__[args.dataset](root='.data/',
+                                            train=True,
+                                            download=True)
 
     train_ds.transform = transforms.Compose([
-        # transforms.Scale((224, 224)),
+        transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
-        # transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
-    val_ds.transform = transforms.Compose([
-        # transforms.Scale((224, 224)),
-        transforms.ToTensor(),
-        # transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
+    test_ds = dataset.__dict__[args.dataset](root='.data/',
+                                           train=False,
+                                           download=True)
 
     test_ds.transform = transforms.Compose([
-        # transforms.Scale((224, 224)),
+        transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
-        # transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
     # Setup dataloaders
     logging.info('Set up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
-                                               batch_size=args.batch_size,
-                                               num_workers=args.workers,
-                                               pin_memory=True)
-
-    val_loader = torch.utils.data.DataLoader(val_ds,
                                                batch_size=args.batch_size,
                                                num_workers=args.workers,
                                                pin_memory=True)
@@ -229,12 +208,14 @@ def main():
     # Initialize the model
     logging.info('Initialize model')
     # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = AlexNet.AlexNet(num_outputs)
-    # model = CNN_Basic(num_outputs)
+    model = models.__dict__[args.model](train_ds.num_classes)
+
     # Init the model
     if args.init:
         init_model(model=model, data_loader=train_loader, num_points=500)
-    optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
+
+    optimizer = torch.optim.__dict__[args.optimizer](model.parameters(),
+                                                     args.lr)
     criterion = nn.CrossEntropyLoss()
 
     # Transfer model to GPU (if desired)
@@ -258,24 +239,6 @@ def main():
                   .format(args.resume, checkpoint['epoch']))
         else:
             logging.info("No checkpoint found at '{}'".format(args.resume))
-
-    else:
-        val_losses = []
-
-
-
-
-
-    # Initialize values for freezeR/rev_freezeR
-    unfreeze_everything = False
-    freeze = args.freeze
-    rev_freeze = args.rev_freeze
-    if freeze:
-        unfrozen_layer = 0
-    else:
-        unfrozen_layer = len(list(list(model.children())[0].children())) - 1
-
-
 
     # Begin training
     logging.info('Begin training')
@@ -571,12 +534,10 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
 
 if __name__ == "__main__":
     # Set up logging to console
-    formatter = logging.Formatter(
-        fmt='%(asctime)s %(funcName)s %(levelname)-8s %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S')
+    fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
     stderr_handler = logging.StreamHandler()
-    stderr_handler.formatter = formatter
+    stderr_handler.formatter = fmtr
     logging.getLogger().addHandler(stderr_handler)
-    logging.getLogger().setLevel(logging.DEBUG)
     logging.info('Printing activity to the console')
+
     main()
