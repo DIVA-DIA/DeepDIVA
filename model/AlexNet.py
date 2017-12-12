@@ -1,9 +1,8 @@
+import logging
+
 import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
-
-__all__ = ['AlexNet', 'alexnet']
-
 
 model_urls = {
     'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
@@ -81,10 +80,10 @@ class AlexNet(nn.Module):
             try:
                 own_state[own].copy_(state_dict[pt].data)
             except:
-                print('While copying the parameter named {}, whose dimensions in the model are'
+                logging.debug('While copying the parameter named {}, whose dimensions in the model are'
                       ' {} and whose dimensions in the checkpoint are {}, ...'.format(
-                          own, own_state[own].size(), state_dict[pt].size()))
-                raise
+                    own, own_state[own].size(), state_dict[pt].size()))
+
 
 
 def alexnet(pretrained=False, **kwargs):
