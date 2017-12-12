@@ -162,29 +162,38 @@ def main():
     """
 
     # Loading dataset
-    # TODO load the validation set (if any)
-    # TODO load a ds passed from parameter NICELY
+    # TODO load a ds passed from parameter NICELY - done?
     logging.info('Initalizing dataset {}'.format(args.dataset))
 
-    # TODO Load model expected size from the actual model
-    model_expected_input_size = (227, 227)
+    model_expected_input_size = models.__dict__[args.model].expected_input_size
     logging.info('Model {} expects input size of {}'.format(args.model,
                                                             model_expected_input_size))
 
+    ####################################################################################################################
+    # Set up datasets and dataloaders
+
+    # Initialize train,val and test datasets.
     train_ds = dataset.__dict__[args.dataset](root='.data/',
                                             train=True,
                                             download=True)
 
+    val_ds = dataset.__dict__[args.dataset](root='.data/',
+                                            train=False,
+                                            val=True,
+                                            download=True)
+
+    test_ds = dataset.__dict__[args.dataset](root='.data/',
+                                           train=False,
+                                           download=True)
+
+
+    # Set up dataset transforms
     train_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
-    val_ds = dataset.__dict__[args.dataset](root='.data/',
-                                            train=False,
-                                            val=True,
-                                            download=True)
 
     val_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
@@ -192,9 +201,6 @@ def main():
         transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
-    test_ds = dataset.__dict__[args.dataset](root='.data/',
-                                           train=False,
-                                           download=True)
 
     test_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
@@ -218,7 +224,7 @@ def main():
                                               batch_size=args.batch_size,
                                               num_workers=args.workers,
                                               pin_memory=True)
-
+    ####################################################################################################################
     # Initialize the model
     logging.info('Initialize model')
     model = models.__dict__[args.model](num_classes=train_ds.num_classes, pretrained=args.pretrained)
@@ -233,6 +239,7 @@ def main():
         criterion = criterion.cuda()
         cudnn.benchmark = True
 
+    # Resume from checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
             logging.info("Loading checkpoint '{}'".format(args.resume))
@@ -250,6 +257,7 @@ def main():
     else:
         best_prec1 = 0.0
 
+    ####################################################################################################################
     # Begin training
     logging.info('Begin training')
     for i in range(args.start_epoch, args.epochs):
@@ -269,10 +277,9 @@ def main():
             'optimizer': optimizer.state_dict(),
         }, is_best, filename=os.path.join(log_folder, 'checkpoint.pth.tar'))
 
+
     test(test_loader, model, criterion, i)
     logging.info('Training completed')
-
-    #TODO being testing
     writer.close()
 
 

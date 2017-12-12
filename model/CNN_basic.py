@@ -21,6 +21,9 @@ class CNN_Basic(nn.Module):
         :param num_classes: the number of classes in the dataset
         """
         super(CNN_Basic, self).__init__()
+
+        self.expected_input_size = (32, 32)
+
         # First layer
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 24, kernel_size=5, stride=3),
