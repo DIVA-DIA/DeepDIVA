@@ -7,6 +7,7 @@ cifar = CIFAR10("./data/dataset/",train=True, torchvision.transforms.Compose([to
 import os
 import os.path
 import pickle
+import logging
 
 import numpy as np
 from PIL import Image
@@ -90,9 +91,9 @@ class CIFAR10(data.Dataset):
             self.train_data = np.concatenate(self.train_data)
             self.train_data = self.train_data.reshape((50000, 3, 32, 32))
             self.train_data = self.train_data.transpose((0, 2, 3, 1))  # convert to HWC
-            self.mean, self.std = self._compute_mean_std()
             self.train_data = self.train_data[:40000]
             self.train_labels = self.train_labels[:40000]
+            self.mean, self.std = self._compute_mean_std()
         elif self.val:
             self.train_data = []
             self.train_labels = []
@@ -131,12 +132,13 @@ class CIFAR10(data.Dataset):
 
     def _compute_mean_std(self):
         """
-        Computes the mean and std for R,G   ,B channels
+        Computes the mean and std for R,G,B channels
         :return:
         """
-        flatten_train = np.transpose(self.train_data.reshape((50000, 3, 1024)), [1, 0, 2]).reshape(3, 51200000)
-        mean = np.mean(flatten_train, 1)
-        std = np.std(flatten_train, 1)
+        mean = np.array([np.mean(self.train_data[:, :, :, 0]), np.mean(self.train_data[:, :, :, 1]),
+                         np.mean(self.train_data[:, :, :, 2])]) / 255.0
+        std = np.array([np.std(self.train_data[:, :, :, 0]), np.std(self.train_data[:, :, :, 1]),
+                        np.std(self.train_data[:, :, :, 2])]) / 255.0
         return mean, std
 
     def __getitem__(self, index):
@@ -187,7 +189,7 @@ class CIFAR10(data.Dataset):
         import tarfile
 
         if self._check_integrity():
-            print('Files already downloaded and verified')
+            logging.info('Files downloaded and verified')
             return
 
         root = self.root
