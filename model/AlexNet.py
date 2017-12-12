@@ -2,9 +2,6 @@ import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
-__all__ = ['AlexNet', 'alexnet']
-
-
 model_urls = {
     'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
 }
@@ -83,7 +80,7 @@ class AlexNet(nn.Module):
             except:
                 print('While copying the parameter named {}, whose dimensions in the model are'
                       ' {} and whose dimensions in the checkpoint are {}, ...'.format(
-                          own, own_state[own].size(), state_dict[pt].size()))
+                    own, own_state[own].size(), state_dict[pt].size()))
                 raise
 
 
