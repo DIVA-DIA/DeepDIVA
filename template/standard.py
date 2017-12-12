@@ -15,6 +15,7 @@ import random
 import time
 import shutil
 import logging
+import numpy as np
 
 # Tensor board
 import tensorboardX
@@ -27,8 +28,8 @@ import torch.utils.data
 import torchvision.transforms as transforms
 
 # DeepDIVA
-from dataset.CIFAR import CIFAR10, CIFAR100
-from model import *
+import dataset
+import model as models
 from util.misc import AverageMeter, accuracy
 
 ###############################################################################
@@ -166,7 +167,7 @@ def main():
     logging.info('Initalizing dataset {}'.format(args.dataset))
 
     # TODO Load model expected size from the actual model
-    model_expected_input_size = (32, 32)
+    model_expected_input_size = (227, 227)
     logging.info('Model {} expects input size of {}'.format(args.model,
                                                             model_expected_input_size))
 
@@ -175,6 +176,17 @@ def main():
                                             download=True)
 
     train_ds.transform = transforms.Compose([
+        transforms.Scale(model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+    ])
+
+    val_ds = dataset.__dict__[args.dataset](root='.data/',
+                                            train=False,
+                                            val=True,
+                                            download=True)
+
+    val_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
@@ -197,6 +209,11 @@ def main():
                                                num_workers=args.workers,
                                                pin_memory=True)
 
+    val_loader = torch.utils.data.DataLoader(val_ds,
+                                              batch_size=args.batch_size,
+                                              num_workers=args.workers,
+                                              pin_memory=True)
+
     test_loader = torch.utils.data.DataLoader(test_ds,
                                               batch_size=args.batch_size,
                                               num_workers=args.workers,
@@ -204,8 +221,7 @@ def main():
 
     # Initialize the model
     logging.info('Initialize model')
-    # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = models.__dict__[args.model](train_ds.num_classes)
+    model = models.__dict__[args.model](num_classes=train_ds.num_classes, pretrained=args.pretrained)
 
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
@@ -231,6 +247,8 @@ def main():
                   .format(args.resume, checkpoint['epoch']))
         else:
             logging.info("No checkpoint found at '{}'".format(args.resume))
+    else:
+        best_prec1 = 0.0
 
     # Begin training
     logging.info('Begin training')
@@ -251,6 +269,7 @@ def main():
             'optimizer': optimizer.state_dict(),
         }, is_best, filename=os.path.join(log_folder, 'checkpoint.pth.tar'))
 
+    test(test_loader, model, criterion, i)
     logging.info('Training completed')
 
     #TODO being testing
