@@ -164,8 +164,7 @@ def main():
     # Loading dataset
     # TODO load a ds passed from parameter NICELY - done?
     logging.info('Initalizing dataset {}'.format(args.dataset))
-
-    model_expected_input_size = models.__dict__[args.model].expected_input_size
+    model_expected_input_size = models.__dict__[args.model]().expected_input_size
     logging.info('Model {} expects input size of {}'.format(args.model,
                                                             model_expected_input_size))
 

@@ -16,7 +16,7 @@ class CNN_Basic(nn.Module):
         Final fully connected layer
     """
 
-    def __init__(self, num_classes, **kwargs):
+    def __init__(self, num_classes=10, **kwargs):
         """
         :param num_classes: the number of classes in the dataset
         """

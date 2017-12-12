@@ -21,7 +21,7 @@ class LDA_CIFAR(nn.Module):
         Final fully connected layer for classification
     """
 
-    def __init__(self, num_classes, **kwargs):
+    def __init__(self, num_classes=10, **kwargs):
         super(LDA_CIFAR, self).__init__()
 
         self.expected_input_size = (32, 32)
@@ -95,7 +95,7 @@ class LDA_simple(nn.Module):
         Final fully connected layer for classification
     """
 
-    def __init__(self, num_classes, **kwargs):
+    def __init__(self, num_classes=10, **kwargs):
         super(LDA_simple, self).__init__()
 
         self.expected_input_size = (32, 32)
