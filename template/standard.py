@@ -10,13 +10,16 @@ and they should be used instead of hard-coding stuff.
 # Utils
 import argparse
 import json
+import logging
 import os
 import random
-import time
 import shutil
-import logging
-import numpy as np
+import time
+import traceback
+import sys
+import inspect
 
+import numpy as np
 # Tensor board
 import tensorboardX
 # Torch related stuff
@@ -32,80 +35,60 @@ import dataset
 import model as models
 from util.misc import AverageMeter, accuracy
 
-def main(args, writer):
+
+def main(args, writer, log_folder):
     """
     This is the main routine where train() and validate() are called.
     :return:
         None
     """
 
-    # Loading dataset
-    # TODO load a ds passed from parameter NICELY - done?
-    logging.info('Initalizing dataset {}'.format(args.dataset))
     model_expected_input_size = models.__dict__[args.model]().expected_input_size
     logging.info('Model {} expects input size of {}'.format(args.model,
                                                             model_expected_input_size))
 
-    ####################################################################################################################
-    # Set up datasets and dataloaders
+    # Setting up dataset and dataloaders
+    train_loader, val_loader, test_loader, num_classes = \
+        set_up_dataloaders(model_expected_input_size=model_expected_input_size,
+                           args=args)
 
-    # Initialize train,val and test datasets.
-    train_ds = dataset.__dict__[args.dataset](root='.data/',
-                                            train=True,
-                                            download=True)
+    # Setting up model, optimizer, criterion
+    model, criterion, optimizer, best_prec = set_up_model(num_classes=num_classes,
+                                                          args=args)
 
-    val_ds = dataset.__dict__[args.dataset](root='.data/',
-                                            train=False,
-                                            val=True,
-                                            download=True)
+    # Begin training
+    logging.info('Begin training')
+    for i in range(args.start_epoch, args.epochs):
+        val_prec = validate(val_loader, model, criterion, writer, i)
+        train(train_loader, model, criterion, optimizer, writer, i)
+        if args.decay_lr is not None:
+            adjust_learning_rate(optimizer, i, args.decay_lr)
+        maybe_save_model(i, val_prec, best_prec, model, optimizer, log_folder)
 
-    test_ds = dataset.__dict__[args.dataset](root='.data/',
-                                           train=False,
-                                           download=True)
+    test(test_loader, model, criterion, writer, i)
+    logging.info('Training completed')
 
-
-    # Set up dataset transforms
-    train_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
+    return
 
 
-    val_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
+def maybe_save_model(i, val_prec1, best_prec1, model, optimizer, log_folder):
+    is_best = val_prec1 > best_prec1
+    best_prec1 = max(val_prec1, best_prec1)
+    save_checkpoint({
+        'epoch': i + 1,
+        'arch': str(type(model)),
+        'state_dict': model.state_dict(),
+        'best_prec': best_prec1,
+        'optimizer': optimizer.state_dict(),
+    }, is_best, filename=os.path.join(log_folder, 'checkpoint.pth.tar'))
 
 
-    test_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
+#######################################################################################################################
 
-    # Setup dataloaders
-    logging.info('Set up dataloaders')
-    train_loader = torch.utils.data.DataLoader(train_ds,
-                                               batch_size=args.batch_size,
-                                               num_workers=args.workers,
-                                               pin_memory=True)
-
-    val_loader = torch.utils.data.DataLoader(val_ds,
-                                              batch_size=args.batch_size,
-                                              num_workers=args.workers,
-                                              pin_memory=True)
-
-    test_loader = torch.utils.data.DataLoader(test_ds,
-                                              batch_size=args.batch_size,
-                                              num_workers=args.workers,
-                                              pin_memory=True)
-    ####################################################################################################################
+def set_up_model(num_classes, args):
     # Initialize the model
-    logging.info('Initialize model')
-    model = models.__dict__[args.model](num_classes=train_ds.num_classes, pretrained=args.pretrained)
-
+    logging.info('Setting up model {}'.format(args.model))
+    model = models.__dict__[args.model](num_classes=num_classes, pretrained=args.pretrained)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -122,47 +105,81 @@ def main(args, writer):
             logging.info("Loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
-            best_prec1 = checkpoint['best_prec1']
+            best_prec = checkpoint['best_prec']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             val_losses = []
             val_losses.append(checkpoint['val_loss'])
             logging.info("Loaded checkpoint '{}' (epoch {})"
-                  .format(args.resume, checkpoint['epoch']))
+                         .format(args.resume, checkpoint['epoch']))
         else:
-            logging.info("No checkpoint found at '{}'".format(args.resume))
+            logging.warning("No checkpoint found at '{}'".format(args.resume))
     else:
-        best_prec1 = 0.0
-
-    ####################################################################################################################
-    # Begin training
-    logging.info('Begin training')
-    for i in range(args.start_epoch, args.epochs):
-        # TODO pass the validation loader (if any)
-        val_loss, val_prec1 = validate(val_loader, model, criterion, i)
-        train(train_loader, model, criterion, optimizer, i)
-        if args.decay_lr is not None:
-            adjust_learning_rate(optimizer, i, args.decay_lr)
-
-        is_best = val_prec1 > best_prec1
-        best_prec1 = max(val_prec1, best_prec1)
-        save_checkpoint({
-            'epoch': i + 1,
-            'arch': str(type(model)),
-            'state_dict': model.state_dict(),
-            'best_prec1': best_prec1,
-            'optimizer': optimizer.state_dict(),
-        }, is_best, filename=os.path.join(log_folder, 'checkpoint.pth.tar'))
-
-
-    test(test_loader, model, criterion, i)
-    logging.info('Training completed')
-    writer.close()
+        best_prec = 0.0
+    return model, criterion, optimizer, best_prec
 
 
 #######################################################################################################################
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def set_up_dataloaders(model_expected_input_size, args):
+    # Set up datasets and dataloaders
+    # Initialize train,val and test datasets.
+    logging.info('Loading datasets')
+    train_ds = dataset.__dict__[args.dataset](root='.data/',
+                                              train=True,
+                                              download=True)
+
+    val_ds = dataset.__dict__[args.dataset](root='.data/',
+                                            train=False,
+                                            val=True,
+                                            download=True)
+
+    test_ds = dataset.__dict__[args.dataset](root='.data/',
+                                             train=False,
+                                             download=True)
+
+    # Set up dataset transforms
+    train_ds.transform = transforms.Compose([
+        transforms.Scale(model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+    ])
+
+    val_ds.transform = transforms.Compose([
+        transforms.Scale(model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+    ])
+
+    test_ds.transform = transforms.Compose([
+        transforms.Scale(model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+    ])
+
+    # Setup dataloaders
+    logging.info('Setting up dataloaders')
+    train_loader = torch.utils.data.DataLoader(train_ds,
+                                               batch_size=args.batch_size,
+                                               num_workers=args.workers,
+                                               pin_memory=True)
+
+    val_loader = torch.utils.data.DataLoader(val_ds,
+                                             batch_size=args.batch_size,
+                                             num_workers=args.workers,
+                                             pin_memory=True)
+
+    test_loader = torch.utils.data.DataLoader(test_ds,
+                                              batch_size=args.batch_size,
+                                              num_workers=args.workers,
+                                              pin_memory=True)
+
+    return train_loader, val_loader, test_loader, train_ds.num_classes
+
+
+#######################################################################################################################
+
+def train(train_loader, model, criterion, optimizer, writer, epoch):
     """
     Training routine
     :param train_loader:    torch.utils.data.DataLoader
@@ -248,7 +265,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     return
 
 
-def validate(val_loader, model, criterion, epoch):
+def validate(val_loader, model, criterion, writer, epoch):
     """
     The validation routine
     :param val_loader:    torch.utils.data.DataLoader
@@ -319,13 +336,13 @@ def validate(val_loader, model, criterion, epoch):
     # Logging the epoch-wise accuracy
     writer.add_scalar('val/accuracy', top1.avg, epoch - 1)
 
-    print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
+    logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
 
-    return losses.avg, top1.avg
+    return top1.avg
 
 
-def test(val_loader, model, criterion, epoch):
+def test(val_loader, model, criterion, writer, epoch):
     """
     The validation routine
     :param val_loader:    torch.utils.data.DataLoader
@@ -396,7 +413,7 @@ def test(val_loader, model, criterion, epoch):
     # Logging the epoch-wise accuracy
     writer.add_scalar('test/accuracy', top1.avg, epoch - 1)
 
-    print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
+    logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
 
     return losses.avg
@@ -408,12 +425,18 @@ def adjust_learning_rate(optimizer, epoch, num_epochs):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
+
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, os.path.join(os.path.split(filename)[0],'model_best.pth.tar'))
+        shutil.copyfile(filename, os.path.join(os.path.split(filename)[0], 'model_best.pth.tar'))
+
 
 if __name__ == "__main__":
+
+    model_options = [name for name in models.__dict__ if callable(models.__dict__[name])]
+    dataset_options = [name for name in dataset.__dict__ if callable(dataset.__dict__[name])]
+    optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
 
     ###############################################################################
     # Argument Parser
@@ -421,65 +444,75 @@ if __name__ == "__main__":
     # Training Settings
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Template for training CNN on CIFAR')
+        description='Template for training a network on a dataset')
+
+    parser_general = parser.add_argument_group('GENERAL', 'General Options')
+    parser_data = parser.add_argument_group('DATA', 'Dataset Options')
+    parser_train = parser.add_argument_group('TRAIN', 'Training Options')
+    parser_system = parser.add_argument_group('SYS', 'System Options')
 
     # General Options
-    parser.add_argument('--experiment-name',
-                        help='provide a meaningful and descriptive name to this run',
-                        default=None, type=str)
+    parser_general.add_argument('--experiment-name',
+                                help='provide a meaningful and descriptive name to this run',
+                                default=None, type=str)
+    parser_general.add_argument('--quiet',
+                                action='store_true',
+                                help='Do not print to stdout (log only).')
 
     # Data Options
-    parser.add_argument('--dataset',
-                        help='one of {CIFAR10, CIFAR100}', default='CIFAR10')
-    parser.add_argument('--log-dir',
-                        help='where to save logs', default='./data/')
-    parser.add_argument('--log-folder',
-                        help='override default log folder (to resume logging of experiment)',
-                        default=None,
-                        type=str)
+    parser_data.add_argument('--dataset',
+                             choices=dataset_options,
+                             help='which dataset to train/test on', default='CIFAR10')
+    parser_data.add_argument('--log-dir',
+                             help='where to save logs', default='./data/')
+    parser_data.add_argument('--log-folder',
+                             help='override default log folder (to resume logging of experiment)',
+                             default=None,
+                             type=str)
 
     # Training Options
-    parser.add_argument('--model',
-                        help='which model to use for training',
-                        type=str, default='CNN_Basic')
-    parser.add_argument('--lr',
-                        help='learning rate to be used for training',
-                        type=float, default=0.001)
-    parser.add_argument('--optimizer',
-                        help='optimizer to be used for training. {Adam, SGD}',
-                        default='Adam')
-    parser.add_argument('--batch-size',
-                        help='input batch size for training',
-                        type=int, default=64)
-    parser.add_argument('--test-batch-size',
-                        help='input batch size for testing',
-                        type=int, default=64)
-    parser.add_argument('--epochs',
-                        help='how many epochs to train',
-                        type=int, default=20)
-    parser.add_argument('--resume',
-                        help='path to latest checkpoint',
-                        default=None, type=str)
-    parser.add_argument('--pretrained',
-                        default=False, action='store_true', help='use pretrained model')
-    parser.add_argument('--decay_lr',
-                        default=None, type=int, help='drop LR by 10 every N epochs')
-    parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                        help='manual epoch number (useful on restarts)')
+    parser_train.add_argument('--model',
+                              choices=model_options,
+                              help='which model to use for training',
+                              type=str, default='CNN_Basic')
+    parser_train.add_argument('--lr',
+                              help='learning rate to be used for training',
+                              type=float, default=0.001)
+    parser_train.add_argument('--optimizer',
+                              choices=optimizer_options,
+                              help='optimizer to be used for training',
+                              default='Adam')
+    parser_train.add_argument('--batch-size',
+                              help='input batch size for training',
+                              type=int, default=64)
+    parser_train.add_argument('--epochs',
+                              help='how many epochs to train',
+                              type=int, default=20)
+    parser_train.add_argument('--resume',
+                              help='path to latest checkpoint',
+                              default=None, type=str)
+    parser_train.add_argument('--pretrained',
+                              default=False, action='store_true',
+                              help='use pretrained model. (Not applicable for all models)')
+    parser_train.add_argument('--decay_lr',
+                              default=None, type=int, help='drop LR by 10 every N epochs')
+    parser_train.add_argument('--start-epoch', default=0, type=int, metavar='N',
+                              help='manual epoch number (useful on restarts)')
     # System Options
-    parser.add_argument('--gpu-id',
-                        default=None,
-                        help='which GPUs to use for training (use all by default)')
-    parser.add_argument('--no-cuda',
-                        default=False, action='store_true', help='run on CPU')
-    parser.add_argument('--seed',
-                        type=int, default=None, help='random seed')
-    parser.add_argument('--log-interval',
-                        default=10, type=int,
-                        help='print loss/accuracy every N batches')
-    parser.add_argument('-j', '--workers',
-                        default=4, type=int,
-                        help='workers used for train/val loaders')
+
+    parser_system.add_argument('--gpu-id',
+                               default=None,
+                               help='which GPUs to use for training (use all by default)')
+    parser_system.add_argument('--no-cuda',
+                               default=False, action='store_true', help='run on CPU')
+    parser_system.add_argument('--seed',
+                               type=int, default=None, help='random seed')
+    parser_system.add_argument('--log-interval',
+                               default=10, type=int,
+                               help='print loss/accuracy every N batches')
+    parser_system.add_argument('-j', '--workers',
+                               default=4, type=int,
+                               help='workers used for train/val loaders')
     args = parser.parse_args()
 
     # Experiment name override
@@ -539,10 +572,23 @@ if __name__ == "__main__":
 
 
     # Set up logging to console
-    fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
-    stderr_handler = logging.StreamHandler()
-    stderr_handler.formatter = fmtr
-    logging.getLogger().addHandler(stderr_handler)
-    logging.info('Printing activity to the console')
+    if not args.quiet:
+        fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
+        stderr_handler = logging.StreamHandler()
+        stderr_handler.formatter = fmtr
+        logging.getLogger().addHandler(stderr_handler)
+        logging.info('Printing activity to the console')
 
-    main(args, writer)
+    try:
+        main(args, writer, log_folder)
+    except Exception as exp:
+        if args.quiet:
+            print('Unhandled error: {}'.format(repr(exp)))
+        logging.error('Unhandled error: %s' % repr(exp))
+        logging.error(traceback.format_exc())
+        logging.error('Execution finished with errors :(')
+        sys.exit(-1)
+    finally:
+        logging.shutdown()
+        writer.close()
+        print('All done! (logged to {}'.format(log_folder))
