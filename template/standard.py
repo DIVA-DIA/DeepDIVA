@@ -32,129 +32,7 @@ import dataset
 import model as models
 from util.misc import AverageMeter, accuracy
 
-###############################################################################
-# Argument Parser
-
-# Training Settings
-parser = argparse.ArgumentParser(
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description='Template for training CNN on CIFAR')
-
-# General Options
-parser.add_argument('--experiment-name',
-                    help='provide a meaningful and descriptive name to this run',
-                    default=None, type=str)
-
-# Data Options
-parser.add_argument('--dataset',
-                    help='one of {CIFAR10, CIFAR100}', default='CIFAR10')
-parser.add_argument('--log-dir',
-                    help='where to save logs', default='./data/')
-parser.add_argument('--log-folder',
-                    help='override default log folder (to resume logging of experiment)',
-                    default=None,
-                    type=str)
-
-# Training Options
-parser.add_argument('--model',
-                    help='which model to use for training',
-                    type=str, default='CNN_Basic')
-parser.add_argument('--lr',
-                    help='learning rate to be used for training',
-                    type=float, default=0.001)
-parser.add_argument('--optimizer',
-                    help='optimizer to be used for training. {Adam, SGD}',
-                    default='Adam')
-parser.add_argument('--batch-size',
-                    help='input batch size for training',
-                    type=int, default=64)
-parser.add_argument('--test-batch-size',
-                    help='input batch size for testing',
-                    type=int, default=64)
-parser.add_argument('--epochs',
-                    help='how many epochs to train',
-                    type=int, default=20)
-parser.add_argument('--resume',
-                    help='path to latest checkpoint',
-                    default=None, type=str)
-parser.add_argument('--pretrained',
-                    default=False, action='store_true', help='use pretrained model')
-parser.add_argument('--decay_lr',
-                    default=None, type=int, help='drop LR by 10 every N epochs')
-parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                    help='manual epoch number (useful on restarts)')
-# System Options
-parser.add_argument('--gpu-id',
-                    default=None,
-                    help='which GPUs to use for training (use all by default)')
-parser.add_argument('--no-cuda',
-                    default=False, action='store_true', help='run on CPU')
-parser.add_argument('--seed',
-                    type=int, default=None, help='random seed')
-parser.add_argument('--log-interval',
-                    default=10, type=int,
-                    help='print loss/accuracy every N batches')
-parser.add_argument('-j', '--workers',
-                    default=4, type=int,
-                    help='workers used for train/val loaders')
-args = parser.parse_args()
-
-# Experiment name override
-if args.experiment_name is None:
-    vars(args)['experiment_name'] = input("Experiment name:")
-
-#######################################################################################################################
-# Seed the random
-
-if args.seed:
-    # Python
-    random.seed(args.seed)
-
-    # Numpy random
-    np.random.seed(args.seed)
-
-    # Torch random
-    torch.manual_seed(args.seed)
-    if not args.no_cuda:
-        torch.cuda.manual_seed_all(args.seed)
-        torch.backends.cudnn.enabled = False
-
-#######################################################################################################################
-# Setup Logging
-basename = args.log_dir
-experiment_name = args.experiment_name
-if not args.log_folder:
-    log_folder = os.path.join(basename, experiment_name, '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
-else:
-    log_folder = args.log_folder
-logfile = 'logs.txt'
-if not os.path.exists(log_folder):
-    os.makedirs(log_folder)
-
-logging.basicConfig(
-    format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
-    filename=os.path.join(log_folder, logfile),
-    level=logging.INFO)
-logging.info(
-    'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
-
-# Save args to logs_folder
-logging.info(
-    'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
-with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
-    f.write(json.dumps(vars(args)))
-
-# Define Tensorboard SummaryWriter
-logging.info('Initialize Tensorboard SummaryWriter')
-writer = tensorboardX.SummaryWriter(log_dir=log_folder)
-
-# Set visible GPUs
-if args.gpu_id is not None:
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
-
-
-#######################################################################################################################
-def main():
+def main(args, writer):
     """
     This is the main routine where train() and validate() are called.
     :return:
@@ -536,6 +414,130 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
         shutil.copyfile(filename, os.path.join(os.path.split(filename)[0],'model_best.pth.tar'))
 
 if __name__ == "__main__":
+
+    ###############################################################################
+    # Argument Parser
+
+    # Training Settings
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description='Template for training CNN on CIFAR')
+
+    # General Options
+    parser.add_argument('--experiment-name',
+                        help='provide a meaningful and descriptive name to this run',
+                        default=None, type=str)
+
+    # Data Options
+    parser.add_argument('--dataset',
+                        help='one of {CIFAR10, CIFAR100}', default='CIFAR10')
+    parser.add_argument('--log-dir',
+                        help='where to save logs', default='./data/')
+    parser.add_argument('--log-folder',
+                        help='override default log folder (to resume logging of experiment)',
+                        default=None,
+                        type=str)
+
+    # Training Options
+    parser.add_argument('--model',
+                        help='which model to use for training',
+                        type=str, default='CNN_Basic')
+    parser.add_argument('--lr',
+                        help='learning rate to be used for training',
+                        type=float, default=0.001)
+    parser.add_argument('--optimizer',
+                        help='optimizer to be used for training. {Adam, SGD}',
+                        default='Adam')
+    parser.add_argument('--batch-size',
+                        help='input batch size for training',
+                        type=int, default=64)
+    parser.add_argument('--test-batch-size',
+                        help='input batch size for testing',
+                        type=int, default=64)
+    parser.add_argument('--epochs',
+                        help='how many epochs to train',
+                        type=int, default=20)
+    parser.add_argument('--resume',
+                        help='path to latest checkpoint',
+                        default=None, type=str)
+    parser.add_argument('--pretrained',
+                        default=False, action='store_true', help='use pretrained model')
+    parser.add_argument('--decay_lr',
+                        default=None, type=int, help='drop LR by 10 every N epochs')
+    parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
+                        help='manual epoch number (useful on restarts)')
+    # System Options
+    parser.add_argument('--gpu-id',
+                        default=None,
+                        help='which GPUs to use for training (use all by default)')
+    parser.add_argument('--no-cuda',
+                        default=False, action='store_true', help='run on CPU')
+    parser.add_argument('--seed',
+                        type=int, default=None, help='random seed')
+    parser.add_argument('--log-interval',
+                        default=10, type=int,
+                        help='print loss/accuracy every N batches')
+    parser.add_argument('-j', '--workers',
+                        default=4, type=int,
+                        help='workers used for train/val loaders')
+    args = parser.parse_args()
+
+    # Experiment name override
+    if args.experiment_name is None:
+        vars(args)['experiment_name'] = input("Experiment name:")
+
+    #######################################################################################################################
+    # Seed the random
+
+    if args.seed:
+        # Python
+        random.seed(args.seed)
+
+        # Numpy random
+        np.random.seed(args.seed)
+
+        # Torch random
+        torch.manual_seed(args.seed)
+        if not args.no_cuda:
+            torch.cuda.manual_seed_all(args.seed)
+            torch.backends.cudnn.enabled = False
+
+    #######################################################################################################################
+    # Setup Logging
+    basename = args.log_dir
+    experiment_name = args.experiment_name
+    if not args.log_folder:
+        log_folder = os.path.join(basename, experiment_name, '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
+    else:
+        log_folder = args.log_folder
+    logfile = 'logs.txt'
+    if not os.path.exists(log_folder):
+        os.makedirs(log_folder)
+
+    logging.basicConfig(
+        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
+        filename=os.path.join(log_folder, logfile),
+        level=logging.INFO)
+    logging.info(
+        'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
+
+    # Save args to logs_folder
+    logging.info(
+        'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
+    with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
+        f.write(json.dumps(vars(args)))
+
+    # Define Tensorboard SummaryWriter
+    logging.info('Initialize Tensorboard SummaryWriter')
+    writer = tensorboardX.SummaryWriter(log_dir=log_folder)
+
+    # Set visible GPUs
+    if args.gpu_id is not None:
+        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
+
+    #######################################################################################################################
+
+
     # Set up logging to console
     fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
     stderr_handler = logging.StreamHandler()
@@ -543,4 +545,4 @@ if __name__ == "__main__":
     logging.getLogger().addHandler(stderr_handler)
     logging.info('Printing activity to the console')
 
-    main()
+    main(args, writer)
