@@ -36,7 +36,7 @@ import model as models
 from util.misc import AverageMeter, accuracy
 
 
-def main(args, writer, log_folder):
+def main(args, writer, log_folder, **kwargs):
     """
     This is the main routine where train() and validate() are called.
     :return:
@@ -59,13 +59,13 @@ def main(args, writer, log_folder):
     # Begin training
     logging.info('Begin training')
     for i in range(args.start_epoch, args.epochs):
-        val_prec = validate(val_loader, model, criterion, writer, i)
-        train(train_loader, model, criterion, optimizer, writer, i)
+        val_prec = validate(val_loader, model, criterion, writer, i, **kwargs)
+        train(train_loader, model, criterion, optimizer, writer, i, **kwargs)
         if args.decay_lr is not None:
             adjust_learning_rate(optimizer, i, args.decay_lr)
         maybe_save_model(i, val_prec, best_prec, model, optimizer, log_folder)
 
-    test(test_loader, model, criterion, writer, i)
+    test(test_loader, model, criterion, writer, i, **kwargs)
     logging.info('Training completed')
 
     return
@@ -179,7 +179,7 @@ def set_up_dataloaders(model_expected_input_size, args):
 
 #######################################################################################################################
 
-def train(train_loader, model, criterion, optimizer, writer, epoch):
+def train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs):
     """
     Training routine
     :param train_loader:    torch.utils.data.DataLoader
@@ -195,6 +195,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch):
     :return:
         None
     """
+    multi_run = kwargs['multi_run'] if 'multi_run' in kwargs else None
 
     # Init the counters
     batch_time = AverageMeter()
@@ -234,8 +235,14 @@ def train(train_loader, model, criterion, optimizer, writer, epoch):
         top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
-        writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
+        if multi_run == None:
+            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
+            writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
+        else:
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(train_loader) + i)
+            writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
+                              epoch * len(train_loader) + i)
 
         # Reset gradient
         optimizer.zero_grad()
@@ -260,12 +267,15 @@ def train(train_loader, model, criterion, optimizer, writer, epoch):
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
 
     # Logging the epoch-wise accuracy
-    writer.add_scalar('train/accuracy', top1.avg, epoch)
+    if multi_run == None:
+        writer.add_scalar('train/accuracy', top1.avg, epoch)
+    else:
+        writer.add_scalar('train/accuracy_{}'.format(multi_run), top1.avg, epoch)
 
     return
 
 
-def validate(val_loader, model, criterion, writer, epoch):
+def validate(val_loader, model, criterion, writer, epoch, **kwargs):
     """
     The validation routine
     :param val_loader:    torch.utils.data.DataLoader
@@ -279,6 +289,7 @@ def validate(val_loader, model, criterion, writer, epoch):
     :return:
         None
     """
+    multi_run = kwargs['multi_run'] if 'multi_run' in kwargs else None
 
     # Init the counters
     batch_time = AverageMeter()
@@ -315,10 +326,14 @@ def validate(val_loader, model, criterion, writer, epoch):
         top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('val/mb_loss', loss.data[0],
-                          epoch * len(val_loader) + i)
-        writer.add_scalar('val/mb_accuracy', acc1.cpu().numpy(),
-                          epoch * len(val_loader) + i)
+        if multi_run == None:
+            writer.add_scalar('val/mb_loss', loss.data[0], epoch * len(val_loader) + i)
+            writer.add_scalar('val/mb_accuracy', acc1.cpu().numpy(), epoch * len(val_loader) + i)
+        else:
+            writer.add_scalar('val/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(val_loader) + i)
+            writer.add_scalar('val/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
+                              epoch * len(val_loader) + i)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -334,15 +349,18 @@ def validate(val_loader, model, criterion, writer, epoch):
                 top1=top1, top5=top5))
 
     # Logging the epoch-wise accuracy
-    writer.add_scalar('val/accuracy', top1.avg, epoch - 1)
+    if multi_run == None:
+        writer.add_scalar('val/accuracy', top1.avg, epoch)
+    else:
+        writer.add_scalar('val/accuracy_{}'.format(multi_run), top1.avg, epoch)
 
     logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
-          .format(top1=top1, top5=top5))
+                 .format(top1=top1, top5=top5))
 
     return top1.avg
 
 
-def test(val_loader, model, criterion, writer, epoch):
+def test(val_loader, model, criterion, writer, epoch, **kwargs):
     """
     The validation routine
     :param val_loader:    torch.utils.data.DataLoader
@@ -356,6 +374,7 @@ def test(val_loader, model, criterion, writer, epoch):
     :return:
         None
     """
+    multi_run = kwargs['multi_run'] if 'multi_run' in kwargs else None
 
     # Init the counters
     batch_time = AverageMeter()
@@ -392,10 +411,14 @@ def test(val_loader, model, criterion, writer, epoch):
         top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('test/mb_loss', loss.data[0],
-                          epoch * len(val_loader) + i)
-        writer.add_scalar('test/mb_accuracy', acc1.cpu().numpy(),
-                          epoch * len(val_loader) + i)
+        if multi_run == None:
+            writer.add_scalar('test/mb_loss', loss.data[0], epoch * len(val_loader) + i)
+            writer.add_scalar('test/mb_accuracy', acc1.cpu().numpy(), epoch * len(val_loader) + i)
+        else:
+            writer.add_scalar('test/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(val_loader) + i)
+            writer.add_scalar('test/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
+                              epoch * len(val_loader) + i)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -411,10 +434,13 @@ def test(val_loader, model, criterion, writer, epoch):
                 top1=top1, top5=top5))
 
     # Logging the epoch-wise accuracy
-    writer.add_scalar('test/accuracy', top1.avg, epoch - 1)
+    if multi_run == None:
+        writer.add_scalar('test/accuracy', top1.avg, epoch - 1)
+    else:
+        writer.add_scalar('test/accuracy_{}'.format(multi_run), top1.avg, epoch - 1)
 
     logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
-          .format(top1=top1, top5=top5))
+                 .format(top1=top1, top5=top5))
 
     return losses.avg
 
@@ -431,6 +457,82 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     if is_best:
         shutil.copyfile(filename, os.path.join(os.path.split(filename)[0], 'model_best.pth.tar'))
 
+
+def set_up_logging(args):
+    # Experiment name override
+    if args.experiment_name is None:
+        vars(args)['experiment_name'] = input("Experiment name:")
+
+    # Setup Logging
+    basename = args.log_dir
+    experiment_name = args.experiment_name
+    if not args.log_folder:
+        log_folder = os.path.join(basename,
+                                  experiment_name,
+                                  args.dataset,
+                                  args.model,
+                                  args.optimizer,
+                                  str(args.lr),
+                                  '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
+    else:
+        log_folder = args.log_folder
+    logfile = 'logs.txt'
+    if not os.path.exists(log_folder):
+        os.makedirs(log_folder)
+
+    logging.basicConfig(
+        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
+        filename=os.path.join(log_folder, logfile),
+        level=logging.INFO)
+    logging.info(
+        'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
+
+    # Save args to logs_folder
+    logging.info(
+        'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
+    with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
+        f.write(json.dumps(vars(args)))
+
+    # Set up logging to console
+    if not args.quiet:
+        fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
+        stderr_handler = logging.StreamHandler()
+        stderr_handler.formatter = fmtr
+        logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger().addHandler(stderr_handler)
+        logging.info('Printing activity to the console')
+
+
+    return log_folder
+
+
+def set_up_env(args):
+    # Set visible GPUs
+    if args.gpu_id is not None:
+        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
+
+    # Seed the random
+
+    if args.seed:
+        try:
+            assert args.multi_run == None
+        except:
+            logging.warning('Arguments for seed AND multi-run should not be active at the same time!')
+            raise SystemExit
+        if args.workers > 1:
+            logging.warning('Setting seed when workers > 1 may lead to non-deterministic outcomes!')
+        # Python
+        random.seed(args.seed)
+
+        # Numpy random
+        np.random.seed(args.seed)
+
+        # Torch random
+        torch.manual_seed(args.seed)
+        if not args.no_cuda:
+            torch.cuda.manual_seed_all(args.seed)
+            torch.backends.cudnn.enabled = False
+    return
 
 if __name__ == "__main__":
 
@@ -458,6 +560,9 @@ if __name__ == "__main__":
     parser_general.add_argument('--quiet',
                                 action='store_true',
                                 help='Do not print to stdout (log only).')
+    parser_general.add_argument('--multi-run',
+                                type=int,
+                                default=None, help='run main N times with different random seeds')
 
     # Data Options
     parser_data.add_argument('--dataset',
@@ -515,80 +620,47 @@ if __name__ == "__main__":
                                help='workers used for train/val loaders')
     args = parser.parse_args()
 
-    # Experiment name override
-    if args.experiment_name is None:
-        vars(args)['experiment_name'] = input("Experiment name:")
 
-    #######################################################################################################################
-    # Seed the random
-
-    if args.seed:
-        # Python
-        random.seed(args.seed)
-
-        # Numpy random
-        np.random.seed(args.seed)
-
-        # Torch random
-        torch.manual_seed(args.seed)
-        if not args.no_cuda:
-            torch.cuda.manual_seed_all(args.seed)
-            torch.backends.cudnn.enabled = False
-
-    #######################################################################################################################
-    # Setup Logging
-    basename = args.log_dir
-    experiment_name = args.experiment_name
-    if not args.log_folder:
-        log_folder = os.path.join(basename, experiment_name, '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
-    else:
-        log_folder = args.log_folder
-    logfile = 'logs.txt'
-    if not os.path.exists(log_folder):
-        os.makedirs(log_folder)
-
-    logging.basicConfig(
-        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
-        filename=os.path.join(log_folder, logfile),
-        level=logging.INFO)
-    logging.info(
-        'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
-
-    # Save args to logs_folder
-    logging.info(
-        'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
-    with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
-        f.write(json.dumps(vars(args)))
+    # Set up logging
+    log_folder = set_up_logging(args)
 
     # Define Tensorboard SummaryWriter
     logging.info('Initialize Tensorboard SummaryWriter')
     writer = tensorboardX.SummaryWriter(log_dir=log_folder)
 
-    # Set visible GPUs
-    if args.gpu_id is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
-
-    #######################################################################################################################
+    # Set up env
+    # Specify CUDA_VISIBLE_DEVICES and seeds
+    set_up_env(args)
 
 
-    # Set up logging to console
-    if not args.quiet:
-        fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
-        stderr_handler = logging.StreamHandler()
-        stderr_handler.formatter = fmtr
-        logging.getLogger().addHandler(stderr_handler)
-        logging.info('Printing activity to the console')
+    if args.multi_run == None:
 
-    try:
-        main(args, writer, log_folder)
-    except Exception as exp:
-        if args.quiet:
-            print('Unhandled error: {}'.format(repr(exp)))
-        logging.error('Unhandled error: %s' % repr(exp))
-        logging.error(traceback.format_exc())
-        logging.error('Execution finished with errors :(')
-        sys.exit(-1)
-    finally:
+        try:
+            main(args, writer, log_folder)
+        except Exception as exp:
+            if args.quiet:
+                print('Unhandled error: {}'.format(repr(exp)))
+            logging.error('Unhandled error: %s' % repr(exp))
+            logging.error(traceback.format_exc())
+            logging.error('Execution finished with errors :(')
+            sys.exit(-1)
+        finally:
+            logging.shutdown()
+            writer.close()
+            print('All done! (logged to {}'.format(log_folder))
+
+    else:
+        for i in range(args.multi_run):
+            logging.info('Multi-Run: {} of {}'.format(i+1, args.multi_run))
+            try:
+                main(args, writer, log_folder, multi_run=i)
+            except Exception as exp:
+                if args.quiet:
+                    print('Unhandled error: {}'.format(repr(exp)))
+                logging.error('Unhandled error: %s' % repr(exp))
+                logging.error(traceback.format_exc())
+                logging.error('Execution finished with errors :(')
+                sys.exit(-1)
         logging.shutdown()
         writer.close()
         print('All done! (logged to {}'.format(log_folder))
