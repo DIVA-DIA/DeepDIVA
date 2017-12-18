@@ -62,7 +62,7 @@ def main(args, writer, log_folder, **kwargs):
     for epoch in range(args.start_epoch, args.epochs):
         # Validate
         val_precs[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
-        train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, i, **kwargs)
+        train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
         if args.decay_lr is not None:
             adjust_learning_rate(optimizer, epoch, args.decay_lr)
         checkpoint(epoch, val_precs[epoch], best_prec, model, optimizer, log_folder)

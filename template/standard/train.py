@@ -9,7 +9,7 @@ import torch
 from util.misc import AverageMeter, accuracy
 
 
-def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=False, log_interval=25):
+def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=False, log_interval=25, **kwargs):
     """
     Training routine
 
@@ -42,6 +42,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     :return:
         None
     """
+    multi_run = kwargs['multi_run'] if 'multi_run' in kwargs else None
 
     # Init the counters
     batch_time = AverageMeter()
@@ -81,8 +82,14 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
-        writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
+        if multi_run == None:
+            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
+            writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
+        else:
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(train_loader) + i)
+            writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
+                              epoch * len(train_loader) + i)
 
         # Reset gradient
         optimizer.zero_grad()
@@ -107,6 +114,9 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
 
     # Logging the epoch-wise accuracy
-    writer.add_scalar('train/accuracy', top1.avg, epoch)
+    if multi_run == None:
+        writer.add_scalar('train/accuracy', top1.avg, epoch)
+    else:
+        writer.add_scalar('train/accuracy_{}'.format(multi_run), top1.avg, epoch)
 
-    return
+    return top1.avg
