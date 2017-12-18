@@ -16,11 +16,14 @@ class CNN_basic(nn.Module):
         Final fully connected layer
     """
 
-    def __init__(self, num_classes, **kwargs):
+    def __init__(self, num_classes=10, **kwargs):
         """
         :param num_classes: the number of classes in the dataset
         """
         super(CNN_basic, self).__init__()
+
+        self.expected_input_size = (32, 32)
+
         # First layer
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 24, kernel_size=5, stride=3),

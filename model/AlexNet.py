@@ -13,6 +13,8 @@ class AlexNet(nn.Module):
     def __init__(self, num_classes=1000):
         super(AlexNet, self).__init__()
 
+        self.expected_input_size = (227, 227)
+
         # Convolutional layers
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
@@ -81,9 +83,8 @@ class AlexNet(nn.Module):
                 own_state[own].copy_(state_dict[pt].data)
             except:
                 logging.debug('While copying the parameter named {}, whose dimensions in the model are'
-                      ' {} and whose dimensions in the checkpoint are {}, ...'.format(
+                              ' {} and whose dimensions in the checkpoint are {}, ...'.format(
                     own, own_state[own].size(), state_dict[pt].size()))
-
 
 
 def alexnet(pretrained=False, **kwargs):
