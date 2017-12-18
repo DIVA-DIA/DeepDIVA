@@ -4,7 +4,7 @@ This file is the template for the boilerplate of train/test of a DNN
 There are a lot of parameter which can be specified to modify the behaviour
 and they should be used instead of hard-coding stuff.
 
-@authors: Vinaychandran Pondenkandath , Michele Alberti
+@authors: Vinaychandran Pondenkandath, Michele Alberti
 """
 
 # Utils
@@ -12,7 +12,6 @@ import argparse
 import json
 import os
 import random
-import shutil
 import sys
 import time
 import traceback
@@ -29,64 +28,51 @@ import torchvision.transforms as transforms
 
 # DeepDIVA
 import dataset
-import model as models
+import models
 from init.initializer import *
-from util.misc import AverageMeter, accuracy
+from template.standard.evaluate import test
+from template.standard.evaluate import validate
+from template.standard.train import train
+from util.misc import checkpoint
 
 
-###############################################################################
-# Argument Parser
+#######################################################################################################################
+
 
 def main(args, writer, log_folder):
-    """
-    This is the main routine where train() and validate() are called.
-    :return:
-        None
-    """
+    """This is the main routine where train(), validate() and test() are called."""
 
+    # Get the selected model
     model_expected_input_size = models.__dict__[args.model]().expected_input_size
-    logging.info('Model {} expects input size of {}'.format(args.model,
-                                                            model_expected_input_size))
+    logging.info('Model {} expects input size of {}'.format(args.model, model_expected_input_size))
 
-    # Setting up dataset and dataloaders
-    train_loader, val_loader, test_loader, num_classes = \
-        set_up_dataloaders(model_expected_input_size=model_expected_input_size,
-                           args=args)
+    # Setting up the dataloaders
+    train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size)
 
     # Setting up model, optimizer, criterion
-    model, criterion, optimizer, best_prec = set_up_model(num_classes=num_classes,
-                                                          args=args)
+    model, criterion, optimizer, best_prec = set_up_model(num_classes)
 
-    # Begin training
+    # Train
     logging.info('Begin training')
-    for i in range(args.start_epoch, args.epochs):
-        val_prec = validate(val_loader, model, criterion, writer, i)
-        train(train_loader, model, criterion, optimizer, writer, i)
+    for epoch in range(args.start_epoch, args.epochs):
+        # Validate
+        val_prec = validate(val_loader, model, criterion, writer, epoch)
+        train(train_loader, model, criterion, optimizer, writer, epoch)
         if args.decay_lr is not None:
-            adjust_learning_rate(optimizer, i, args.decay_lr)
-        maybe_save_model(i, val_prec, best_prec, model, optimizer, log_folder)
+            adjust_learning_rate(optimizer, epoch, args.decay_lr)
+        checkpoint(epoch, val_prec, best_prec, model, optimizer, log_folder)
 
-    test(test_loader, model, criterion, writer, i)
+    # Test
+    test(test_loader, model, criterion, writer, epoch)
     logging.info('Training completed')
 
     return
 
 
-def maybe_save_model(i, val_prec1, best_prec1, model, optimizer, log_folder):
-    is_best = val_prec1 > best_prec1
-    best_prec1 = max(val_prec1, best_prec1)
-    save_checkpoint({
-        'epoch': i + 1,
-        'arch': str(type(model)),
-        'state_dict': model.state_dict(),
-        'best_prec': best_prec1,
-        'optimizer': optimizer.state_dict(),
-    }, is_best, filename=os.path.join(log_folder, 'checkpoint.pth.tar'))
-
-
 #######################################################################################################################
 
-def set_up_model(num_classes, args):
+
+def set_up_model(num_classes):
     # Initialize the model
     logging.info('Setting up model {}'.format(args.model))
     model = models.__dict__[args.model](num_classes=num_classes, pretrained=args.pretrained)
@@ -110,25 +96,22 @@ def set_up_model(num_classes, args):
             logging.info("Loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
-            best_prec = checkpoint['best_prec']
+            best_value = checkpoint['best_value']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
-            val_losses = []
-            val_losses.append(checkpoint['val_loss'])
-            logging.info("Loaded checkpoint '{}' (epoch {})"
-                         .format(args.resume, checkpoint['epoch']))
+            val_losses = [checkpoint['val_loss']]
+            logging.info("Loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
         else:
-            logging.warning("No checkpoint found at '{}'".format(args.resume))
+            logging.error("No checkpoint found at '{}'".format(args.resume))
+            sys.exit(-1)
     else:
-        best_prec = 0.0
-    return model, criterion, optimizer, best_prec
+        best_value = 0.0
+    return model, criterion, optimizer, best_value
 
 
-#######################################################################################################################
+def set_up_dataloaders(model_expected_input_size):
+    """Set up datasets and dataloaders"""
 
-def set_up_dataloaders(model_expected_input_size, args):
-    # Set up datasets and dataloaders
-    # Initialize train,val and test datasets.
     logging.info('Loading datasets')
     train_ds = dataset.__dict__[args.dataset](root='.data/',
                                               train=True,
@@ -183,248 +166,6 @@ def set_up_dataloaders(model_expected_input_size, args):
     return train_loader, val_loader, test_loader, train_ds.num_classes
 
 
-#######################################################################################################################
-
-def train(train_loader, model, criterion, optimizer, writer, epoch):
-    """
-    Training routine
-    :param train_loader:    torch.utils.data.DataLoader
-        The dataloader of the train set
-    :param model:           torch.nn.module
-        The network model being used
-    :param criterion:       torch.nn.loss
-        The loss function used to compute the loss of the model
-    :param optimizer:       torch.optim
-        The optimizer used to perform the weight update
-    :param epoch:
-        Number of the epoch (mainly for logging purposes)
-    :return:
-        None
-    """
-
-    # Init the counters
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
-
-    # Switch to train mode (turn on dropout & stuff)
-    model.train()
-
-    # Iterate over whole training set
-    end = time.time()
-    for i, (input, target) in enumerate(train_loader):
-        # Measure data loading time
-        data_time.update(time.time() - end)
-
-        # Moving data to GPU
-        if not args.no_cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
-
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-
-        # Compute output
-        output = model(input_var)
-
-        # Compute and record the loss
-        loss = criterion(output, target_var)
-        losses.update(loss.data[0], input.size(0))
-
-        # Compute and record the accuracy
-        acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
-        top1.update(acc1[0], input.size(0))
-        top5.update(acc5[0], input.size(0))
-
-        # Add loss and accuracy to Tensorboard
-        writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
-        writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
-
-        # Reset gradient
-        optimizer.zero_grad()
-        # Compute gradients
-        loss.backward()
-        # Perform a step by updating the weights
-        optimizer.step()
-
-        # Measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
-        # Log to console
-        if i % args.log_interval == 0:
-            logging.info('Epoch [{0}][{1}/{2}]\t'
-                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                         'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                         'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5))
-
-    # Logging the epoch-wise accuracy
-    writer.add_scalar('train/accuracy', top1.avg, epoch)
-
-    return
-
-
-def validate(val_loader, model, criterion, writer, epoch):
-    """
-    The validation routine
-    :param val_loader:    torch.utils.data.DataLoader
-        The dataloader of the train set
-    :param model:           torch.nn.module
-        The network model being used
-    :param criterion:       torch.nn.loss
-        The loss function used to compute the loss of the model
-    :param epoch:
-        Number of the epoch (mainly for logging purposes)
-    :return:
-        None
-    """
-
-    # Init the counters
-    batch_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
-
-    # Switch to evaluate mode (turn off dropout & such )
-    model.eval()
-
-    # Iterate over whole validation set
-    end = time.time()
-    for i, (input, target) in enumerate(val_loader):
-
-        # Moving data to GPU
-        if not args.no_cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
-
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
-
-        # Compute output
-        output = model(input_var)
-
-        # Compute and record the loss
-        loss = criterion(output, target_var)
-        losses.update(loss.data[0], input.size(0))
-
-        # Compute and record the accuracy
-        acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
-        top1.update(acc1[0], input.size(0))
-        top5.update(acc5[0], input.size(0))
-
-        # Add loss and accuracy to Tensorboard
-        writer.add_scalar('val/mb_loss', loss.data[0],
-                          epoch * len(val_loader) + i)
-        writer.add_scalar('val/mb_accuracy', acc1.cpu().numpy(),
-                          epoch * len(val_loader) + i)
-
-        # Measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
-        if i % args.log_interval == 0:
-            logging.info('Epoch [{0}][{1}/{2}]\t'
-                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                         'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                epoch, i, len(val_loader), batch_time=batch_time, loss=losses,
-                top1=top1, top5=top5))
-
-    # Logging the epoch-wise accuracy
-    writer.add_scalar('val/accuracy', top1.avg, epoch - 1)
-
-    logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
-          .format(top1=top1, top5=top5))
-
-    return top1.avg
-
-
-def test(val_loader, model, criterion, writer, epoch):
-    """
-    The validation routine
-    :param val_loader:    torch.utils.data.DataLoader
-        The dataloader of the train set
-    :param model:           torch.nn.module
-        The network model being used
-    :param criterion:       torch.nn.loss
-        The loss function used to compute the loss of the model
-    :param epoch:
-        Number of the epoch (mainly for logging purposes)
-    :return:
-        None
-    """
-
-    # Init the counters
-    batch_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
-
-    # Switch to evaluate mode (turn off dropout & such )
-    model.eval()
-
-    # Iterate over whole validation set
-    end = time.time()
-    for i, (input, target) in enumerate(val_loader):
-
-        # Moving data to GPU
-        if not args.no_cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
-
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
-
-        # Compute output
-        output = model(input_var)
-
-        # Compute and record the loss
-        loss = criterion(output, target_var)
-        losses.update(loss.data[0], input.size(0))
-
-        # Compute and record the accuracy
-        acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
-        top1.update(acc1[0], input.size(0))
-        top5.update(acc5[0], input.size(0))
-
-        # Add loss and accuracy to Tensorboard
-        writer.add_scalar('test/mb_loss', loss.data[0],
-                          epoch * len(val_loader) + i)
-        writer.add_scalar('test/mb_accuracy', acc1.cpu().numpy(),
-                          epoch * len(val_loader) + i)
-
-        # Measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
-        if i % args.log_interval == 0:
-            logging.info('Test Epoch [{0}][{1}/{2}]\t'
-                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                         'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                epoch, i, len(val_loader), batch_time=batch_time, loss=losses,
-                top1=top1, top5=top5))
-
-    # Logging the epoch-wise accuracy
-    writer.add_scalar('test/accuracy', top1.avg, epoch - 1)
-
-    logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
-          .format(top1=top1, top5=top5))
-
-    return losses.avg
-
-
 def adjust_learning_rate(optimizer, epoch, num_epochs):
     """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
     lr = args.lr * (0.1 ** (epoch // num_epochs))
@@ -432,10 +173,7 @@ def adjust_learning_rate(optimizer, epoch, num_epochs):
         param_group['lr'] = lr
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
-    if is_best:
-        shutil.copyfile(filename, os.path.join(os.path.split(filename)[0], 'model_best.pth.tar'))
+#######################################################################################################################
 
 
 if __name__ == "__main__":
@@ -480,7 +218,7 @@ if __name__ == "__main__":
     parser_train.add_argument('--model',
                               choices=model_options,
                               help='which model to use for training',
-                              type=str, default='CNN_Basic')
+                              type=str, default='CNN_basic')
     parser_train.add_argument('--lr',
                               help='learning rate to be used for training',
                               type=float, default=0.001)
@@ -504,8 +242,8 @@ if __name__ == "__main__":
                               default=None, type=int, help='drop LR by 10 every N epochs')
     parser_train.add_argument('--start-epoch', default=0, type=int, metavar='N',
                               help='manual epoch number (useful on restarts)')
-    # System Options
 
+    # System Options
     parser_system.add_argument('--gpu-id',
                                default=None,
                                help='which GPUs to use for training (use all by default)')
@@ -519,13 +257,14 @@ if __name__ == "__main__":
     parser_system.add_argument('-j', '--workers',
                                default=4, type=int,
                                help='workers used for train/val loaders')
+
     args = parser.parse_args()
 
     # Experiment name override
     if args.experiment_name is None:
         vars(args)['experiment_name'] = input("Experiment name:")
 
-    #######################################################################################################################
+    ####################################################################################################################
     # Seed the random
 
     if args.seed:
@@ -541,7 +280,7 @@ if __name__ == "__main__":
             torch.cuda.manual_seed_all(args.seed)
             torch.backends.cudnn.enabled = False
 
-    #######################################################################################################################
+    ####################################################################################################################
     # Setup Logging
     basename = args.log_dir
     experiment_name = args.experiment_name
@@ -570,11 +309,6 @@ if __name__ == "__main__":
     logging.info('Initialize Tensorboard SummaryWriter')
     writer = tensorboardX.SummaryWriter(log_dir=log_folder)
 
-    # Set visible GPUs
-    if args.gpu_id is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
-
-    #######################################################################################################################
 
 
     # Set up logging to console
@@ -584,6 +318,12 @@ if __name__ == "__main__":
         stderr_handler.formatter = fmtr
         logging.getLogger().addHandler(stderr_handler)
         logging.info('Printing activity to the console')
+
+    ####################################################################################################################
+
+    # Set visible GPUs
+    if args.gpu_id is not None:
+        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 
     try:
         main(args, writer, log_folder)
