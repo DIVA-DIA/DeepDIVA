@@ -4,15 +4,15 @@ CIFAR10/100 dataset. Code adapted from: https://github.com/pytorch/vision/blob/m
 Example of initialization:
 cifar = CIFAR10("./data/dataset/",train=True, torchvision.transforms.Compose([torchvision.transforms.Normalize]))
 """
+import logging
 import os
 import os.path
 import pickle
-import logging
 
 import numpy as np
+import torch.utils.data as data
 from PIL import Image
 
-import torch.utils.data as data
 from util.misc import download_url, check_integrity
 
 
@@ -50,9 +50,7 @@ class CIFAR10(data.Dataset):
     ]
     num_classes = 10
 
-    def __init__(self, root, train=True, val=False,
-                 transform=None, target_transform=None,
-                 download=False):
+    def __init__(self, root, train=True, val=False, transform=None, target_transform=None, download=False):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
