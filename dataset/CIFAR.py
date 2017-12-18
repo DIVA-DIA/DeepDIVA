@@ -7,6 +7,7 @@ cifar = CIFAR10("./data/dataset/",train=True, torchvision.transforms.Compose([to
 import os
 import os.path
 import pickle
+import logging
 
 import numpy as np
 from PIL import Image
@@ -49,17 +50,20 @@ class CIFAR10(data.Dataset):
     ]
     num_classes = 10
 
-    def __init__(self, root, train=True,
+    def __init__(self, root, train=True, val=False,
                  transform=None, target_transform=None,
                  download=False):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
+        self.val = val
         self.width = 32
         self.height = 32
         self.mean = None
         self.std = None
+
+        assert (self.train & self.val) != True
 
         if download:
             self.download()
@@ -69,7 +73,28 @@ class CIFAR10(data.Dataset):
                                ' You can use download=True to download it')
 
         # now load the picked numpy arrays
-        if self.train:
+        if self.train and not self.val:
+            self.train_data = []
+            self.train_labels = []
+            for fentry in self.train_list:
+                f = fentry[0]
+                file = os.path.join(self.root, self.base_folder, f)
+                fo = open(file, 'rb')
+                entry = pickle.load(fo, encoding='latin1')
+                self.train_data.append(entry['data'])
+                if 'labels' in entry:
+                    self.train_labels += entry['labels']
+                else:
+                    self.train_labels += entry['fine_labels']
+                fo.close()
+
+            self.train_data = np.concatenate(self.train_data)
+            self.train_data = self.train_data.reshape((50000, 3, 32, 32))
+            self.train_data = self.train_data.transpose((0, 2, 3, 1))  # convert to HWC
+            self.train_data = self.train_data[:40000]
+            self.train_labels = self.train_labels[:40000]
+            self.mean, self.std = self._compute_mean_std()
+        elif self.val:
             self.train_data = []
             self.train_labels = []
             for fentry in self.train_list:
@@ -88,6 +113,9 @@ class CIFAR10(data.Dataset):
             self.train_data = self.train_data.reshape((50000, 3, 32, 32))
             self.train_data = self.train_data.transpose((0, 2, 3, 1))  # convert to HWC
             self.mean, self.std = self._compute_mean_std()
+            self.val_data = self.train_data[-10000:]
+            self.val_labels = self.train_labels[-10000:]
+            self.train_data, self.train_labels = None, None
         else:
             f = self.test_list[0][0]
             file = os.path.join(self.root, self.base_folder, f)
@@ -104,12 +132,13 @@ class CIFAR10(data.Dataset):
 
     def _compute_mean_std(self):
         """
-        Computes the mean and std for R,G   ,B channels
+        Computes the mean and std for R,G,B channels
         :return:
         """
-        flatten_train = np.transpose(self.train_data.reshape((50000, 3, 1024)), [1, 0, 2]).reshape(3, 51200000)
-        mean = np.mean(flatten_train, 1)
-        std = np.std(flatten_train, 1)
+        mean = np.array([np.mean(self.train_data[:, :, :, 0]), np.mean(self.train_data[:, :, :, 1]),
+                         np.mean(self.train_data[:, :, :, 2])]) / 255.0
+        std = np.array([np.std(self.train_data[:, :, :, 0]), np.std(self.train_data[:, :, :, 1]),
+                        np.std(self.train_data[:, :, :, 2])]) / 255.0
         return mean, std
 
     def __getitem__(self, index):
@@ -120,8 +149,10 @@ class CIFAR10(data.Dataset):
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        if self.train:
+        if self.train and not self.val:
             img, target = self.train_data[index], self.train_labels[index]
+        elif self.val:
+            img, target = self.val_data[index], self.val_labels[index]
         else:
             img, target = self.test_data[index], self.test_labels[index]
 
@@ -138,8 +169,10 @@ class CIFAR10(data.Dataset):
         return img, target
 
     def __len__(self):
-        if self.train:
+        if self.train and not self.val:
             return len(self.train_data)
+        elif self.val:
+            return len(self.val_data)
         else:
             return len(self.test_data)
 
@@ -156,7 +189,7 @@ class CIFAR10(data.Dataset):
         import tarfile
 
         if self._check_integrity():
-            print('Files already downloaded and verified')
+            logging.info('Files downloaded and verified')
             return
 
         root = self.root
