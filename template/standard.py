@@ -156,13 +156,13 @@ def main():
                            train=True,
                            download=True,
                            transform=transforms.Compose(
-                               # [transforms.Scale((224,224)),transforms.ToTensor()]))
+                               #[transforms.Scale((224,224)),transforms.ToTensor()]))
                                [transforms.ToTensor()]))
         test_ds = CIFAR10(root='.data/',
                           train=False,
                           download=True,
                           transform=transforms.Compose(
-                              # [transforms.Scale((224,224)),transforms.ToTensor()]))
+                              #[transforms.Scale((224,224)),transforms.ToTensor()]))
                               [transforms.ToTensor()]))
         num_outputs = 10
     else:
@@ -182,11 +182,13 @@ def main():
     # Setup dataloaders
     logging.info('Set up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
+                                               shuffle=True,
                                                batch_size=args.batch_size,
                                                num_workers=args.workers,
                                                pin_memory=True)
 
     test_loader = torch.utils.data.DataLoader(test_ds,
+                                              shuffle=True,
                                               batch_size=args.batch_size,
                                               num_workers=args.workers,
                                               pin_memory=True)
@@ -194,11 +196,13 @@ def main():
     # Initialize the model
     logging.info('Initialize model')
     # TODO make way that the model and the criterion are also passed as parameter with introspection thingy as the optimizer
-    model = AlexNet.AlexNet(num_outputs)
-    # model = CNN_Basic(num_outputs)
+    # model = AlexNet.AlexNet(num_outputs)
+    model = CNN_basic.CNN_basic(num_outputs)
+    #model = LDA_test.LDA_Deep(num_outputs)
+
     # Init the model
     if args.init:
-        init_model(model=model, data_loader=train_loader, num_points=500)
+        init_model(model=model, data_loader=train_loader, num_points=50000)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
 

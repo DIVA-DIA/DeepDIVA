@@ -5,7 +5,7 @@ CNN with 3 conv layers and a fully connected classification layer
 import torch.nn as nn
 
 
-class CNN_Basic(nn.Module):
+class CNN_basic(nn.Module):
     """
     :var conv1   : torch.nn.Conv2d
     :var conv2   : torch.nn.Conv2d
@@ -20,7 +20,7 @@ class CNN_Basic(nn.Module):
         """
         :param num_classes: the number of classes in the dataset
         """
-        super(CNN_Basic, self).__init__()
+        super(CNN_basic, self).__init__()
         # First layer
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 24, kernel_size=5, stride=3),

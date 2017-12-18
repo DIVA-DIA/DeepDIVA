@@ -10,6 +10,7 @@ import math
 
 import numpy as np
 import torch
+from sklearn.decomposition import PCA
 from sklearn.feature_extraction.image import extract_patches_2d
 
 # Init tools
@@ -77,6 +78,10 @@ def init_model(model, data_loader, *args, **kwargs):
         if index != len(list(model.children())) - 1:
             logging.info('LDA Transform')
             W, B = lda.transform(X=init_input, y=init_labels)
+            pca = PCA().fit(init_input)
+            P = pca.components_.T  # Don't even think about touching this T!
+            C = pca.mean_
+
         else:
             logging.info('LDA Discriminants')
             W, B = lda.discriminants(X=init_input, y=init_labels)
@@ -87,14 +92,41 @@ def init_model(model, data_loader, *args, **kwargs):
             # The T belongs to the reshape operation! It is NOT transposing the input! It is necessary to select columns
             W = W.T.reshape(W.shape[0], module[0].in_channels, kernel_size[0], kernel_size[1])[:module[0].out_channels]
             B = B[:module[0].out_channels]
+
+            P = P.T.reshape(P.shape[0], module[0].in_channels, kernel_size[0], kernel_size[1])[:module[0].out_channels]
+
         else:
             W = W / (max(np.max(np.abs(B)), np.max(np.abs(W))) * math.sqrt(W.shape[0]))
             B = B / (max(np.max(np.abs(B)), np.max(np.abs(W))) * math.sqrt(W.shape[0]))
 
         # Assign parameters
         logging.info('Assign parameters')
-        module[0].weight.data = torch.Tensor(W)
-        module[0].bias.data = torch.Tensor(B)
+        if 'conv' in str(type(list(module.children())[0])):
+            # if False:
+            # TODO un-hard-code the 10 as number of classes
+            """
+            module[0].weight.data[0:10] = torch.Tensor(W)[0:10]
+            module[0].bias.data[0:10] = torch.Tensor(B)[0:10]
+            module[0].weight.data[10:] = torch.Tensor(P)[0:-10]
+            module[0].bias.data[10:] = torch.Tensor(C)[0:B.shape[0]-10]
+            """
+            # WITH NOISE
+            ns_ratio = (np.abs(W.max()) + np.abs(W.min())) / (
+            np.abs(module[0].weight.data.max()) + np.abs(module[0].weight.data.min()))
+
+            module[0].weight.data *= (ns_ratio / 3)
+            module[0].bias.data *= (ns_ratio / 3)
+
+            n = int(np.max([10, np.round(B.shape[0] / 2)]))
+            lp_ratio = (np.abs(W.max()) + np.abs(W.min())) / (np.abs(P.max()) + np.abs(P.min()))
+            module[0].weight.data[0:n] += torch.Tensor(W)[0:n]
+            module[0].bias.data[0:n] += torch.Tensor(B)[0:n]
+            module[0].weight.data[n:] += lp_ratio * torch.Tensor(P)[0:-n]
+            module[0].bias.data[n:] += lp_ratio * torch.Tensor(C)[0:B.shape[0] - n]
+
+        else:
+            module[0].weight.data = torch.Tensor(W)
+            module[0].bias.data = torch.Tensor(B)
 
         # If the layer is not convolutional then flatten the data because
         # we assume it is a fully connected one
@@ -110,7 +142,7 @@ def init_model(model, data_loader, *args, **kwargs):
             X[i] = module(X[i])
 
 
-def get_patches(X, y, kernel_size, max_patches=1):
+def get_patches(X, y, kernel_size, max_patches=.9):
     """
     Extract patches out of a set of N images passed as parameter. Additionally returns the relative set of labels
     corresponding to each patch

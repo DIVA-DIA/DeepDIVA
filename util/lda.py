@@ -82,6 +82,8 @@ def transform(X, y):
         eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(S_W).dot(S_B))
     except np.linalg.LinAlgError:
         # Not invertible. Skip this one.
+        logging.error('np.linalg.LinAlgError raised, trying with pinv() instead')
+        eig_vals, eig_vecs = np.linalg.eig(np.linalg.pinv(S_W).dot(S_B))
         pass
 
     eig_vals = np.real(eig_vals)
