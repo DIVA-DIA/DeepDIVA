@@ -10,16 +10,13 @@ and they should be used instead of hard-coding stuff.
 # Utils
 import argparse
 import json
-import logging
 import os
 import random
 import shutil
+import sys
 import time
 import traceback
-import sys
-import inspect
 
-import numpy as np
 # Tensor board
 import tensorboardX
 # Torch related stuff
@@ -35,6 +32,7 @@ import dataset
 import model as models
 from init.initializer import *
 from util.misc import AverageMeter, accuracy
+
 
 ###############################################################################
 # Argument Parser
@@ -94,6 +92,10 @@ def set_up_model(num_classes, args):
     model = models.__dict__[args.model](num_classes=num_classes, pretrained=args.pretrained)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
+
+    # Init the model
+    # if args.init:
+    #    init_model(model=model, data_loader=train_loader, num_points=50000)
 
     # Transfer model to GPU (if desired)
     if not args.no_cuda:
