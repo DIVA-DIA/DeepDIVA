@@ -10,16 +10,13 @@ and they should be used instead of hard-coding stuff.
 # Utils
 import argparse
 import json
-import logging
 import os
 import random
 import shutil
+import sys
 import time
 import traceback
-import sys
-import inspect
 
-import numpy as np
 # Tensor board
 import tensorboardX
 # Torch related stuff
@@ -33,6 +30,7 @@ import torchvision.transforms as transforms
 # DeepDIVA
 import dataset
 import model as models
+from init.initializer import *
 from util.misc import AverageMeter, accuracy
 from util.visualization.mean_std_plot import plot_mean_variance
 
@@ -95,6 +93,10 @@ def set_up_model(num_classes, args):
     model = models.__dict__[args.model](num_classes=num_classes, pretrained=args.pretrained)
     optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
     criterion = nn.CrossEntropyLoss()
+
+    # Init the model
+    # if args.init:
+    #    init_model(model=model, data_loader=train_loader, num_points=50000)
 
     # Transfer model to GPU (if desired)
     if not args.no_cuda:
@@ -164,6 +166,7 @@ def set_up_dataloaders(model_expected_input_size, args):
     # Setup dataloaders
     logging.info('Setting up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
+                                               shuffle=True,
                                                batch_size=args.batch_size,
                                                num_workers=args.workers,
                                                pin_memory=True)
@@ -183,7 +186,7 @@ def set_up_dataloaders(model_expected_input_size, args):
 
 #######################################################################################################################
 
-def train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs):
+def train(train_loader, model, criterion, optimizer, writer, epoch):
     """
     Training routine
     :param train_loader:    torch.utils.data.DataLoader
