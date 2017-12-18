@@ -34,6 +34,7 @@ import torchvision.transforms as transforms
 import dataset
 import model as models
 from util.misc import AverageMeter, accuracy
+from util.visualization.mean_std_plot import plot_mean_variance
 
 
 def main(args, writer, log_folder, **kwargs):
@@ -56,19 +57,22 @@ def main(args, writer, log_folder, **kwargs):
     model, criterion, optimizer, best_prec = set_up_model(num_classes=num_classes,
                                                           args=args)
 
+    val_precs = np.zeros((args.epochs - args.start_epoch))
+    train_precs = np.zeros((args.epochs - args.start_epoch))
+
     # Begin training
     logging.info('Begin training')
     for i in range(args.start_epoch, args.epochs):
-        val_prec = validate(val_loader, model, criterion, writer, i, **kwargs)
-        train(train_loader, model, criterion, optimizer, writer, i, **kwargs)
+        val_precs[i] = validate(val_loader, model, criterion, writer, i, **kwargs)
+        train_precs[i] = train(train_loader, model, criterion, optimizer, writer, i, **kwargs)
         if args.decay_lr is not None:
             adjust_learning_rate(optimizer, i, args.decay_lr)
-        maybe_save_model(i, val_prec, best_prec, model, optimizer, log_folder)
+        maybe_save_model(i, val_precs[i], best_prec, model, optimizer, log_folder)
 
-    test(test_loader, model, criterion, writer, i, **kwargs)
+    test_prec = test(test_loader, model, criterion, writer, i, **kwargs)
     logging.info('Training completed')
 
-    return
+    return train_precs, val_precs, test_prec
 
 
 def maybe_save_model(i, val_prec1, best_prec1, model, optimizer, log_folder):
@@ -272,7 +276,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs):
     else:
         writer.add_scalar('train/accuracy_{}'.format(multi_run), top1.avg, epoch)
 
-    return
+    return top1.avg
 
 
 def validate(val_loader, model, criterion, writer, epoch, **kwargs):
@@ -442,7 +446,7 @@ def test(val_loader, model, criterion, writer, epoch, **kwargs):
     logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
                  .format(top1=top1, top5=top5))
 
-    return losses.avg
+    return top1.avg
 
 
 def adjust_learning_rate(optimizer, epoch, num_epochs):
@@ -502,7 +506,6 @@ def set_up_logging(args):
         logging.getLogger().addHandler(stderr_handler)
         logging.info('Printing activity to the console')
 
-
     return log_folder
 
 
@@ -533,6 +536,7 @@ def set_up_env(args):
             torch.cuda.manual_seed_all(args.seed)
             torch.backends.cudnn.enabled = False
     return
+
 
 if __name__ == "__main__":
 
@@ -620,7 +624,6 @@ if __name__ == "__main__":
                                help='workers used for train/val loaders')
     args = parser.parse_args()
 
-
     # Set up logging
     log_folder = set_up_logging(args)
 
@@ -631,7 +634,6 @@ if __name__ == "__main__":
     # Set up env
     # Specify CUDA_VISIBLE_DEVICES and seeds
     set_up_env(args)
-
 
     if args.multi_run == None:
 
@@ -650,10 +652,15 @@ if __name__ == "__main__":
             print('All done! (logged to {}'.format(log_folder))
 
     else:
+        train_scores = np.zeros((args.multi_run, args.epochs))
+        val_scores = np.zeros((args.multi_run, args.epochs))
+        test_scores = np.zeros((args.multi_run))
+
         for i in range(args.multi_run):
-            logging.info('Multi-Run: {} of {}'.format(i+1, args.multi_run))
+            logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
             try:
-                main(args, writer, log_folder, multi_run=i)
+                train_scores[i, :], val_scores[i, :], test_scores[i] = main(args, writer, log_folder, multi_run=i)
+
             except Exception as exp:
                 if args.quiet:
                     print('Unhandled error: {}'.format(repr(exp)))
@@ -661,6 +668,23 @@ if __name__ == "__main__":
                 logging.error(traceback.format_exc())
                 logging.error('Execution finished with errors :(')
                 sys.exit(-1)
+
+        np.save(os.path.join(log_folder, 'train_values.npy'), train_scores)
+        np.save(os.path.join(log_folder, 'val_values.npy'), val_scores)
+        train_curve = plot_mean_variance(train_scores,
+                                         suptitle='Multi-Run: Train',
+                                         xlabel='Epochs', ylabel='Accuracy',
+                                         ylim=[0, 100.0])
+        writer.add_image('train_curve', train_curve)
+        logging.info('Generated mean-variance plot for train')
+        val_curve = plot_mean_variance(val_scores,
+                                       suptitle='Multi-Run: Val',
+                                       xlabel='Epochs', ylabel='Accuracy',
+                                       ylim=[0, 100.0])
+        writer.add_image('val_curve', train_curve)
+        logging.info('Generated mean-variance plot for val')
+        logging.info('Multi-run values for test-mean: {} test-std: {}'.format(np.mean(test_scores),
+                                                                              np.std(test_scores)))
         logging.shutdown()
         writer.close()
         print('All done! (logged to {}'.format(log_folder))
