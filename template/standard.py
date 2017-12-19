@@ -12,7 +12,6 @@ import argparse
 import json
 import os
 import random
-import shutil
 import sys
 import time
 import traceback
@@ -273,7 +272,8 @@ def set_up_logging(args):
     if not args.log_folder:
         log_folder = os.path.join(basename,
                                   experiment_name,
-                                  args.dataset,
+                                  args.dataset if args.dataset in dataset.__dict__ else os.path.basename(
+                                      os.path.normpath(args.dataset_folder)),
                                   args.model,
                                   args.optimizer,
                                   str(args.lr),
