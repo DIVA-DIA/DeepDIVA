@@ -9,17 +9,17 @@ import torch
 from util.misc import AverageMeter, accuracy
 
 
-def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20):
+def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to validate the model."""
-    return _evaluate(val_loader, model, criterion, writer, epoch, 'val', no_cuda, log_interval)
+    return _evaluate(val_loader, model, criterion, writer, epoch, 'val', no_cuda, log_interval, **kwargs)
 
 
-def test(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20):
+def test(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to test the model"""
-    return _evaluate(val_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval)
+    return _evaluate(val_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
 
 
-def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cuda=False, log_interval=10):
+def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
@@ -52,6 +52,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     :return:
         None
     """
+    multi_run = kwargs['multi_run'] if 'multi_run' in kwargs else None
 
     # Init the counters
     batch_time = AverageMeter()
@@ -88,10 +89,14 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        writer.add_scalar(logging_label + '/mb_loss', loss.data[0],
-                          epoch * len(data_loader) + i)
-        writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(),
-                          epoch * len(data_loader) + i)
+        if multi_run == None:
+            writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + i)
+            writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(), epoch * len(data_loader) + i)
+        else:
+            writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(data_loader) + i)
+            writer.add_scalar(logging_label + '/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
+                              epoch * len(data_loader) + i)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -107,7 +112,10 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
                 top1=top1, top5=top5))
 
     # Logging the epoch-wise accuracy
-    writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
+    if multi_run == None:
+        writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
+    else:
+        writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
 
     logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
                  .format(top1=top1, top5=top5))
