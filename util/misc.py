@@ -141,3 +141,5 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_folder):
     }, filename)
     if is_best:
         shutil.copyfile(filename, os.path.join(os.path.split(filename)[0], 'model_best.pth.tar'))
+
+    return best_value

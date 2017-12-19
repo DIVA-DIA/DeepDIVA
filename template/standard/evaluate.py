@@ -107,7 +107,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
                 top1=top1, top5=top5))
 
     # Logging the epoch-wise accuracy
-    writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch - 1)
+    writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
 
     logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
                  .format(top1=top1, top5=top5))

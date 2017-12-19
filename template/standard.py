@@ -24,6 +24,7 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
+import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
 # DeepDIVA
@@ -50,17 +51,19 @@ def main(args, writer, log_folder):
     train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size)
 
     # Setting up model, optimizer, criterion
-    model, criterion, optimizer, best_prec = set_up_model(num_classes)
+    model, criterion, optimizer, best_value = set_up_model(num_classes)
 
-    # Train
+    # Core routine
     logging.info('Begin training')
+    validate(val_loader, model, criterion, writer, -1)
     for epoch in range(args.start_epoch, args.epochs):
-        # Validate
-        val_prec = validate(val_loader, model, criterion, writer, epoch)
+        # Train
         train(train_loader, model, criterion, optimizer, writer, epoch)
+        # Validate
+        val_value = validate(val_loader, model, criterion, writer, epoch)
         if args.decay_lr is not None:
             adjust_learning_rate(optimizer, epoch, args.decay_lr)
-        checkpoint(epoch, val_prec, best_prec, model, optimizer, log_folder)
+        best_value = checkpoint(epoch, val_value, best_value, model, optimizer, log_folder)
 
     # Test
     test(test_loader, model, criterion, writer, epoch)
@@ -113,40 +116,103 @@ def set_up_dataloaders(model_expected_input_size):
     """Set up datasets and dataloaders"""
 
     logging.info('Loading datasets')
-    train_ds = dataset.__dict__[args.dataset](root='.data/',
-                                              train=True,
-                                              download=True)
+    # If the dataset selected is a class in dataset, use it.
+    if (args.dataset is not None) and (args.dataset in dataset.__dict__):
+        logging.debug('Using an user definer class to load: ' + args.dataset)
+        train_ds = dataset.__dict__[args.dataset](root='.data/',
+                                                  train=True,
+                                                  download=True)
 
-    val_ds = dataset.__dict__[args.dataset](root='.data/',
-                                            train=False,
-                                            val=True,
-                                            download=True)
+        val_ds = dataset.__dict__[args.dataset](root='.data/',
+                                                train=False,
+                                                val=True,
+                                                download=True)
 
-    test_ds = dataset.__dict__[args.dataset](root='.data/',
-                                             train=False,
-                                             download=True)
+        test_ds = dataset.__dict__[args.dataset](root='.data/',
+                                                 train=False,
+                                                 download=True)
+    # Else, assume it is an image folder whose path is passed as 'args.dataset_folder'
+    else:
+        logging.debug('Using the image folder routine to load from: ' + args.dataset_folder)
+        """
+        Structure of the dataset expected
+        
+        Split folders 
+        -------------
+        'args.dataset_folder' has to point to the three folder train/val/test. 
+        Example:  
+        
+        ~/../../data/svhn
+        
+        where the dataset_folder contains the splits sub-folders as follow:
+        
+        args.dataset_folder/train
+        args.dataset_folder/val
+        args.dataset_folder/test
+        
+        Classes folders
+        ---------------
+        In each of the three splits (train,val,test) should have different classes in a separate folder with the class 
+        name. The file name can be arbitrary (e.g does not have to be 0-* for classes 0 of MNIST).
+        Example:
+        
+        train/dog/whatever.png
+        train/dog/you.png
+        train/dog/like.png
+        
+        train/cat/123.png
+        train/cat/nsdf3.png
+        train/cat/asd932_.png
+        """
 
+        # Get the splits folders
+        traindir = os.path.join(args.dataset_folder, 'train')
+        valdir = os.path.join(args.dataset_folder, 'test')  # TODO change as soon as svhn has a val set :)
+        testdir = os.path.join(args.dataset_folder, 'test')
+
+        # Sanity check on the splits folders
+        if not os.path.isdir(traindir):
+            logging.error("Train folder not found in the args.dataset_folder=" + args.dataset_folder)
+            sys.exit(-1)
+        if not os.path.isdir(valdir):
+            logging.error("Val folder not found in the args.dataset_folder=" + args.dataset_folder)
+            sys.exit(-1)
+        if not os.path.isdir(testdir):
+            logging.error("Test folder not found in the args.dataset_folder=" + args.dataset_folder)
+            sys.exit(-1)
+
+        # Init the dataset splits
+        train_ds = datasets.ImageFolder(traindir)
+        val_ds = datasets.ImageFolder(valdir)
+        test_ds = datasets.ImageFolder(testdir)
+
+    # TODO what about the normalization?
+    # train_ds.__getitem__(0) to get an image but its weird?
     # Set up dataset transforms
+    logging.debug('Setting up dataset transforms')
     train_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
+        #transforms.Grayscale(num_output_channels=3),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        #       transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
     val_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
+        #transforms.Grayscale(num_output_channels=3),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        #      transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
     test_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
+        #transforms.Grayscale(num_output_channels=3),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        #     transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
     ])
 
     # Setup dataloaders
-    logging.info('Setting up dataloaders')
+    logging.debug('Setting up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
                                                shuffle=True,
                                                batch_size=args.batch_size,
@@ -154,17 +220,32 @@ def set_up_dataloaders(model_expected_input_size):
                                                pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(val_ds,
+                                             shuffle=False,
                                              batch_size=args.batch_size,
                                              num_workers=args.workers,
                                              pin_memory=True)
 
     test_loader = torch.utils.data.DataLoader(test_ds,
+                                              shuffle=False,
                                               batch_size=args.batch_size,
                                               num_workers=args.workers,
                                               pin_memory=True)
 
-    return train_loader, val_loader, test_loader, train_ds.num_classes
+    # mean, std = _compute_mean_std(np.asarray([item[0] for item in train_ds.imgs]))
 
+    return train_loader, val_loader, test_loader, len(train_ds.classes)
+
+
+def _compute_mean_std(data):
+    """
+    Computes the mean and std for R,G,B channels
+    :return:
+    """
+    mean = np.array([np.mean(data[:, :, :, 0]), np.mean(data[:, :, :, 1]),
+                     np.mean(data[:, :, :, 2])]) / 255.0
+    std = np.array([np.std(data[:, :, :, 0]), np.std(data[:, :, :, 1]),
+                    np.std(data[:, :, :, 2])]) / 255.0
+    return mean, std
 
 def adjust_learning_rate(optimizer, epoch, num_epochs):
     """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
@@ -204,13 +285,18 @@ if __name__ == "__main__":
                                 help='Do not print to stdout (log only).')
 
     # Data Options
+    #TODO dataset and dataset-folder should never exist together
     parser_data.add_argument('--dataset',
                              choices=dataset_options,
-                             help='which dataset to train/test on', default='CIFAR10')
+                             help='which dataset to train/test on.')
+    parser_data.add_argument('--dataset-folder',
+                             help='location of the dataset on the machine e.g root/data',
+                             default=None,
+                             type=str)
     parser_data.add_argument('--log-dir',
                              help='where to save logs', default='./data/')
     parser_data.add_argument('--log-folder',
-                             help='override default log folder (to resume logging of experiment)',
+                             help='override default log folder (to resume logging of experiment). Normally you do not use this.',
                              default=None,
                              type=str)
 
@@ -308,8 +394,6 @@ if __name__ == "__main__":
     # Define Tensorboard SummaryWriter
     logging.info('Initialize Tensorboard SummaryWriter')
     writer = tensorboardX.SummaryWriter(log_dir=log_folder)
-
-
 
     # Set up logging to console
     if not args.quiet:
