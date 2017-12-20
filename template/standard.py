@@ -60,7 +60,7 @@ def main(writer, log_folder, model_name, epochs, decay_lr, lr, **kwargs):
 
     # Setting up model, optimizer, criterion
     model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
-                                                                       model=model_name,
+                                                                       model_name=model_name,
                                                                        lr=lr, **kwargs)
 
 

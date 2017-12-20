@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
+import torchvision
 import torchvision.transforms as transforms
 
 # DeepDIVA
@@ -20,7 +21,7 @@ import models
 from init.initializer import *
 
 
-def set_up_model(num_classes, model, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
+def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
     """
     Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
     :param num_classes: int
@@ -42,8 +43,8 @@ def set_up_model(num_classes, model, pretrained, optimizer_name, lr, no_cuda, re
     :return: model, criterion, optimizer, best_value, start_epoch
     """
     # Initialize the model
-    logging.info('Setting up model {}'.format(model))
-    model = models.__dict__[model](num_classes=num_classes, pretrained=pretrained)
+    logging.info('Setting up model {}'.format(model_name))
+    model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained)
     optimizer = torch.optim.__dict__[optimizer_name](model.parameters(), lr)
     criterion = nn.CrossEntropyLoss()
 
@@ -77,7 +78,7 @@ def set_up_model(num_classes, model, pretrained, optimizer_name, lr, no_cuda, re
     return model, criterion, optimizer, best_value, start_epoch
 
 
-def set_up_dataloaders(model_expected_input_size, dataset, batch_size, workers, **kwargs):
+def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch_size, workers, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
     :param model_expected_input_size: tuple
@@ -95,20 +96,81 @@ def set_up_dataloaders(model_expected_input_size, dataset, batch_size, workers, 
     """
 
     logging.info('Loading datasets')
-    train_ds = datasets.__dict__[dataset](root='.data/',
-                                              train=True,
-                                              download=True)
+    # If the dataset selected is a class in dataset, use it.
+    if (dataset is not None) and (dataset in datasets.__dict__):
 
-    val_ds = datasets.__dict__[dataset](root='.data/',
-                                            train=False,
-                                            val=True,
-                                            download=True)
+        logging.debug('Using an user defined class to load: ' + args.dataset)
+        train_ds = datasets.__dict__[dataset](root='.data/',
+                                                  train=True,
+                                                  download=True)
 
-    test_ds = datasets.__dict__[dataset](root='.data/',
-                                             train=False,
-                                             download=True)
+        val_ds = datasets.__dict__[dataset](root='.data/',
+                                                train=False,
+                                                val=True,
+                                                download=True)
 
-    # Set up datasets transforms
+        test_ds = datasets.__dict__[dataset](root='.data/',
+                                                 train=False,
+                                                 download=True)
+    # Else, assume it is an image folder whose path is passed as 'args.dataset_folder'
+    else:
+        logging.debug('Using the image folder routine to load from: ' + dataset_folder)
+        """
+        Structure of the dataset expected
+        
+        Split folders 
+        -------------
+        'args.dataset_folder' has to point to the three folder train/val/test. 
+        Example:  
+        
+        ~/../../data/svhn
+        
+        where the dataset_folder contains the splits sub-folders as follow:
+        
+        args.dataset_folder/train
+        args.dataset_folder/val
+        args.dataset_folder/test
+        
+        Classes folders
+        ---------------
+        In each of the three splits (train,val,test) should have different classes in a separate folder with the class 
+        name. The file name can be arbitrary (e.g does not have to be 0-* for classes 0 of MNIST).
+        Example:
+        
+        train/dog/whatever.png
+        train/dog/you.png
+        train/dog/like.png
+        
+        train/cat/123.png
+        train/cat/nsdf3.png
+        train/cat/asd932_.png
+        """
+
+        # Get the splits folders
+        traindir = os.path.join(dataset_folder, 'train')
+        valdir = os.path.join(dataset_folder, 'test')  # TODO change as soon as svhn has a val set :)
+        testdir = os.path.join(dataset_folder, 'test')
+
+        # Sanity check on the splits folders
+        if not os.path.isdir(traindir):
+            logging.error("Train folder not found in the args.dataset_folder=" + dataset_folder)
+            sys.exit(-1)
+        if not os.path.isdir(valdir):
+            logging.error("Val folder not found in the args.dataset_folder=" + dataset_folder)
+            sys.exit(-1)
+        if not os.path.isdir(testdir):
+            logging.error("Test folder not found in the args.dataset_folder=" + dataset_folder)
+            sys.exit(-1)
+
+        # Init the dataset splits
+        train_ds = torchvision.datasets.ImageFolder(traindir)
+        val_ds = torchvision.datasets.ImageFolder(valdir)
+        test_ds = torchvision.datasets.ImageFolder(testdir)
+
+    # TODO what about the normalization?
+    # train_ds.__getitem__(0) to get an image but its weird?
+    # Set up dataset transforms
+    logging.debug('Setting up dataset transforms')
     train_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
@@ -128,7 +190,7 @@ def set_up_dataloaders(model_expected_input_size, dataset, batch_size, workers, 
     ])
 
     # Setup dataloaders
-    logging.info('Setting up dataloaders')
+    logging.debug('Setting up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
                                                shuffle=True,
                                                batch_size=batch_size,
