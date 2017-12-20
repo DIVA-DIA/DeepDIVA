@@ -59,22 +59,25 @@ def main(writer, log_folder, model_name, epochs, decay_lr, lr, **kwargs):
     train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
 
     # Setting up model, optimizer, criterion
-    model, criterion, optimizer, best_prec, start_epoch = set_up_model(num_classes=num_classes,
+    model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
                                                                        model=model_name,
                                                                        lr=lr, **kwargs)
 
+
+    # Core routine
+    logging.info('Begin training')
     val_precs = np.zeros((epochs - start_epoch))
     train_precs = np.zeros((epochs - start_epoch))
 
-    # Train
-    logging.info('Begin training')
+    validate(val_loader, model, criterion, writer, -1)
     for epoch in range(start_epoch, epochs):
+        # Train
+        train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
         # Validate
         val_precs[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
-        train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
-        if decay_lr is not None:
+        if args.decay_lr is not None:
             adjust_learning_rate(lr, optimizer, epoch, decay_lr)
-        checkpoint(epoch, val_precs[epoch], best_prec, model, optimizer, log_folder)
+        best_value = checkpoint(epoch, val_precs[epoch], best_value, model, optimizer, log_folder)
 
     # Test
     test_prec = test(test_loader, model, criterion, writer, epoch, **kwargs)
@@ -97,7 +100,7 @@ if __name__ == "__main__":
     # Training Settings
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Template for training a network on a datasets')
+        description='Template for training a network on a dataset')
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_data = parser.add_argument_group('DATA', 'Dataset Options')
@@ -116,13 +119,18 @@ if __name__ == "__main__":
                                 default=None, help='run main N times with different random seeds')
 
     # Data Options
+    #TODO dataset and dataset-folder should never exist together
     parser_data.add_argument('--dataset',
                              choices=dataset_options,
-                             help='which datasets to train/test on', default='CIFAR10')
+                             help='which dataset to train/test on.')
+    parser_data.add_argument('--dataset-folder',
+                             help='location of the dataset on the machine e.g root/data',
+                             default=None,
+                             type=str)
     parser_data.add_argument('--log-dir',
                              help='where to save logs', default='./data/')
     parser_data.add_argument('--log-folder',
-                             help='override default log folder (to resume logging of experiment)',
+                             help='override default log folder (to resume logging of experiment). Normally you do not use this.',
                              default=None,
                              type=str)
 
@@ -131,7 +139,7 @@ if __name__ == "__main__":
                               dest='model_name',
                               choices=model_options,
                               help='which model to use for training',
-                              type=str, default='CNN_Basic')
+                              type=str, default='CNN_basic')
     parser_train.add_argument('--lr',
                               help='learning rate to be used for training',
                               type=float, default=0.001)
