@@ -9,62 +9,71 @@ and they should be used instead of hard-coding stuff.
 
 # Utils
 import argparse
-import json
 import os
-import random
-import shutil
 import sys
-import time
 import traceback
 
 # Tensor board
 import tensorboardX
-# Torch related stuff
-import torch.backends.cudnn as cudnn
-import torch.nn as nn
-import torch.nn.parallel
-import torch.optim
-import torch.utils.data
-import torchvision.transforms as transforms
 
 # DeepDIVA
-import dataset
+import datasets
 import models
 from init.initializer import *
-from template.standard.evaluate import test
-from template.standard.evaluate import validate
+from template.standard.evaluate import validate, test
+from template.standard.setup import set_up_env, set_up_logging, set_up_model, set_up_dataloaders
 from template.standard.train import train
-from util.misc import checkpoint
+from util.misc import checkpoint, adjust_learning_rate
 from util.visualization.mean_std_plot import plot_mean_variance
 
 
 #######################################################################################################################
 
 
-def main(args, writer, log_folder, **kwargs):
-    """This is the main routine where train(), validate() and test() are called."""
+def main(writer, log_folder, model_name, epochs, decay_lr, lr, **kwargs):
+    """
+    This is the main routine where train(), validate() and test() are called.
+    :param writer: Tensorboard SummaryWriter
+        Responsible for writing logs in Tensorboard compatible format.
+    :param log_folder: string
+        Path to where logs/checkpoints are saved
+    :param model_name: string
+        Name of the model
+    :param epochs: int
+        Number of epochs to train
+    :param decay_lr: int N
+        Decay the learning rate by a factor of 10 every N epochs
+    :param lr: float
+        Value for learning rate
+    :param kwargs: dict
+        Any additional arguments.
+    :return: train_precs, val_precs, test_prec
+        Precision values for train and validation splits. Single precision value for the test split.
+    """
 
     # Get the selected model
-    model_expected_input_size = models.__dict__[args.model]().expected_input_size
-    logging.info('Model {} expects input size of {}'.format(args.model, model_expected_input_size))
+    model_expected_input_size = models.__dict__[model_name]().expected_input_size
+    logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
     # Setting up the dataloaders
-    train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size)
+    train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
 
     # Setting up model, optimizer, criterion
-    model, criterion, optimizer, best_prec = set_up_model(num_classes)
+    model, criterion, optimizer, best_prec, start_epoch = set_up_model(num_classes=num_classes,
+                                                                       model=model_name,
+                                                                       lr=lr, **kwargs)
 
-    val_precs = np.zeros((args.epochs - args.start_epoch))
-    train_precs = np.zeros((args.epochs - args.start_epoch))
+    val_precs = np.zeros((epochs - start_epoch))
+    train_precs = np.zeros((epochs - start_epoch))
 
     # Train
     logging.info('Begin training')
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(start_epoch, epochs):
         # Validate
         val_precs[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
         train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
-        if args.decay_lr is not None:
-            adjust_learning_rate(optimizer, epoch, args.decay_lr)
+        if decay_lr is not None:
+            adjust_learning_rate(lr, optimizer, epoch, decay_lr)
         checkpoint(epoch, val_precs[epoch], best_prec, model, optimizer, log_folder)
 
     # Test
@@ -76,191 +85,10 @@ def main(args, writer, log_folder, **kwargs):
 
 #######################################################################################################################
 
-
-def set_up_model(num_classes):
-    # Initialize the model
-    logging.info('Setting up model {}'.format(args.model))
-    model = models.__dict__[args.model](num_classes=num_classes, pretrained=args.pretrained)
-    optimizer = torch.optim.__dict__[args.optimizer](model.parameters(), args.lr)
-    criterion = nn.CrossEntropyLoss()
-
-    # Init the model
-    # if args.init:
-    #    init_model(model=model, data_loader=train_loader, num_points=50000)
-
-    # Transfer model to GPU (if desired)
-    if not args.no_cuda:
-        logging.info('Transfer model to GPU')
-        model = torch.nn.DataParallel(model).cuda()
-        criterion = criterion.cuda()
-        cudnn.benchmark = True
-
-    # Resume from checkpoint
-    if args.resume:
-        if os.path.isfile(args.resume):
-            logging.info("Loading checkpoint '{}'".format(args.resume))
-            checkpoint = torch.load(args.resume)
-            args.start_epoch = checkpoint['epoch']
-            best_value = checkpoint['best_value']
-            model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            val_losses = [checkpoint['val_loss']]
-            logging.info("Loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
-        else:
-            logging.error("No checkpoint found at '{}'".format(args.resume))
-            sys.exit(-1)
-    else:
-        best_value = 0.0
-    return model, criterion, optimizer, best_value
-
-
-def set_up_dataloaders(model_expected_input_size):
-    """Set up datasets and dataloaders"""
-
-    logging.info('Loading datasets')
-    train_ds = dataset.__dict__[args.dataset](root='.data/',
-                                              train=True,
-                                              download=True)
-
-    val_ds = dataset.__dict__[args.dataset](root='.data/',
-                                            train=False,
-                                            val=True,
-                                            download=True)
-
-    test_ds = dataset.__dict__[args.dataset](root='.data/',
-                                             train=False,
-                                             download=True)
-
-    # Set up dataset transforms
-    train_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
-
-    val_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
-
-    test_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
-
-    # Setup dataloaders
-    logging.info('Setting up dataloaders')
-    train_loader = torch.utils.data.DataLoader(train_ds,
-                                               shuffle=True,
-                                               batch_size=args.batch_size,
-                                               num_workers=args.workers,
-                                               pin_memory=True)
-
-    val_loader = torch.utils.data.DataLoader(val_ds,
-                                             batch_size=args.batch_size,
-                                             num_workers=args.workers,
-                                             pin_memory=True)
-
-    test_loader = torch.utils.data.DataLoader(test_ds,
-                                              batch_size=args.batch_size,
-                                              num_workers=args.workers,
-                                              pin_memory=True)
-
-    return train_loader, val_loader, test_loader, train_ds.num_classes
-
-
-def adjust_learning_rate(optimizer, epoch, num_epochs):
-    """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
-    lr = args.lr * (0.1 ** (epoch // num_epochs))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
-#######################################################################################################################
-
-
-def set_up_logging(args):
-    # Experiment name override
-    if args.experiment_name is None:
-        vars(args)['experiment_name'] = input("Experiment name:")
-
-    # Setup Logging
-    basename = args.log_dir
-    experiment_name = args.experiment_name
-    if not args.log_folder:
-        log_folder = os.path.join(basename,
-                                  experiment_name,
-                                  args.dataset,
-                                  args.model,
-                                  args.optimizer,
-                                  str(args.lr),
-                                  '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
-    else:
-        log_folder = args.log_folder
-    logfile = 'logs.txt'
-    if not os.path.exists(log_folder):
-        os.makedirs(log_folder)
-
-    logging.basicConfig(
-        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
-        filename=os.path.join(log_folder, logfile),
-        level=logging.INFO)
-    logging.info(
-        'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
-
-    # Save args to logs_folder
-    logging.info(
-        'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
-    with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
-        f.write(json.dumps(vars(args)))
-
-    # Set up logging to console
-    if not args.quiet:
-        fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
-        stderr_handler = logging.StreamHandler()
-        stderr_handler.formatter = fmtr
-        logging.getLogger().setLevel(logging.INFO)
-        logging.getLogger().addHandler(stderr_handler)
-        logging.info('Printing activity to the console')
-
-    return log_folder
-
-
-def set_up_env(args):
-    # Set visible GPUs
-    if args.gpu_id is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
-
-    # Seed the random
-
-    if args.seed:
-        try:
-            assert args.multi_run == None
-        except:
-            logging.warning('Arguments for seed AND multi-run should not be active at the same time!')
-            raise SystemExit
-        if args.workers > 1:
-            logging.warning('Setting seed when workers > 1 may lead to non-deterministic outcomes!')
-        # Python
-        random.seed(args.seed)
-
-        # Numpy random
-        np.random.seed(args.seed)
-
-        # Torch random
-        torch.manual_seed(args.seed)
-        if not args.no_cuda:
-            torch.cuda.manual_seed_all(args.seed)
-            torch.backends.cudnn.enabled = False
-    return
-
-
 if __name__ == "__main__":
 
     model_options = [name for name in models.__dict__ if callable(models.__dict__[name])]
-    dataset_options = [name for name in dataset.__dict__ if callable(dataset.__dict__[name])]
+    dataset_options = [name for name in datasets.__dict__ if callable(datasets.__dict__[name])]
     optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
 
     ###############################################################################
@@ -269,7 +97,7 @@ if __name__ == "__main__":
     # Training Settings
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Template for training a network on a dataset')
+        description='Template for training a network on a datasets')
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_data = parser.add_argument_group('DATA', 'Dataset Options')
@@ -290,7 +118,7 @@ if __name__ == "__main__":
     # Data Options
     parser_data.add_argument('--dataset',
                              choices=dataset_options,
-                             help='which dataset to train/test on', default='CIFAR10')
+                             help='which datasets to train/test on', default='CIFAR10')
     parser_data.add_argument('--log-dir',
                              help='where to save logs', default='./data/')
     parser_data.add_argument('--log-folder',
@@ -300,6 +128,7 @@ if __name__ == "__main__":
 
     # Training Options
     parser_train.add_argument('--model',
+                              dest='model_name',
                               choices=model_options,
                               help='which model to use for training',
                               type=str, default='CNN_Basic')
@@ -307,6 +136,7 @@ if __name__ == "__main__":
                               help='learning rate to be used for training',
                               type=float, default=0.001)
     parser_train.add_argument('--optimizer',
+                              dest='optimizer_name',
                               choices=optimizer_options,
                               help='optimizer to be used for training',
                               default='Adam')
@@ -345,20 +175,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up logging
-    log_folder = set_up_logging(args)
+    args.__dict__['log_folder'] = set_up_logging(args_dict=args.__dict__, **args.__dict__)
 
     # Define Tensorboard SummaryWriter
     logging.info('Initialize Tensorboard SummaryWriter')
-    writer = tensorboardX.SummaryWriter(log_dir=log_folder)
+    writer = tensorboardX.SummaryWriter(log_dir=args.log_folder)
 
-    # Set up env
+    # Set up execution environment
     # Specify CUDA_VISIBLE_DEVICES and seeds
-    set_up_env(args)
+    set_up_env(**args.__dict__)
 
     if args.multi_run == None:
 
         try:
-            main(args, writer, log_folder)
+            main(writer, **args.__dict__)
         except Exception as exp:
             if args.quiet:
                 print('Unhandled error: {}'.format(repr(exp)))
@@ -369,7 +199,7 @@ if __name__ == "__main__":
         finally:
             logging.shutdown()
             writer.close()
-            print('All done! (logged to {}'.format(log_folder))
+            print('All done! (logged to {}'.format(args.log_folder))
 
     else:
         train_scores = np.zeros((args.multi_run, args.epochs))
@@ -379,7 +209,22 @@ if __name__ == "__main__":
         for i in range(args.multi_run):
             logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
             try:
-                train_scores[i, :], val_scores[i, :], test_scores[i] = main(args, writer, log_folder, multi_run=i)
+                train_scores[i, :], val_scores[i, :], test_scores[i] = main(writer, run=i,
+                                                                            **args.__dict__)
+                train_curve = plot_mean_variance(train_scores[:i],
+                                                 suptitle='Multi-Run: Train',
+                                                 title='Runs: {}'.format(i+1),
+                                                 xlabel='Epochs', ylabel='Accuracy',
+                                                 ylim=[0, 100.0])
+                writer.add_image('train_curve', train_curve)
+                logging.info('Generated mean-variance plot for train')
+                val_curve = plot_mean_variance(val_scores[:i],
+                                               suptitle='Multi-Run: Val',
+                                               title='Runs: {}'.format(i+1),
+                                               xlabel='Epochs', ylabel='Accuracy',
+                                               ylim=[0, 100.0])
+                writer.add_image('val_curve', val_curve)
+                logging.info('Generated mean-variance plot for val')
 
             except Exception as exp:
                 if args.quiet:
@@ -389,22 +234,10 @@ if __name__ == "__main__":
                 logging.error('Execution finished with errors :(')
                 sys.exit(-1)
 
-        np.save(os.path.join(log_folder, 'train_values.npy'), train_scores)
-        np.save(os.path.join(log_folder, 'val_values.npy'), val_scores)
-        train_curve = plot_mean_variance(train_scores,
-                                         suptitle='Multi-Run: Train',
-                                         xlabel='Epochs', ylabel='Accuracy',
-                                         ylim=[0, 100.0])
-        writer.add_image('train_curve', train_curve)
-        logging.info('Generated mean-variance plot for train')
-        val_curve = plot_mean_variance(val_scores,
-                                       suptitle='Multi-Run: Val',
-                                       xlabel='Epochs', ylabel='Accuracy',
-                                       ylim=[0, 100.0])
-        writer.add_image('val_curve', train_curve)
-        logging.info('Generated mean-variance plot for val')
+        np.save(os.path.join(args.log_folder, 'train_values.npy'), train_scores)
+        np.save(os.path.join(args.log_folder, 'val_values.npy'), val_scores)
         logging.info('Multi-run values for test-mean: {} test-std: {}'.format(np.mean(test_scores),
                                                                               np.std(test_scores)))
         logging.shutdown()
         writer.close()
-        print('All done! (logged to {}'.format(log_folder))
+        print('All done! (logged to {}'.format(args.log_folder))
