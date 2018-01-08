@@ -86,6 +86,36 @@ def main(writer, log_folder, model_name, epochs, decay_lr, lr, **kwargs):
     return train_precs, val_precs, test_prec
 
 
+def multi_run(writer, args):
+    train_scores = np.zeros((args.multi_run, args.epochs))
+    val_scores = np.zeros((args.multi_run, args.epochs))
+    test_scores = np.zeros((args.multi_run))
+
+    for i in range(args.multi_run):
+        logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
+        train_scores[i, :], val_scores[i, :], test_scores[i] = main(writer, run=i,
+                                                                    **args.__dict__)
+        train_curve = plot_mean_variance(train_scores[:i],
+                                         suptitle='Multi-Run: Train',
+                                         title='Runs: {}'.format(i + 1),
+                                         xlabel='Epochs', ylabel='Accuracy',
+                                         ylim=[0, 100.0])
+        writer.add_image('train_curve', train_curve)
+        logging.info('Generated mean-variance plot for train')
+        val_curve = plot_mean_variance(val_scores[:i],
+                                       suptitle='Multi-Run: Val',
+                                       title='Runs: {}'.format(i + 1),
+                                       xlabel='Epochs', ylabel='Accuracy',
+                                       ylim=[0, 100.0])
+        writer.add_image('val_curve', val_curve)
+        logging.info('Generated mean-variance plot for val')
+
+    np.save(os.path.join(args.log_folder, 'train_values.npy'), train_scores)
+    np.save(os.path.join(args.log_folder, 'val_values.npy'), val_scores)
+    logging.info('Multi-run values for test-mean: {} test-std: {}'.format(np.mean(test_scores),
+                                                                          np.std(test_scores)))
+    return
+
 #######################################################################################################################
 
 if __name__ == "__main__":
@@ -193,59 +223,19 @@ if __name__ == "__main__":
     # Specify CUDA_VISIBLE_DEVICES and seeds
     set_up_env(**args.__dict__)
 
-    if args.multi_run == None:
-
-        try:
+    try:
+        if args.multi_run == None:
             main(writer, **args.__dict__)
-        except Exception as exp:
-            if args.quiet:
-                print('Unhandled error: {}'.format(repr(exp)))
-            logging.error('Unhandled error: %s' % repr(exp))
-            logging.error(traceback.format_exc())
-            logging.error('Execution finished with errors :(')
-            sys.exit(-1)
-        finally:
-            logging.shutdown()
-            writer.close()
-            print('All done! (logged to {}'.format(args.log_folder))
-
-    else:
-        train_scores = np.zeros((args.multi_run, args.epochs))
-        val_scores = np.zeros((args.multi_run, args.epochs))
-        test_scores = np.zeros((args.multi_run))
-
-        for i in range(args.multi_run):
-            logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
-            try:
-                train_scores[i, :], val_scores[i, :], test_scores[i] = main(writer, run=i,
-                                                                            **args.__dict__)
-                train_curve = plot_mean_variance(train_scores[:i],
-                                                 suptitle='Multi-Run: Train',
-                                                 title='Runs: {}'.format(i+1),
-                                                 xlabel='Epochs', ylabel='Accuracy',
-                                                 ylim=[0, 100.0])
-                writer.add_image('train_curve', train_curve)
-                logging.info('Generated mean-variance plot for train')
-                val_curve = plot_mean_variance(val_scores[:i],
-                                               suptitle='Multi-Run: Val',
-                                               title='Runs: {}'.format(i+1),
-                                               xlabel='Epochs', ylabel='Accuracy',
-                                               ylim=[0, 100.0])
-                writer.add_image('val_curve', val_curve)
-                logging.info('Generated mean-variance plot for val')
-
-            except Exception as exp:
-                if args.quiet:
-                    print('Unhandled error: {}'.format(repr(exp)))
-                logging.error('Unhandled error: %s' % repr(exp))
-                logging.error(traceback.format_exc())
-                logging.error('Execution finished with errors :(')
-                sys.exit(-1)
-
-        np.save(os.path.join(args.log_folder, 'train_values.npy'), train_scores)
-        np.save(os.path.join(args.log_folder, 'val_values.npy'), val_scores)
-        logging.info('Multi-run values for test-mean: {} test-std: {}'.format(np.mean(test_scores),
-                                                                              np.std(test_scores)))
+        else:
+            multi_run(writer, args)
+    except Exception as exp:
+        if args.quiet:
+            print('Unhandled error: {}'.format(repr(exp)))
+        logging.error('Unhandled error: %s' % repr(exp))
+        logging.error(traceback.format_exc())
+        logging.error('Execution finished with errors :(')
+        sys.exit(-1)
+    finally:
         logging.shutdown()
         writer.close()
         print('All done! (logged to {}'.format(args.log_folder))
