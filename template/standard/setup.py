@@ -99,7 +99,7 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
     # If the dataset selected is a class in dataset, use it.
     if (dataset is not None) and (dataset in datasets.__dict__):
 
-        logging.debug('Using an user defined class to load: ' + args.dataset)
+        logging.debug('Using an user defined class to load: ' + dataset)
         train_ds = datasets.__dict__[dataset](root='.data/',
                                                   train=True,
                                                   download=True)
@@ -242,6 +242,9 @@ def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, op
         experiment_name = input("Experiment name:")
 
     # Setup Logging
+    if dataset is None:
+        dataset = os.path.dirname(kwargs['dataset_folder'])
+
     basename = log_dir
     experiment_name = experiment_name
     if log_folder is None:
