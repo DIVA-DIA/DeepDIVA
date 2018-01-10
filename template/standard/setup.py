@@ -5,7 +5,6 @@ import random
 import sys
 import time
 
-# Tensor board
 # Torch related stuff
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -265,6 +264,15 @@ def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, op
         format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
         filename=os.path.join(log_folder, logfile),
         level=logging.INFO)
+    # Set up logging to console
+    if not quiet:
+        fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
+        stderr_handler = logging.StreamHandler()
+        stderr_handler.formatter = fmtr
+        logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger().addHandler(stderr_handler)
+        logging.info('Printing activity to the console')
+
     logging.info(
         'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
 
@@ -274,14 +282,7 @@ def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, op
     with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
         f.write(json.dumps(args_dict))
 
-    # Set up logging to console
-    if not quiet:
-        fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
-        stderr_handler = logging.StreamHandler()
-        stderr_handler.formatter = fmtr
-        logging.getLogger().setLevel(logging.INFO)
-        logging.getLogger().addHandler(stderr_handler)
-        logging.info('Printing activity to the console')
+
 
     return log_folder
 
