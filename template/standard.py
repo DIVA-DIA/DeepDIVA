@@ -11,10 +11,16 @@ and they should be used instead of hard-coding stuff.
 import argparse
 import os
 import sys
+import json
 import traceback
+
+from sklearn.model_selection import ParameterGrid
 
 # Tensor board
 import tensorboardX
+
+#SigOpt
+from sigopt import Connection
 
 # DeepDIVA
 import datasets
@@ -30,7 +36,7 @@ from util.visualization.mean_std_plot import plot_mean_variance
 #######################################################################################################################
 
 
-def main(writer, log_folder, model_name, epochs, decay_lr, lr, **kwargs):
+def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **kwargs):
     """
     This is the main routine where train(), validate() and test() are called.
     :param writer: Tensorboard SummaryWriter
@@ -93,7 +99,7 @@ def multi_run(writer, args):
 
     for i in range(args.multi_run):
         logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
-        train_scores[i, :], val_scores[i, :], test_scores[i] = main(writer, run=i,
+        train_scores[i, :], val_scores[i, :], test_scores[i] = train_and_evaluate(writer, run=i,
                                                                     **args.__dict__)
         train_curve = plot_mean_variance(train_scores[:i],
                                          suptitle='Multi-Run: Train',
@@ -114,7 +120,40 @@ def multi_run(writer, args):
     np.save(os.path.join(args.log_folder, 'val_values.npy'), val_scores)
     logging.info('Multi-run values for test-mean: {} test-std: {}'.format(np.mean(test_scores),
                                                                           np.std(test_scores)))
-    return
+    return train_scores, val_scores, test_scores
+
+
+def main(args):
+    # Set up logging
+    args.__dict__['log_folder'] = set_up_logging(args_dict=args.__dict__, **args.__dict__)
+
+    # Define Tensorboard SummaryWriter
+    logging.info('Initialize Tensorboard SummaryWriter')
+    writer = tensorboardX.SummaryWriter(log_dir=args.log_folder)
+
+    # Set up execution environment
+    # Specify CUDA_VISIBLE_DEVICES and seeds
+    set_up_env(**args.__dict__)
+
+    try:
+        if args.multi_run == None:
+            train_scores, val_scores, test_scores = train_and_evaluate(writer, **args.__dict__)
+        else:
+            train_scores, val_scores, test_scores = multi_run(writer, args)
+    except Exception as exp:
+        if args.quiet:
+            print('Unhandled error: {}'.format(repr(exp)))
+        logging.error('Unhandled error: %s' % repr(exp))
+        logging.error(traceback.format_exc())
+        logging.error('Execution finished with errors :(')
+        sys.exit(-1)
+    finally:
+        logging.shutdown()
+        logging.getLogger().handlers = []
+        args.__dict__['log_folder'] = None
+        writer.close()
+        print('All done! (logged to {}'.format(args.log_folder))
+    return train_scores, val_scores, test_scores
 
 #######################################################################################################################
 
@@ -147,6 +186,16 @@ if __name__ == "__main__":
     parser_general.add_argument('--multi-run',
                                 type=int,
                                 default=None, help='run main N times with different random seeds')
+    parser_general.add_argument('--hyper-param-optim',
+                                type=str,
+                                default=None, help='path to a JSON file containing all variable names (as defined in '
+                                                   'the argument parser) that need to be searched over.')
+    parser_general.add_argument('--sig-opt',
+                                type=str,
+                                default=None, help='path to a JSON file containing sig_opt variables and sig_opt bounds.')
+    parser_general.add_argument('--sig-opt-runs',
+                                type=int,
+                                default=100, help='number of updates of SigOpt required')
 
     # Data Options
     #TODO dataset and dataset-folder should never exist together
@@ -212,30 +261,49 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Set up logging
-    args.__dict__['log_folder'] = set_up_logging(args_dict=args.__dict__, **args.__dict__)
+    if args.hyper_param_optim is None and args.sig_opt is None:
+        main(args)
 
-    # Define Tensorboard SummaryWriter
-    logging.info('Initialize Tensorboard SummaryWriter')
-    writer = tensorboardX.SummaryWriter(log_dir=args.log_folder)
+    elif args.sig_opt is not None:
+        # Load parameters from file
+        with open(args.sig_opt,'r') as f:
+            parameters = json.loads(f.read())
 
-    # Set up execution environment
-    # Specify CUDA_VISIBLE_DEVICES and seeds
-    set_up_env(**args.__dict__)
+        if args.experiment_name is None:
+            args.experiment_name = input("Experiment name:")
+        conn = Connection(client_token="KXMUZNABYGKSXXRUEMELUYYRVRCRTRANKCPGDNNYDSGRHGUA")
+        experiment = conn.experiments().create(
+            name=args.experiment_name,
+            parameters=parameters,
+        )
+        print("Created experiment: https://sigopt.com/experiment/" + experiment.id)
 
-    try:
-        if args.multi_run == None:
-            main(writer, **args.__dict__)
-        else:
-            multi_run(writer, args)
-    except Exception as exp:
-        if args.quiet:
-            print('Unhandled error: {}'.format(repr(exp)))
-        logging.error('Unhandled error: %s' % repr(exp))
-        logging.error(traceback.format_exc())
-        logging.error('Execution finished with errors :(')
-        sys.exit(-1)
-    finally:
-        logging.shutdown()
-        writer.close()
-        print('All done! (logged to {}'.format(args.log_folder))
+        for i in range(args.sig_opt_runs):
+            suggestion = conn.experiments(experiment.id).suggestions().create()
+            params = suggestion.assignments
+            for key in params:
+                args.__dict__[key] = params[key]
+            _, _, score = main(args)
+            if type(score) != float:
+                _ = [conn.experiments(experiment.id).observations().create(
+                    suggestion=suggestion.id,
+                    value=item,
+                ) for item in score]
+            else:
+                conn.experiments(experiment.id).observations().create(
+                    suggestion=suggestion.id,
+                    value=score,
+                )
+
+    else:
+        print('Hyper Parameter Optimization mode')
+
+        with open(args.hyper_param_optim,'r') as f:
+            hyper_param_values = json.loads(f.read())
+        hyper_param_grid = ParameterGrid(hyper_param_values)
+
+        for i, params in enumerate(hyper_param_grid):
+            print('{} of {} possible parameter combinations evaluated'.format(i,len(hyper_param_grid)))
+            for key in params:
+                args.__dict__[key] = params[key]
+            main(args)
