@@ -56,24 +56,24 @@ def main(args, writer, log_folder, **kwargs):
 
     # Core routine
     logging.info('Begin training')
-    val_precs = np.zeros((args.epochs - args.start_epoch))
-    train_precs = np.zeros((args.epochs - args.start_epoch))
+    val_value = np.zeros((args.epochs - args.start_epoch))
+    train_value = np.zeros((args.epochs - args.start_epoch))
 
     validate(val_loader, model, criterion, writer, -1)
     for epoch in range(args.start_epoch, args.epochs):
         # Train
-        train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+        train_value[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
         # Validate
-        val_precs[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
+        val_value[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
         if args.decay_lr is not None:
             adjust_learning_rate(optimizer, epoch, args.decay_lr)
-        best_value = checkpoint(epoch, val_precs[epoch], best_value, model, optimizer, log_folder)
+        best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_folder)
 
     # Test
-    test_prec = test(test_loader, model, criterion, writer, epoch, **kwargs)
+    test_value = test(test_loader, model, criterion, writer, epoch, **kwargs)
     logging.info('Training completed')
 
-    return train_precs, val_precs, test_prec
+    return train_value, val_value, test_value
 
 
 #######################################################################################################################
@@ -251,13 +251,6 @@ def _compute_mean_std(data):
                     np.std(data[:, :, :, 2])]) / 255.0
     return mean, std
 
-def adjust_learning_rate(optimizer, epoch, num_epochs):
-    """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
-    lr = args.lr * (0.1 ** (epoch // num_epochs))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
 #######################################################################################################################
 
 
@@ -336,6 +329,13 @@ def set_up_env(args):
             torch.cuda.manual_seed_all(args.seed)
             torch.backends.cudnn.enabled = False
     return
+
+
+def adjust_learning_rate(optimizer, epoch, num_epochs):
+    """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
+    lr = args.lr * (0.1 ** (epoch // num_epochs))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
 
 
 if __name__ == "__main__":
