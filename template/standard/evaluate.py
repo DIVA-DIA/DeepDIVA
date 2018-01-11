@@ -52,7 +52,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     :return:
         None
     """
-    multi_run = kwargs['multi_run'] if 'multi_run' in kwargs else None
+    multi_run = kwargs['run'] if 'run' in kwargs else None
 
     # Init the counters
     batch_time = AverageMeter()

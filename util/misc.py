@@ -8,6 +8,7 @@ import hashlib
 import os
 import os.path
 import shutil
+import logging
 
 # Torch
 import torch
@@ -49,7 +50,6 @@ def download_url(url, root, filename, md5):
     else:
         print('Downloading ' + url + ' to ' + fpath)
         urllib.request.urlretrieve(url, fpath)
-
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -100,6 +100,14 @@ def accuracy(output, target, topk=(1,)):
         correct_k = correct[:k].view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
+
+
+def adjust_learning_rate(lr, optimizer, epoch, num_epochs):
+    """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
+    lr = lr * (0.1 ** (epoch // num_epochs))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+    logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
 
 
 def checkpoint(epoch, new_value, best_value, model, optimizer, log_folder):
