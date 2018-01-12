@@ -9,18 +9,16 @@ and they should be used instead of hard-coding stuff.
 
 # Utils
 import argparse
+import json
 import os
 import sys
-import json
 import traceback
-
-from sklearn.model_selection import ParameterGrid
 
 # Tensor board
 import tensorboardX
-
-#SigOpt
+# SigOpt
 from sigopt import Connection
+from sklearn.model_selection import ParameterGrid
 
 # DeepDIVA
 import datasets
@@ -53,7 +51,7 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
         Value for learning rate
     :param kwargs: dict
         Any additional arguments.
-    :return: train_precs, val_precs, test_prec
+    :return: train_value, val_value, test_value
         Precision values for train and validation splits. Single precision value for the test split.
     """
 
@@ -69,27 +67,26 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
                                                                        model_name=model_name,
                                                                        lr=lr, **kwargs)
 
-
     # Core routine
     logging.info('Begin training')
-    val_precs = np.zeros((epochs - start_epoch))
-    train_precs = np.zeros((epochs - start_epoch))
+    val_value = np.zeros((epochs - start_epoch))
+    train_value = np.zeros((epochs - start_epoch))
 
     validate(val_loader, model, criterion, writer, -1)
     for epoch in range(start_epoch, epochs):
         # Train
-        train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+        train_value[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
         # Validate
-        val_precs[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
+        val_value[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
         if args.decay_lr is not None:
             adjust_learning_rate(lr, optimizer, epoch, decay_lr)
-        best_value = checkpoint(epoch, val_precs[epoch], best_value, model, optimizer, log_folder)
+        best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_folder)
 
     # Test
-    test_prec = test(test_loader, model, criterion, writer, epoch, **kwargs)
+    test_value = test(test_loader, model, criterion, writer, epoch, **kwargs)
     logging.info('Training completed')
 
-    return train_precs, val_precs, test_prec
+    return train_value, val_value, test_value
 
 
 def multi_run(writer, args):

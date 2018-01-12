@@ -8,16 +8,16 @@ Split folders
 'args.dataset-folder' has to point to the parent of the train folder.
 Example:
 
-    ~/../../data/svhn
+        ~/../../data/svhn
 
 where the dataset_folder contains the train sub-folder as follow:
 
-    args.dataset_folder/train
+        args.dataset_folder/train
 
 after running this script there will be the two splits sets follow:
 
-    args.dataset_folder/split_train
-    args.dataset_folder/split_val
+        args.dataset_folder/split_train
+        args.dataset_folder/split_val
 
 Classes folders
 ---------------
@@ -25,13 +25,13 @@ The train split should have different classes in a separate folder with the clas
 name. The file name can be arbitrary (e.g does not have to be 0-* for classes 0 of MNIST).
 Example:
 
-train/dog/whatever.png
-train/dog/you.png
-train/dog/like.png
+    train/dog/whatever.png
+    train/dog/you.png
+    train/dog/like.png
 
-train/cat/123.png
-train/cat/nsdf3.png
-train/cat/asd932_.png
+    train/cat/123.png
+    train/cat/nsdf3.png
+    train/cat/asd932_.png
 
 @author: Michele Alberti
 """
@@ -131,10 +131,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Template for training a network on a dataset')
+        description='This script allows for creation of a validation set from the training set')
 
     parser.add_argument('--dataset-folder',
                         help='location of the dataset on the machine e.g root/data',
+                        required=True,
                         default=None,
                         type=str)
 
