@@ -38,9 +38,6 @@ import os
 import sys
 
 import cv2
-
-# Load an color image in grayscale
-img = cv2.imread('messi5.jpg', 0)
 # Torch related stuff
 import torchvision.datasets as datasets
 
@@ -48,12 +45,17 @@ import torchvision.datasets as datasets
 from init.initializer import *
 
 
-def compute_mean_std(dataset_folder):
+def compute_mean_std(dataset_folder, online=False):
     """
+    Computes mean and std of a dataset.
+
     Parameters
     ----------
     :param dataset_folder: String (path)
         Path to the dataset folder (see above for details)
+
+    :param online: Boolean
+        Specifies whether is should be computed i nan online of offline fashion.
 
     :return:
         None
@@ -71,35 +73,77 @@ def compute_mean_std(dataset_folder):
     train_ds = datasets.ImageFolder(traindir)
 
     # Extract the actual file names and labels as entries
-    fileNames = np.asarray([item[0] for item in train_ds.imgs])
+    file_names = np.asarray([item[0] for item in train_ds.imgs])
 
-    ###############################################################################
-    # Compute online mean
+    # Compute mean and std
+    if online:
+        mean, std = cms_online(file_names)
+    else:
+        mean, std = cms_offline(file_names)
+
+    # Display the results on console
+    print("Mean: [{}, {}, {}]".format(mean[0], mean[1], mean[2]))
+    print("Std: [{}, {}, {}]".format(std[0], std[1], std[2]))
+
+
+def cms_online(file_names):
+    """
+    Computes mean and standard deviation in an online fashion. This is useful when the dataset is too big to
+    be allocated in memory. The mean is computed as full precision, whereas the std is an actual approximation
+    of the real one (since its online its not possible to have it fully precise).
+
+    Parameters
+    ----------
+    :param file_names: List of String
+        List of file names of the dataset
+    :return:
+        Mean (double) and Std (double)
+    """
+    # Online mean
     mean = [0, 0, 0]
-    for sample in fileNames:
+    for sample in file_names:
         # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
         img = cv2.imread(sample)
         mean += np.array([np.mean(img[:, :, 2]), np.mean(img[:, :, 1]), np.mean(img[:, :, 0])]) / 255.0
 
     # Divide by number of samples in train set
-    mean /= fileNames.size
-
-    ###############################################################################
-    # Compute online mean and standard deviation
+    mean /= file_names.size
+    # Online standard deviation
     # (see https://stackoverflow.com/questions/15638612/calculating-mean-and-standard-deviation-of-the-data-which-does-not-fit-in-memory)
     std = [0, 0, 0]
-    for sample in fileNames:
+    for sample in file_names:
         # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
         img = cv2.imread(sample) / 255.0
         M2 = np.square(
             np.array([img[:, :, 2] / 255.0 - mean[0], img[:, :, 1] / 255.0 - mean[1], img[:, :, 0] / 255.0 - mean[2]]))
         std += np.sum(np.sum(M2, axis=1), axis=1) / M2.size
+    std = np.sqrt(std / file_names.size)
+    return mean, std
 
-    std = np.sqrt(std / fileNames.size)
 
-    # Display the results on console
-    print("Mean: [{}, {}, {}]".format(mean[0], mean[1], mean[2]))
-    print("Std: [{}, {}, {}]".format(std[0], std[1], std[2]))
+def cms_offline(file_names):
+    """
+    Computes mean and standard deviation in an offline fashion. This is possible only when the dataset can
+    be allocated in memory.
+
+    Parameters
+    ----------
+    :param file_names: List of String
+        List of file names of the dataset
+    :return:
+        Mean (double) and Std (double)
+    """
+    img = np.zeros([file_names.size] + list(cv2.imread(file_names[0]).shape))
+
+    # Load all samples
+    for i, sample in enumerate(file_names):
+        img[i] = cv2.imread(sample)
+
+    # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
+    mean = np.array([np.mean(img[:, :, :, 2]), np.mean(img[:, :, :, 1]), np.mean(img[:, :, :, 0])]) / 255.0
+    std = np.array([np.std(img[:, :, :, 2]), np.std(img[:, :, :, 1]), np.std(img[:, :, :, 0])]) / 255.0
+
+    return mean, std
 
 
 if __name__ == "__main__":
@@ -115,6 +159,11 @@ if __name__ == "__main__":
                         required=True,
                         type=str)
 
+    parser.add_argument('--online',
+                        default=False, action='store_true',
+                        help='Compute it in an online fashion (because it probably will not fin in memory')
+
     args = parser.parse_args()
 
-    compute_mean_std(dataset_folder=args.dataset_folder)
+    compute_mean_std(dataset_folder=args.dataset_folder,
+                     online=args.online is None)
