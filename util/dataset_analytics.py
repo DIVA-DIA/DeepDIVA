@@ -89,8 +89,7 @@ def compute_mean_std(dataset_folder, online=False):
 def cms_online(file_names):
     """
     Computes mean and standard deviation in an online fashion. This is useful when the dataset is too big to
-    be allocated in memory. The mean is computed as full precision, whereas the std is an actual approximation
-    of the real one (since its online its not possible to have it fully precise).
+    be allocated in memory. 
 
     Parameters
     ----------
@@ -108,16 +107,16 @@ def cms_online(file_names):
 
     # Divide by number of samples in train set
     mean /= file_names.size
+
     # Online standard deviation
-    # (see https://stackoverflow.com/questions/15638612/calculating-mean-and-standard-deviation-of-the-data-which-does-not-fit-in-memory)
     std = [0, 0, 0]
     for sample in file_names:
         # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
         img = cv2.imread(sample) / 255.0
-        M2 = np.square(
-            np.array([img[:, :, 2] / 255.0 - mean[0], img[:, :, 1] / 255.0 - mean[1], img[:, :, 0] / 255.0 - mean[2]]))
-        std += np.sum(np.sum(M2, axis=1), axis=1) / M2.size
-    std = np.sqrt(std / file_names.size)
+        M2 = np.square(np.array([img[:, :, 2] - mean[0], img[:, :, 1] - mean[1], img[:, :, 0] - mean[2]]))
+        std += np.sum(np.sum(M2, axis=1), axis=1)
+
+    std = np.sqrt(std / (file_names.size * (M2.size / 3.0)))
     return mean, std
 
 
@@ -160,10 +159,10 @@ if __name__ == "__main__":
                         type=str)
 
     parser.add_argument('--online',
-                        default=False, action='store_true',
+                        action='store_true',
                         help='Compute it in an online fashion (because it probably will not fin in memory')
 
     args = parser.parse_args()
 
     compute_mean_std(dataset_folder=args.dataset_folder,
-                     online=args.online is None)
+                     online=args.online)
