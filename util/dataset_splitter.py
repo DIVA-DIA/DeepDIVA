@@ -42,12 +42,10 @@ import os
 import shutil
 import sys
 
+import numpy as np
 # Torch related stuff
 import torchvision.datasets as datasets
 from sklearn.model_selection import train_test_split
-
-# DeepDIVA
-from init.initializer import *
 
 
 def split_dataset(dataset_folder, split):
@@ -70,7 +68,7 @@ def split_dataset(dataset_folder, split):
 
     # Sanity check on the training folder
     if not os.path.isdir(traindir):
-        logging.error("Train folder not found in the args.dataset_folder=" + dataset_folder)
+        print("Train folder not found in the args.dataset_folder={}".format(dataset_folder))
         sys.exit(-1)
 
     # Load the dataset file names

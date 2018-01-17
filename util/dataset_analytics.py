@@ -38,16 +38,15 @@ import os
 import sys
 
 import cv2
+import numpy as np
+import pandas as pd
 # Torch related stuff
 import torchvision.datasets as datasets
-
-# DeepDIVA
-from init.initializer import *
 
 
 def compute_mean_std(dataset_folder, online=False):
     """
-    Computes mean and std of a dataset.
+    Computes mean and std of a dataset. Saves the results as CSV file in the dataset folder.
 
     Parameters
     ----------
@@ -66,7 +65,7 @@ def compute_mean_std(dataset_folder, online=False):
 
     # Sanity check on the training folder
     if not os.path.isdir(traindir):
-        logging.error("Train folder not found in the args.dataset_folder=" + dataset_folder)
+        print("Train folder not found in the args.dataset_folder={}".format(dataset_folder))
         sys.exit(-1)
 
     # Load the dataset file names
@@ -84,6 +83,11 @@ def compute_mean_std(dataset_folder, online=False):
     # Display the results on console
     print("Mean: [{}, {}, {}]".format(mean[0], mean[1], mean[2]))
     print("Std: [{}, {}, {}]".format(std[0], std[1], std[2]))
+
+    # Save results as CSV file in the dataset folder
+    df = pd.DataFrame([mean, std])
+    df.index = ['mean[RGB]', 'std[RGB]']
+    df.to_csv(os.path.join(dataset_folder, 'analytics.csv'), header=False)
 
 
 def cms_online(file_names):
@@ -113,10 +117,10 @@ def cms_online(file_names):
     for sample in file_names:
         # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
         img = cv2.imread(sample) / 255.0
-        M2 = np.square(np.array([img[:, :, 2] - mean[0], img[:, :, 1] - mean[1], img[:, :, 0] - mean[2]]))
-        std += np.sum(np.sum(M2, axis=1), axis=1)
+        m2 = np.square(np.array([img[:, :, 2] - mean[0], img[:, :, 1] - mean[1], img[:, :, 0] - mean[2]]))
+        std += np.sum(np.sum(m2, axis=1), axis=1)
 
-    std = np.sqrt(std / (file_names.size * (M2.size / 3.0)))
+    std = np.sqrt(std / (file_names.size * (m2.size / 3.0)))
     return mean, std
 
 
