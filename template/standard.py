@@ -37,20 +37,30 @@ from util.visualization.mean_std_plot import plot_mean_variance
 def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **kwargs):
     """
     This is the main routine where train(), validate() and test() are called.
+
+    Parameters
+    ----------
     :param writer: Tensorboard SummaryWriter
         Responsible for writing logs in Tensorboard compatible format.
+
     :param log_folder: string
         Path to where logs/checkpoints are saved
+
     :param model_name: string
         Name of the model
+
     :param epochs: int
         Number of epochs to train
+
     :param decay_lr: int N
         Decay the learning rate by a factor of 10 every N epochs
+
     :param lr: float
         Value for learning rate
+
     :param kwargs: dict
         Any additional arguments.
+
     :return: train_value, val_value, test_value
         Precision values for train and validation splits. Single precision value for the test split.
     """
@@ -200,7 +210,7 @@ if __name__ == "__main__":
                              choices=dataset_options,
                              help='which dataset to train/test on.')
     parser_data.add_argument('--dataset-folder',
-                             help='location of the dataset on the machine e.g root/data',
+                             help='location of the dataset on the machine e.g ~/../../data/svhn',
                              default=None,
                              type=str)
     parser_data.add_argument('--log-dir',

@@ -23,22 +23,33 @@ from init.initializer import *
 def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
     """
     Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
+
+    Parameters
+    ----------
     :param num_classes: int
         Number of classes for the model
+
     :param model: string
         Name of the model
+
     :param pretrained: bool
         Specify whether to load a pretrained model or not
+
     :param optimizer_name: string
         Name of the optimizer
+
     :param lr: float
         Value for learning rate
+
     :param no_cuda: bool
         Specify whether to use the GPU or not
+
     :param resume: string
         Path to a saved checkpoint
+
     :param kwargs: dict
         Any additional arguments.
+
     :return: model, criterion, optimizer, best_value, start_epoch
     """
     # Initialize the model
@@ -80,16 +91,27 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
 def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch_size, workers, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
+
+    Parameters
+    ----------
     :param model_expected_input_size: tuple
         Specify the height and width that the model expects.
-    :param dataset_name: string
-        Name of the datasets
+
+    :param dataset: string
+        NAme of the dataset (might be None)
+
+    :param dataset_folder: string
+        Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
+
     :param batch_size: int
         Number of datapoints to process at once
+
     :param workers: int
         Number of workers to use for the dataloaders
+
     :param kwargs: dict
         Any additional arguments.
+
     :return: dataloader, dataloader, dataloader, int
         Three dataloaders for train, val and test. Number of classes for the model.
     """
@@ -215,24 +237,36 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
 def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, optimizer_name, lr, quiet, args_dict, **kwargs):
     """
     Set up a logger for the experiment
+
+    Parameters
+    ----------
     :param experiment_name: string
         Name of the experiment. If not specify, accepted from command line.
+
     :param log_dir: string
         Path to where all experiment logs are stored.
+
     :param log_folder: string
         Used to override default log_folder generated using log_dir, experiment_name and other params. Useful on resume.
+
     :param dataset: string
         Name of the datasets.
+
     :param model_name: string
         Name of the model
+
     :param optimizer_name: string
         Name of the optimizer
+
     :param lr: float
         Value for learning rate used
+
     :param quiet: bool
         Specify whether to print log to console or only to text file
+
     :param args_dict: dict
         Contains the entire argument dictionary specified via command line.
+
     :return: log_folder
         Path to where logs for the experiment are stored
     """
@@ -290,18 +324,24 @@ def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, op
 def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
     """
     Set up the execution environment.
+
     Parameters
     ----------
     :param gpu_id: string
         Specify the GPUs to be used
+
     :param seed:    int
         Seed all possible seeds for deterministic run
+
     :param multi_run: int
         Number of runs over the same code to produce mean-variance graph.
+
     :param workers: int
         Number of workers to use for the dataloaders
+
     :param no_cuda: bool
         Specify whether to use the GPU or not
+
     :return: None
     """
     # Set visible GPUs
