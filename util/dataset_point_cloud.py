@@ -25,7 +25,7 @@ Example:
     train/cat/nsdf3.png
     train/cat/asd932_.png
 
-@author: Michele Alberti
+@author: Michele Alberti, Vinaychandran Pondenkandath
 """
 
 # Utils
@@ -34,12 +34,17 @@ import os
 import shutil
 import sys
 
+import matplotlib
+
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # Distribution options:
-distribution_options = ['diagonal', 'circle']
+distribution_options = ['diagonal', 'circle', 'donut']
 
 
 def diagonal(size):
@@ -77,7 +82,35 @@ def circle(size):
     """
 
     # Generate data
-    samples = np.array([(x, y, 0 if x * x + y * y > 0.5 else 1)
+    mid_pt = np.linspace(0, 1, np.sqrt(size))
+    mid_pt = mid_pt[int(len(mid_pt) / 2)]
+
+    samples = np.array([(x, y, 0 if (x - mid_pt) ** 2 + (y - mid_pt) ** 2 < 0.15 else 1)
+                        for x in np.linspace(0, 1, np.sqrt(size))
+                        for y in np.linspace(0, 1, np.sqrt(size))])
+
+    return split_data(samples)
+
+
+def donut(size):
+    """
+    Samples are generated in a grid fashion (np.linspace) and then draw a circle on x*x + y*y > 0.5
+    2 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+    # Generate data
+    mid_pt = np.linspace(0, 1, np.sqrt(size))
+    mid_pt = mid_pt[int(len(mid_pt) / 2)]
+
+    samples = np.array([(x, y, 0 if ((x - mid_pt) ** 2 + (y - mid_pt) ** 2 <0.15 and
+                                    (x - mid_pt) ** 2 + (y - mid_pt) ** 2 > 0.10) else 1)
                         for x in np.linspace(0, 1, np.sqrt(size))
                         for y in np.linspace(0, 1, np.sqrt(size))])
 
@@ -124,7 +157,26 @@ def get_data(distribution, size):
     return {
         'diagonal': diagonal,
         'circle': circle,
+        'donut': donut,
     }[distribution](size)
+
+
+def visualize_distribution(train, val, test, save_path, marker_size=1):
+    fig, axs = plt.subplots(ncols=3, sharex=True, sharey=True)
+    # fig.set_figheight(5)
+    # fig.set_figwidth(15)
+    plt.setp(axs.flat, aspect=1.0, adjustable='box-forced')
+    axs[0].scatter(train[:, 0], train[:, 1], c=train[:, 2], s=marker_size, cmap=plt.get_cmap('Set1'))
+    axs[0].set_title('train')
+    axs[1].scatter(val[:, 0], val[:, 1], c=val[:, 2], s=marker_size, cmap=plt.get_cmap('Set1'))
+    axs[1].set_title('val')
+    axs[2].scatter(test[:, 0], test[:, 1], c=test[:, 2], s=marker_size, cmap=plt.get_cmap('Set1'))
+    axs[2].set_title('test')
+    fig.canvas.draw()
+    fig.savefig(save_path)
+    fig.clf()
+    plt.close()
+    return
 
 
 if __name__ == "__main__":
@@ -186,6 +238,10 @@ if __name__ == "__main__":
     pd.DataFrame(train).to_csv(os.path.join(train_dir, 'data.csv'), index=False, header=False)
     pd.DataFrame(val).to_csv(os.path.join(val_dir, 'data.csv'), index=False, header=False)
     pd.DataFrame(test).to_csv(os.path.join(test_dir, 'data.csv'), index=False, header=False)
+
+    ###############################################################################
+    # Visualize the data
+    visualize_distribution(train, val, test, os.path.join(dataset_dir, 'visualize_distribution.pdf'))
 
     ###############################################################################
     # Run the analytics
