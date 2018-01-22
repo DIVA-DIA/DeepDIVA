@@ -170,23 +170,44 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
     # train_ds.__getitem__(0) to get an image but its weird?
     # Set up dataset transforms
     logging.debug('Setting up dataset transforms')
-    train_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
+    try:
+        train_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        ])
 
-    val_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
+        val_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        ])
 
-    test_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
-    ])
+        test_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        ])
+    except:
+        logging.warning('Normalization disabled! No mean and std found.')
+        train_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            # transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        ])
+
+        val_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            # transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        ])
+
+        test_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            # transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        ])
+
 
     # Setup dataloaders
     logging.debug('Setting up dataloaders')
@@ -206,7 +227,7 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
                                               num_workers=workers,
                                               pin_memory=True)
 
-    return train_loader, val_loader, test_loader, train_ds.num_classes
+    return train_loader, val_loader, test_loader, len(train_ds.classes)
 
 
 #######################################################################################################################
