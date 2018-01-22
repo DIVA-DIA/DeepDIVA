@@ -6,6 +6,7 @@ import os.path
 import pandas
 import numpy as np
 
+import torch
 import torch.utils.data as data
 
 
@@ -22,18 +23,20 @@ class point_cloud(data.Dataset):
 
     def __getitem__(self, index):
 
-        # doing this so that it is consistent with all other datasets
-        # to return a PIL Image
+        x, y, target = self.data[index]
 
-        x, target = data[index]
+        input = np.array([x,y])
+        target = target.astype(np.int64)
 
         if self.transform is not None:
-            x = self.transform(x)
+            input = self.transform(input)
+        else:
+            input = torch.from_numpy(input).type(torch.FloatTensor)
 
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        return x, target
+        return input, target
 
     def __len__(self):
         return len(self.data)
