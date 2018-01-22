@@ -7,13 +7,27 @@ import numpy as np
 import logging
 
 
-def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_classes, win_name=None):
-    try:
-        vis = visdom.Visdom()
-    except:
-        logging.error('Visdom Server unavailable')
-    X, Y = grid_x, grid_y
-    zdata = grid_z + 1
+def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_classes, win_name=None, writer=None):
+    """
+    Plots decision landscape to Visdom
+    :param grid_x:
+    :param grid_y:
+    :param grid_z:
+    :param point_x:
+    :param point_y:
+    :param point_class:
+    :param num_classes:
+    :param win_name:
+    :return:
+    """
+    # Forgive the hack, but it's a call by reference and point_class really shouldn't be modified.
+    point_class = point_class.copy()
+    # try:
+    #     vis = visdom.Visdom()
+    # except:
+    #     logging.error('Visdom Server unavailable')
+    X, Y = grid_x.copy(), grid_y.copy()
+    zdata = grid_z.copy() + 1
     point_class += 1
 
     levels = np.linspace(1, num_classes + 1, 1000)
@@ -22,25 +36,25 @@ def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_cl
     fig = plt.figure(1)
     axs = plt.gca()
 
-    # Plot [RED, GREEN, BLUE, PURPLE, ORANGE]
-    colors_points = ['#b30000', '#009900', '#000099', '#7300e6', '#e68a00']
+    # Plot [BLUE, ORANGE, RED, GREEN, PURPLE]
+    colors_points = ['#000099', '#e68a00', '#b30000', '#009900', '#7300e6']
     # colors_contour = ['#ff4d4d', '#33ff33', '#4d4dff', '#bf80ff', '#ffcc80']
-    colors_contour = [plt.get_cmap('Reds'), plt.get_cmap('Greens'), plt.get_cmap('Blues'), plt.get_cmap('Purples'),
-                      plt.get_cmap('Oranges')]
+    colors_contour = [plt.get_cmap('Blues'), plt.get_cmap('Oranges'), plt.get_cmap('Reds'), plt.get_cmap('Purples'),
+                      plt.get_cmap('Greens')]
 
     zdata_floor = np.floor(zdata)
 
     for i in range(1, num_classes + 1):
-        tmp = np.copy(zdata)
         try:
+            tmp = np.copy(zdata)
             locs = np.where(zdata_floor != i)
+            tmp[locs[0], locs[1]] = 0
+            locs = np.where(tmp != 0)
+            vmin, vmax = np.min(tmp[locs[0], locs[1]]), np.max(tmp[locs[0], locs[1]])
+            axs.contourf(X, Y, tmp, levels=levels, cmap=colors_contour[i - 1], vmin=vmin, vmax=vmax)
         except ValueError:
             continue
             logging.warning("No predictions for class {}".format(i-1))
-        tmp[locs[0], locs[1]] = 0
-        locs = np.where(tmp != 0)
-        vmin, vmax = np.min(tmp[locs[0], locs[1]]), np.max(tmp[locs[0], locs[1]])
-        axs.contourf(X, Y, tmp, levels=levels, cmap=colors_contour[i - 1],vmin=vmin, vmax=vmax)
 
     for i in range(1, num_classes + 1):
         locs = np.where(point_class == i)
@@ -52,16 +66,11 @@ def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_cl
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     # Plot to visdom
-    win_name = vis.image(np.transpose(data, [2, 0, 1]), win=win_name)
+    # win_name = vis.image(np.transpose(data, [2, 0, 1]), win=win_name)
+    writer.add_image('decision_boundary', data)
 
-    # Get image
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-    # Plot to visdom
-    win_name = vis.image(np.transpose(data, [2, 0, 1]), win=win_name)
-
-    return win_name
+    return None
 
 if __name__ == "__main__":
     # Make data
