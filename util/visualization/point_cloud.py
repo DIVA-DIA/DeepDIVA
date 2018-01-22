@@ -27,11 +27,13 @@ def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_cl
     # except:
     #     logging.error('Visdom Server unavailable')
     X, Y = grid_x.copy(), grid_y.copy()
-    zdata = grid_z.copy() + 1
+    zdata = grid_z.copy().T + 1
     point_class += 1
 
-    levels = np.linspace(1, num_classes + 1, 1000)
-
+    # levels = np.linspace(1, num_classes + 1, 1000)
+    levels = []
+    for i in range(0, num_classes):
+        levels.append(np.linspace(i+1, i + 2, 1000))
     # Matplotlib stuff
     fig = plt.figure(1)
     axs = plt.gca()
@@ -39,10 +41,13 @@ def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_cl
     # Plot [BLUE, ORANGE, RED, GREEN, PURPLE]
     colors_points = ['#000099', '#e68a00', '#b30000', '#009900', '#7300e6']
     # colors_contour = ['#ff4d4d', '#33ff33', '#4d4dff', '#bf80ff', '#ffcc80']
-    colors_contour = [plt.get_cmap('Blues'), plt.get_cmap('Oranges'), plt.get_cmap('Reds'), plt.get_cmap('Purples'),
-                      plt.get_cmap('Greens')]
+    colors_contour = [plt.get_cmap('Blues'), plt.get_cmap('Oranges'), plt.get_cmap('Reds'), plt.get_cmap('Greens'),
+                      plt.get_cmap('Purples')]
 
     zdata_floor = np.floor(zdata)
+    locs = np.where(zdata_floor == num_classes + 1)
+    zdata_floor[locs[0], locs[1]] -= 0.001
+    zdata_floor = np.floor(zdata_floor)
 
     for i in range(1, num_classes + 1):
         try:
@@ -51,14 +56,14 @@ def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_cl
             tmp[locs[0], locs[1]] = 0
             locs = np.where(tmp != 0)
             vmin, vmax = np.min(tmp[locs[0], locs[1]]), np.max(tmp[locs[0], locs[1]])
-            axs.contourf(X, Y, tmp, levels=levels, cmap=colors_contour[i - 1], vmin=vmin, vmax=vmax)
+            axs.contourf(Y, X, tmp, levels=levels[i - 1], cmap=colors_contour[i - 1], vmin=vmin, vmax=vmax)
         except ValueError:
             continue
-            logging.warning("No predictions for class {}".format(i-1))
+            logging.warning("No predictions for class {}".format(i - 1))
 
     for i in range(1, num_classes + 1):
         locs = np.where(point_class == i)
-        axs.scatter(point_x[locs], point_y[locs], c=colors_points[i - 1], edgecolor='w', lw=0.5)
+        axs.scatter(point_x[locs], point_y[locs], c=colors_points[i - 1], edgecolor='w', lw=0.75)
 
     # Draw image
     fig.canvas.draw()
@@ -69,8 +74,8 @@ def plot_to_visdom(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_cl
     # win_name = vis.image(np.transpose(data, [2, 0, 1]), win=win_name)
     writer.add_image('decision_boundary', data)
 
-
     return None
+
 
 if __name__ == "__main__":
     # Make data
