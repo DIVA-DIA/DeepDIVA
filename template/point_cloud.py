@@ -13,7 +13,6 @@ import os
 import sys
 import json
 import traceback
-import math
 
 from sklearn.model_selection import ParameterGrid
 
@@ -22,6 +21,9 @@ import tensorboardX
 
 # SigOpt
 from sigopt import Connection
+
+# Pytorch
+import torch.nn as nn
 
 # DeepDIVA
 import datasets
@@ -88,10 +90,13 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
     if not kwargs['no_cuda']:
         coords = coords.cuda(async=True)
 
+    sm = nn.Softmax()
     if not kwargs['no_cuda']:
-        outputs = model(coords).data.cpu().numpy()
+        outputs = model(coords)
+        outputs = sm(outputs)
+        outputs = outputs.data.cpu().numpy()
     else:
-        outputs = model(coords).data.numpy()
+        outputs = sm(model(coords)).data.numpy()
     output_winners = np.array([np.argmax(item) for item in outputs])
     outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
     outputs = outputs + output_winners
@@ -113,9 +118,11 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
         # PLOT
 
         if not kwargs['no_cuda']:
-            outputs = model(coords).data.cpu().numpy()
+            outputs = model(coords)
+            outputs = sm(outputs)
+            outputs = outputs.data.cpu().numpy()
         else:
-            outputs = model(coords).data.numpy()
+            outputs = sm(model(coords)).data.numpy()
         output_winners = np.array([np.argmax(item) for item in outputs])
         outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
         outputs = outputs + output_winners
@@ -129,9 +136,11 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
 
     # PLOT
     if not kwargs['no_cuda']:
-        outputs = model(coords).data.cpu().numpy()
+        outputs = model(coords)
+        outputs = sm(outputs)
+        outputs = outputs.data.cpu().numpy()
     else:
-        outputs = model(coords).data.numpy()
+        outputs = sm(model(coords)).data.numpy()
     output_winners = np.array([np.argmax(item) for item in outputs])
     outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
     outputs = outputs + output_winners
