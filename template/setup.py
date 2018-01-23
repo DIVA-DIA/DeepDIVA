@@ -24,8 +24,8 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     """
     Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     :param num_classes: int
         Number of classes for the model
 
@@ -99,10 +99,11 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
     ----------
     :param model_expected_input_size: tuple
         Specify the height and width that the model expects.
+    :param dataset: string
+        NAme of the dataset (might be None)
 
-    :param dataset_name: string
-        Name of the datasets
-
+    :param dataset_folder: string
+        Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
     :param batch_size: int
         Number of datapoints to process at once
 
