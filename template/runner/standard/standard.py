@@ -19,7 +19,7 @@ from util.misc import checkpoint, adjust_learning_rate
 #######################################################################################################################
 class Standard:
     @staticmethod
-    def single_run(writer, log_dir, model_name, epochs, lr, **kwargs):
+    def single_run(writer, log_dir, model_name, epochs, lr, decay_lr, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -42,6 +42,9 @@ class Standard:
 
         :param kwargs: dict
             Any additional arguments.
+
+        :param decay_lr: boolean
+                Decay the lr flag
 
         :return: train_value, val_value, test_value
             Precision values for train and validation splits. Single precision value for the test split.
@@ -70,8 +73,8 @@ class Standard:
             train_value[epoch] = Standard._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
             # Validate
             val_value[epoch] = Standard._validate(val_loader, model, criterion, writer, epoch, **kwargs)
-            if kwargs["decay_lr"] is not None:
-                adjust_learning_rate(lr, optimizer, epoch, kwargs['decay_lr'])
+            if decay_lr is not None:
+                adjust_learning_rate(lr, optimizer, epoch, epochs)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
 
         # Test
