@@ -53,12 +53,16 @@ def plot_decision_boundaries(grid_x, grid_y, grid_z, point_x, point_y, point_cla
 
     # Draw all the decision boundaries
     for i in range(1, num_classes + 1):
-        tmp = np.copy(zdata)
-        locs = np.where(zdata_floor != i)
-        tmp[locs[0], locs[1]] = 0
-        locs = np.where(tmp != 0)
-        vmin, vmax = np.min(tmp[locs[0], locs[1]]), np.max(tmp[locs[0], locs[1]])
-        axs.contourf(Y, X, tmp, levels=levels[i - 1], cmap=colors_contour[colors[i - 1]], vmin=vmin, vmax=vmax)
+        try:
+            tmp = np.copy(zdata)
+            locs = np.where(zdata_floor != i)
+            tmp[locs[0], locs[1]] = 0
+            locs = np.where(tmp != 0)
+            vmin, vmax = np.min(tmp[locs[0], locs[1]]), np.max(tmp[locs[0], locs[1]])
+            axs.contourf(Y, X, tmp, levels=levels[i - 1], cmap=colors_contour[colors[i - 1]], vmin=vmin, vmax=vmax)
+        except ValueError:
+            continue
+            logging.warning("No predictions for class {}".format(i - 1))
 
     # Draw all the points
     for i in range(1, num_classes + 1):

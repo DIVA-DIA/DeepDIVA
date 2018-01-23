@@ -34,7 +34,7 @@ from template.standard.setup import set_up_env, set_up_logging, set_up_model
 from template.standard.train_point_cloud import train
 from util.misc import checkpoint, adjust_learning_rate
 from util.visualization.mean_std_plot import plot_mean_variance
-from util.visualization.point_cloud import plot_to_visdom
+from util.visualization.decision_boundaries import plot_decision_boundaries
 
 
 #######################################################################################################################
@@ -79,31 +79,17 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
     train_precs = np.zeros((epochs - start_epoch))
 
     # Make data for points
-    POINTS_RESOLUTION = 100
-    min_x, min_y = train_loader.dataset.min_coords
-    max_x, max_y = train_loader.dataset.max_coords
-    coords_np = np.array([[x, y] for x in np.linspace(min_x, max_x, POINTS_RESOLUTION) for y in
-                          np.linspace(min_y, max_y, POINTS_RESOLUTION)])
-    grid_x, grid_y = np.linspace(min_x, max_x, POINTS_RESOLUTION), np.linspace(min_y, max_y, POINTS_RESOLUTION)
-    coords = torch.autograd.Variable(torch.from_numpy(coords_np).type(torch.FloatTensor))
+    grid_resolution = 100
+    coords_grid = np.array([[x, y] for x in np.linspace(0.0, 1.0, grid_resolution) for y in
+                          np.linspace(0.0, 1.0, grid_resolution)])
+    coords = torch.autograd.Variable(torch.from_numpy(coords_grid).type(torch.FloatTensor))
 
     if not kwargs['no_cuda']:
         coords = coords.cuda(async=True)
 
-    sm = nn.Softmax()
-    if not kwargs['no_cuda']:
-        outputs = model(coords)
-        outputs = sm(outputs)
-        outputs = outputs.data.cpu().numpy()
-    else:
-        outputs = sm(model(coords)).data.numpy()
-    output_winners = np.array([np.argmax(item) for item in outputs])
-    outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
-    outputs = outputs + output_winners
+    evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer,
+                                       epoch=-1, no_cuda=kwargs['no_cuda'])
 
-    win_name = plot_to_visdom(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)), val_loader.dataset.data[:, 0],
-                              val_loader.dataset.data[:, 1], val_loader.dataset.data[:, 2], num_classes, win_name=None,
-                              writer=writer)
 
     validate(val_loader, model, criterion, writer, -1, **kwargs)
     for epoch in range(start_epoch, epochs):
@@ -116,26 +102,28 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
         best_value = checkpoint(epoch, val_precs[epoch], best_value, model, optimizer, log_folder)
 
         # PLOT
-
-        if not kwargs['no_cuda']:
-            outputs = model(coords)
-            outputs = sm(outputs)
-            outputs = outputs.data.cpu().numpy()
-        else:
-            outputs = sm(model(coords)).data.numpy()
-        output_winners = np.array([np.argmax(item) for item in outputs])
-        outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
-        outputs = outputs + output_winners
-
-        win_name = plot_to_visdom(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
-                                  val_loader.dataset.data[:, 0], val_loader.dataset.data[:, 1],
-                                  val_loader.dataset.data[:, 2], num_classes, win_name=None, writer=writer)
+        evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer,
+                                           epoch=-1, no_cuda=kwargs['no_cuda'])
 
     # Test
     test_prec = test(test_loader, model, criterion, writer, epoch, **kwargs)
 
     # PLOT
-    if not kwargs['no_cuda']:
+    evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer,
+                                       epoch=-1, no_cuda=kwargs['no_cuda'])
+
+    logging.info('Training completed')
+
+    return train_precs, val_precs, test_prec
+
+def evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, epoch, no_cuda):
+
+    grid_x = np.linspace(0.0, 1.0, grid_resolution)
+    grid_y = np.linspace(0.0, 1.0, grid_resolution)
+
+    sm = nn.Softmax()
+
+    if not no_cuda:
         outputs = model(coords)
         outputs = sm(outputs)
         outputs = outputs.data.cpu().numpy()
@@ -145,13 +133,11 @@ def train_and_evaluate(writer, log_folder, model_name, epochs, decay_lr, lr, **k
     outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
     outputs = outputs + output_winners
 
-    win_name = plot_to_visdom(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)), val_loader.dataset.data[:, 0],
-                              val_loader.dataset.data[:, 1], val_loader.dataset.data[:, 2], num_classes, win_name=None,
-                              writer=writer)
+    plot_decision_boundaries(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
+                             val_loader.dataset.data[:, 0], val_loader.dataset.data[:, 1],
+                             val_loader.dataset.data[:, 2], num_classes, step=epoch, writer=writer)
+    return
 
-    logging.info('Training completed')
-
-    return train_precs, val_precs, test_prec
 
 
 def multi_run(writer, args):
