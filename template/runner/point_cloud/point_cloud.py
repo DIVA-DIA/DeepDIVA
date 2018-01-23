@@ -8,26 +8,29 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-
 # Utils
 import os
 
-import datasets
+# Torch
+from torch import nn
+
 # DeepDIVA
+import datasets
 import models
 from init.initializer import *
-from template.runner import Standard
 from template.runner.point_cloud.evaluate import validate, test
 from template.runner.point_cloud.train import train
+from template.runner.standard import Standard
 from template.setup import set_up_model
 from util.misc import checkpoint, adjust_learning_rate
-from util.visualization.point_cloud import plot_to_visdom
+from util.visualization.decision_boundaries import plot_decision_boundaries
 
 
 #######################################################################################################################
 class PointCloud(Standard):
+
     @staticmethod
-    def single_run(writer, log_dir, model_name, epochs, lr, **kwargs):
+    def single_run(writer, log_dir, model_name, epochs, lr, decay_lr, **kwargs):
         """
            This is the main routine where train(), validate() and test() are called.
 
@@ -47,6 +50,9 @@ class PointCloud(Standard):
 
            :param lr: float
                Value for learning rate
+
+           :param decay_lr: boolean
+                Decay the lr flag
 
            :param kwargs: dict
                Any additional arguments.
@@ -69,80 +75,70 @@ class PointCloud(Standard):
 
         # Core routine
         logging.info('Begin training')
-        val_value = np.zeros((epochs - start_epoch))
-        train_value = np.zeros((epochs - start_epoch))
+        val_precs = np.zeros((epochs - start_epoch))
+        train_precs = np.zeros((epochs - start_epoch))
 
         # Make data for points
-        POINTS_RESOLUTION = 100
-        min_x, min_y = train_loader.dataset.min_coords
-        max_x, max_y = train_loader.dataset.max_coords
-        coords_np = np.array([[x, y] for x in np.linspace(min_x, max_x, POINTS_RESOLUTION) for y in
-                              np.linspace(min_y, max_y, POINTS_RESOLUTION)])
-        grid_x, grid_y = np.linspace(min_x, max_x, POINTS_RESOLUTION), np.linspace(min_y, max_y, POINTS_RESOLUTION)
-        coords = torch.autograd.Variable(torch.from_numpy(coords_np).type(torch.FloatTensor))
+        grid_resolution = 100
+        coords_grid = np.array([[x, y] for x in np.linspace(0.0, 1.0, grid_resolution) for y in
+                                np.linspace(0.0, 1.0, grid_resolution)])
+        coords = torch.autograd.Variable(torch.from_numpy(coords_grid).type(torch.FloatTensor))
 
         if not kwargs['no_cuda']:
             coords = coords.cuda(async=True)
 
-        if not kwargs['no_cuda']:
-            outputs = model(coords).data.cpu().numpy()
-        else:
-            outputs = model(coords).data.numpy()
-        output_winners = np.array([np.argmax(item) for item in outputs])
-        outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
-        outputs = outputs + output_winners
-
-        win_name = plot_to_visdom(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
-                                  val_loader.dataset.data[:, 0],
-                                  val_loader.dataset.data[:, 1], val_loader.dataset.data[:, 2], num_classes,
-                                  win_name=None,
-                                  writer=writer)
+        PointCloud.evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer,
+                                                      epoch=-1, no_cuda=kwargs['no_cuda'])
 
         validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
             # Validate
-            val_value[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
-            if kwargs["decay_lr"] is not None:
-                adjust_learning_rate(lr, optimizer, epoch, kwargs['decay_lr'])
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
+            val_precs[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
+            if decay_lr is not None:
+                adjust_learning_rate(lr, optimizer, epoch, epochs)
+            best_value = checkpoint(epoch, val_precs[epoch], best_value, model, optimizer, log_dir)
 
             # PLOT
-
-            if not kwargs['no_cuda']:
-                outputs = model(coords).data.cpu().numpy()
-            else:
-                outputs = model(coords).data.numpy()
-            output_winners = np.array([np.argmax(item) for item in outputs])
-            outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
-            outputs = outputs + output_winners
-
-            win_name = plot_to_visdom(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
-                                      val_loader.dataset.data[:, 0], val_loader.dataset.data[:, 1],
-                                      val_loader.dataset.data[:, 2], num_classes, win_name=None, writer=writer)
+            PointCloud.evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes,
+                                                          writer, epoch=epoch, no_cuda=kwargs['no_cuda'])
 
         # Test
-        test_value = test(test_loader, model, criterion, writer, epoch, **kwargs)
+        test_prec = test(test_loader, model, criterion, writer, epoch, **kwargs)
 
         # PLOT
-        if not kwargs['no_cuda']:
-            outputs = model(coords).data.cpu().numpy()
+        PointCloud.evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer,
+                                                      epoch=epochs, no_cuda=kwargs['no_cuda'])
+
+        logging.info('Training completed')
+
+        return train_precs, val_precs, test_prec
+
+    @staticmethod
+    def evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, epoch,
+                                           no_cuda):
+
+        grid_x = np.linspace(0.0, 1.0, grid_resolution)
+        grid_y = np.linspace(0.0, 1.0, grid_resolution)
+
+        sm = nn.Softmax()
+
+        if not no_cuda:
+            outputs = model(coords)
+            outputs = sm(outputs)
+            outputs = outputs.data.cpu().numpy()
         else:
-            outputs = model(coords).data.numpy()
+            outputs = sm(model(coords)).data.numpy()
         output_winners = np.array([np.argmax(item) for item in outputs])
         outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
         outputs = outputs + output_winners
 
-        win_name = plot_to_visdom(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
-                                  val_loader.dataset.data[:, 0],
-                                  val_loader.dataset.data[:, 1], val_loader.dataset.data[:, 2], num_classes,
-                                  win_name=None,
-                                  writer=writer)
+        plot_decision_boundaries(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
+                                 val_loader.dataset.data[:, 0], val_loader.dataset.data[:, 1],
+                                 val_loader.dataset.data[:, 2], num_classes, step=epoch, writer=writer)
+        return
 
-        logging.info('Training completed')
-
-        return train_value, val_value, test_value
 
     #######################################################################################################################
     @staticmethod

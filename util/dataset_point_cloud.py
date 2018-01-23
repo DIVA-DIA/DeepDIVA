@@ -109,8 +109,8 @@ def donut(size):
     mid_pt = np.linspace(0, 1, np.sqrt(size))
     mid_pt = mid_pt[int(len(mid_pt) / 2)]
 
-    samples = np.array([(x, y, 0 if ((x - mid_pt) ** 2 + (y - mid_pt) ** 2 <0.15 and
-                                    (x - mid_pt) ** 2 + (y - mid_pt) ** 2 > 0.10) else 1)
+    samples = np.array([(x, y, 0 if ((x - mid_pt) ** 2 + (y - mid_pt) ** 2 < 0.15 and
+                                     (x - mid_pt) ** 2 + (y - mid_pt) ** 2 > 0.10) else 1)
                         for x in np.linspace(0, 1, np.sqrt(size))
                         for y in np.linspace(0, 1, np.sqrt(size))])
 
