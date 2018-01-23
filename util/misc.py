@@ -5,12 +5,13 @@ General purpose utility code from https://raw.githubusercontent.com/pytorch/visi
 # Utils
 import errno
 import hashlib
+import logging
 import os
 import os.path
 import shutil
-import logging
-
 # Torch
+import string
+
 import torch
 
 
@@ -110,7 +111,7 @@ def adjust_learning_rate(lr, optimizer, epoch, num_epochs):
     logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
 
 
-def checkpoint(epoch, new_value, best_value, model, optimizer, log_folder):
+def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir):
     """
     Checks whether the checkpoint. If the model is better, it saves it to file.
 
@@ -131,7 +132,7 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_folder):
     :param optimizer:
         The optimizer we used to obtain this model. It is necessary if we were to resume the training from a checkpoint.
 
-    :param log_folder:
+    :param log_dir:
         Output folder where to put the model.
 
     :return:
@@ -139,7 +140,7 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_folder):
     """
     is_best = new_value > best_value
     best_value = max(new_value, best_value)
-    filename = os.path.join(log_folder, 'checkpoint.pth.tar')
+    filename = os.path.join(log_dir, 'checkpoint.pth.tar')
     torch.save({
         'epoch': epoch + 1,
         'arch': str(type(model)),
@@ -151,3 +152,7 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_folder):
         shutil.copyfile(filename, os.path.join(os.path.split(filename)[0], 'model_best.pth.tar'))
 
     return best_value
+
+
+def to_capital_camel_case(s):
+    return s[0].capitalize() + string.capwords(s, sep='_').replace('_', '')[1:] if s else s

@@ -23,22 +23,36 @@ from init.initializer import *
 def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
     """
     Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
+
+    Parameters:
+    -----------
     :param num_classes: int
         Number of classes for the model
-    :param model: string
+
+    :param model_name: string
         Name of the model
+
     :param pretrained: bool
         Specify whether to load a pretrained model or not
+
     :param optimizer_name: string
         Name of the optimizer
+
     :param lr: float
         Value for learning rate
+
     :param no_cuda: bool
         Specify whether to use the GPU or not
+
     :param resume: string
         Path to a saved checkpoint
+
+    :param start_epoch
+        Epoch from which to resume training. If if not resuming a previous experiment the value is 0
+
     :param kwargs: dict
         Any additional arguments.
+
     :return: model, criterion, optimizer, best_value, start_epoch
     """
     # Initialize the model
@@ -80,16 +94,24 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
 def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch_size, workers, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
+
+    Parameters
+    ----------
     :param model_expected_input_size: tuple
         Specify the height and width that the model expects.
+
     :param dataset_name: string
         Name of the datasets
+
     :param batch_size: int
         Number of datapoints to process at once
+
     :param workers: int
         Number of workers to use for the dataloaders
+
     :param kwargs: dict
         Any additional arguments.
+
     :return: dataloader, dataloader, dataloader, int
         Three dataloaders for train, val and test. Number of classes for the model.
     """
@@ -100,17 +122,17 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
 
         logging.debug('Using an user defined class to load: ' + dataset)
         train_ds = datasets.__dict__[dataset](root='.data/',
-                                                  train=True,
-                                                  download=True)
+                                              train=True,
+                                              download=True)
 
         val_ds = datasets.__dict__[dataset](root='.data/',
-                                                train=False,
-                                                val=True,
-                                                download=True)
+                                            train=False,
+                                            val=True,
+                                            download=True)
 
         test_ds = datasets.__dict__[dataset](root='.data/',
-                                                 train=False,
-                                                 download=True)
+                                             train=False,
+                                             download=True)
     # Else, assume it is an image folder whose path is passed as 'args.dataset_folder'
     else:
         logging.debug('Using the image folder routine to load from: ' + dataset_folder)
@@ -208,7 +230,6 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
             # transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
         ])
 
-
     # Setup dataloaders
     logging.debug('Setting up dataloaders')
     train_loader = torch.utils.data.DataLoader(train_ds,
@@ -231,61 +252,77 @@ def set_up_dataloaders(model_expected_input_size, dataset, dataset_folder, batch
 
 
 #######################################################################################################################
-
-
-def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, optimizer_name, lr, quiet, args_dict, **kwargs):
+def set_up_logging(parser, experiment_name, log_dir, quiet, args_dict, **kwargs):
     """
     Set up a logger for the experiment
+
+    Parameters
+    ----------
+    :param parser : parser
+        The argument parser
+
     :param experiment_name: string
         Name of the experiment. If not specify, accepted from command line.
+
     :param log_dir: string
         Path to where all experiment logs are stored.
-    :param log_folder: string
-        Used to override default log_folder generated using log_dir, experiment_name and other params. Useful on resume.
-    :param dataset: string
-        Name of the datasets.
-    :param model_name: string
-        Name of the model
-    :param optimizer_name: string
-        Name of the optimizer
-    :param lr: float
-        Value for learning rate used
+
     :param quiet: bool
         Specify whether to print log to console or only to text file
+
     :param args_dict: dict
         Contains the entire argument dictionary specified via command line.
-    :return: log_folder
-        Path to where logs for the experiment are stored
+
+    :return: string
+        log_folder, the final logging folder tree
     """
+    LOG_FILE = 'logs.txt'
+
     # Experiment name override
     if experiment_name is None:
         experiment_name = input("Experiment name:")
 
-    # Setup Logging
-    if dataset is None:
-        dataset = os.path.dirname(kwargs['dataset_folder'])
+    # Recover dataset name
+    dataset = os.path.basename(os.path.normpath(kwargs['dataset_folder']))
 
-    basename = log_dir
-    experiment_name = experiment_name
-    if log_folder is None:
-        log_folder = os.path.join(basename,
-                                  experiment_name,
-                                  dataset,
-                                  model_name,
-                                  optimizer_name,
-                                  str(lr),
-                                  '{}'.format(time.strftime('%y-%m-%d-%Hh-%Mm-%Ss')))
-    else:
-        log_folder = log_folder
-    logfile = 'logs.txt'
+    """
+    We extract the TRAIN parameters names (such as model_name, lr, ... ) from the parser directly. 
+    This is a somewhat risky operation because we access _private_variables of parsers classes.
+    However, within our context this can be regarded as safe. 
+    Shall we be wrong, a quick fix is writing a list of possible parameters such as:
+    
+        train_param_list = ['model_name','lr', ...] 
+    
+    and manually maintain it (boring!).
+    
+    Resources:
+    https://stackoverflow.com/questions/31519997/is-it-possible-to-only-parse-one-argument-groups-parameters-with-argparse
+    
+    """
+
+    # Get the TRAIN arguments group, which we know its the number 4
+    group = parser._action_groups[4]
+    assert group.title == 'TRAIN'
+
+    # Fetch all non-default parameters passed
+    non_default_parameters = []
+    for action in group._group_actions:
+        if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default):
+            non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
+
+    # Build up final logging folder tree with the non-default training parameters
+    log_folder = os.path.join(*[log_dir, experiment_name, dataset, *non_default_parameters,
+                                '{}'.format(time.strftime('%d-%m-%y-%Hh-%Mm-%Ss'))])
     if not os.path.exists(log_folder):
         os.makedirs(log_folder)
 
+    # Setup logging
     logging.basicConfig(
         format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
-        filename=os.path.join(log_folder, logfile),
+        filename=os.path.join(log_folder, LOG_FILE),
         level=logging.INFO)
-    # Set up logging to console
+
+    # Setup logging to console
     if not quiet:
         fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
         stderr_handler = logging.StreamHandler()
@@ -294,16 +331,12 @@ def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, op
         logging.getLogger().addHandler(stderr_handler)
         logging.info('Printing activity to the console')
 
-    logging.info(
-        'Set up logging. Log file: {}'.format(os.path.join(log_folder, logfile)))
+    logging.info('Setup logging. Log file: {}'.format(os.path.join(log_folder, LOG_FILE)))
 
     # Save args to logs_folder
-    logging.info(
-        'Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
+    logging.info('Arguments saved to: {}'.format(os.path.join(log_folder, 'args.txt')))
     with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
         f.write(json.dumps(args_dict))
-
-
 
     return log_folder
 
@@ -311,18 +344,24 @@ def set_up_logging(experiment_name, log_dir, log_folder, dataset, model_name, op
 def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
     """
     Set up the execution environment.
+
     Parameters
     ----------
     :param gpu_id: string
         Specify the GPUs to be used
+
     :param seed:    int
         Seed all possible seeds for deterministic run
+
     :param multi_run: int
         Number of runs over the same code to produce mean-variance graph.
+
     :param workers: int
         Number of workers to use for the dataloaders
+
     :param no_cuda: bool
         Specify whether to use the GPU or not
+
     :return: None
     """
     # Set visible GPUs
