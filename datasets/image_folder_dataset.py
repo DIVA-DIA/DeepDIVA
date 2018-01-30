@@ -2,6 +2,7 @@
 This file allows to load a dataset of images by specifying the folder where its located.
 """
 
+
 import logging
 # Utils
 import os
@@ -93,27 +94,37 @@ def load_dataset(dataset_folder, online):
         return train_ds, val_ds, test_ds
 
 
-class ImageFolderInMemory(data.dataset):
+class ImageFolderInMemory(data.Dataset):
     """
     This class makes use of torchvision.datasets.ImageFolder() to create an online dataset.
     Afterward all images are sequentially stored in memory for faster use when paired with dataloders.
     It is responsibility of the user ensuring the dataset actually fits in memory.
     """
 
-    def __init__(self, dataset_folder):
-        self.root = os.path.expanduser(dataset_folder)
+    def __init__(self, dataset_folder, transform=None, target_transform=None, ):
+        self.dataset_folder = os.path.expanduser(dataset_folder)
+        self.transform = transform
+        self.target_transform = target_transform
 
         # Get an online dataset
         dataset = torchvision.datasets.ImageFolder(dataset_folder)
+
+        # Shuffle the data once (otherwise you get clusters of samples of same class in each minibatch for val and test)
+        np.random.shuffle(dataset.imgs)
 
         # Extract the actual file names and labels as entries
         file_names = np.asarray([item[0] for item in dataset.imgs])
         self.labels = np.asarray([item[1] for item in dataset.imgs])
 
         # Load all samples
-        self.data = np.zeros([file_names.size] + list(cv2.imread(file_names[0]).shape))
+        self.data = np.zeros([file_names.size] + list(cv2.imread(file_names[0]).shape), dtype='uint8')
         for i, sample in enumerate(file_names):
             self.data[i] = cv2.imread(sample)
+
+        # Set expected class attributes
+        self.classes = np.unique(self.labels)
+
+
 
     def __getitem__(self, index):
         """
@@ -131,6 +142,12 @@ class ImageFolderInMemory(data.dataset):
 
         # Doing this so that it is consistent with all other datasets to return a PIL Image
         img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
 
         return img, target
 

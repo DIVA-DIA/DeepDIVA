@@ -5,6 +5,7 @@ import random
 import sys
 import time
 
+import pandas as pd
 # Torch related stuff
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -17,6 +18,7 @@ import torchvision.transforms as transforms
 import models
 from datasets.image_folder_dataset import load_dataset
 from init.initializer import *
+from util.dataset_analytics import compute_mean_std
 
 
 def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
@@ -90,7 +92,7 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     return model, criterion, optimizer, best_value, start_epoch
 
 
-def set_up_dataloaders(model_expected_input_size, dataset_folder, online, batch_size, workers, **kwargs):
+def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, online=False, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -102,15 +104,15 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, online, batch_
     :param dataset_folder: string
         Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
 
-    :param online: boolean
-        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
-        on demand. This is slower than storing everything in memory.
-
     :param batch_size: int
         Number of datapoints to process at once
 
     :param workers: int
         Number of workers to use for the dataloaders
+
+    :param online: boolean
+        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+        on demand. This is slower than storing everything in memory.
 
     :param kwargs: dict
         Any additional arguments.
@@ -120,32 +122,40 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, online, batch_
     """
 
     # Recover dataset name
-    dataset = os.path.basename(os.path.normpath(kwargs['dataset_folder']))
+    dataset = os.path.basename(os.path.normpath(dataset_folder))
     logging.info('Loading {} from:{}'.format(dataset, dataset_folder))
 
     # Load the dataset splits
     train_ds, val_ds, test_ds = load_dataset(dataset_folder, online)
 
-    # TODO load the csv, if not yet there: call routine to create csv
+    # If analytics.csv file not present, run the analytics on the dataset
+    if not os.path.exists(os.path.join(dataset_folder, "analytics.csv")):
+        logging.info('Creating analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
+        compute_mean_std(dataset_folder=dataset_folder, online=online)
+
+    # Loads the analytics csv and extract mean and std
+    df1 = pd.read_csv(os.path.join(dataset_folder, "analytics.csv"), header=None)
+    mean = np.asarray(df1.ix[0, 1:3])
+    std = np.asarray(df1.ix[1, 1:3])
 
     # Set up dataset transforms
     logging.debug('Setting up dataset transforms')
     train_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        transforms.Normalize(mean=mean, std=std)
     ])
 
     val_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        transforms.Normalize(mean=mean, std=std)
     ])
 
     test_ds.transform = transforms.Compose([
         transforms.Scale(model_expected_input_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.mean, std=train_ds.std)
+        transforms.Normalize(mean=mean, std=std)
     ])
 
     # Setup dataloaders

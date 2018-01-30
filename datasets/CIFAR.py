@@ -60,6 +60,7 @@ class CIFAR10(data.Dataset):
         self.height = 32
         self.mean = None
         self.std = None
+        self.classes = np.zeros(10)
 
         assert (self.train & self.val) != True
 
