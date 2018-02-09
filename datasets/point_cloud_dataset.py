@@ -3,9 +3,9 @@ Point cloud dataset
 """
 import os
 import os.path
-import pandas
-import numpy as np
 
+import numpy as np
+import pandas
 import torch
 import torch.utils.data as data
 
