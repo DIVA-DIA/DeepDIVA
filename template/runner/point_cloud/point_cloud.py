@@ -9,19 +9,17 @@ and they should be used instead of hard-coding stuff.
 """
 
 # Utils
-import os
 
 # Torch
 from torch import nn
 
 # DeepDIVA
-import datasets
 import models
 from init.initializer import *
 from template.runner.point_cloud.evaluate import validate, test
 from template.runner.point_cloud.train import train
 from template.runner.standard import Standard
-from template.setup import set_up_model
+from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 from util.visualization.decision_boundaries import plot_decision_boundaries
 
@@ -66,7 +64,7 @@ class PointCloud(Standard):
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
-        train_loader, val_loader, test_loader, num_classes = PointCloud.set_up_dataloaders(**kwargs)
+        train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
 
         # Setting up model, optimizer, criterion
         model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
@@ -140,47 +138,3 @@ class PointCloud(Standard):
         return
 
 
-    #######################################################################################################################
-    @staticmethod
-    def set_up_dataloaders(dataset_folder, batch_size, workers, **kwargs):
-        """
-        Set up the dataloaders for the specified datasets.
-
-        :param dataset_folder : string
-            Path to the dataset
-
-        :param batch_size: int
-            Number of datapoints to process at once
-
-        :param workers: int
-            Number of workers to use for the dataloaders
-
-        :param kwargs: dict
-            Any additional arguments.
-
-        :return: dataloader, dataloader, dataloader, int
-            Three dataloaders for train, val and test. Number of classes for the model.
-        """
-
-        logging.info('Loading datasets')
-        train_ds = datasets.point_cloud(path=os.path.join(dataset_folder, 'train', 'data.csv'))
-        val_ds = datasets.point_cloud(path=os.path.join(dataset_folder, 'val', 'data.csv'))
-        test_ds = datasets.point_cloud(path=os.path.join(dataset_folder, 'test', 'data.csv'))
-
-        train_loader = torch.utils.data.DataLoader(train_ds,
-                                                   shuffle=True,
-                                                   batch_size=batch_size,
-                                                   num_workers=workers,
-                                                   pin_memory=False)
-
-        val_loader = torch.utils.data.DataLoader(val_ds,
-                                                 batch_size=batch_size,
-                                                 num_workers=workers,
-                                                 pin_memory=False)
-
-        test_loader = torch.utils.data.DataLoader(test_ds,
-                                                  batch_size=batch_size,
-                                                  num_workers=workers,
-                                                  pin_memory=False)
-
-        return train_loader, val_loader, test_loader, train_ds.num_classes
