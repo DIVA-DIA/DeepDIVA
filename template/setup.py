@@ -16,7 +16,7 @@ import torchvision.transforms as transforms
 
 # DeepDIVA
 import models
-from datasets.image_folder_dataset import load_dataset
+from datasets import image_folder_dataset, point_cloud_dataset
 from init.initializer import *
 from util.dataset_analytics import compute_mean_std
 
@@ -82,7 +82,7 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
             best_value = checkpoint['best_value']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
-            val_losses = [checkpoint['val_loss']]
+            # val_losses = [checkpoint['val_loss']] #not used?
             logging.info("Loaded checkpoint '{}' (epoch {})".format(resume, checkpoint['epoch']))
         else:
             logging.error("No checkpoint found at '{}'".format(resume))
@@ -125,38 +125,74 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     dataset = os.path.basename(os.path.normpath(dataset_folder))
     logging.info('Loading {} from:{}'.format(dataset, dataset_folder))
 
-    # Load the dataset splits
-    train_ds, val_ds, test_ds = load_dataset(dataset_folder, online)
+    ###############################################################################################
+    # Load the dataset splits as images
+    try:
+        logging.info("Try to load dataset as images")
+        train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, online)
 
-    # If analytics.csv file not present, run the analytics on the dataset
-    if not os.path.exists(os.path.join(dataset_folder, "analytics.csv")):
-        logging.info('Creating analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
-        compute_mean_std(dataset_folder=dataset_folder, online=online)
+        # Loads the analytics csv and extract mean and std
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder, online)
 
-    # Loads the analytics csv and extract mean and std
-    df1 = pd.read_csv(os.path.join(dataset_folder, "analytics.csv"), header=None)
-    mean = np.asarray(df1.ix[0, 1:3])
-    std = np.asarray(df1.ix[1, 1:3])
+        # Set up dataset transforms
+        logging.debug('Setting up dataset transforms')
+        train_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
 
-    # Set up dataset transforms
-    logging.debug('Setting up dataset transforms')
-    train_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
-    ])
+        val_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
 
-    val_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
-    ])
+        test_ds.transform = transforms.Compose([
+            transforms.Scale(model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+    except RuntimeError:
+        logging.info("No images found in dataset folder provided")
 
-    test_ds.transform = transforms.Compose([
-        transforms.Scale(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
-    ])
+    ###############################################################################################
+    # Load the dataset splits as point cloud
+    try:
+        logging.info("Try to load dataset as point cloud")
+        train_ds, val_ds, test_ds = point_cloud_dataset.load_dataset(dataset_folder)
+
+        # Loads the analytics csv and extract mean and std
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder)
+
+        # Bring mean and std into range [0:1] from original domain
+        mean = np.divide((mean - train_ds.min_coords), np.subtract(train_ds.max_coords, train_ds.min_coords))
+        std = np.divide((std - train_ds.min_coords), np.subtract(train_ds.max_coords, train_ds.min_coords))
+
+        # Set up dataset transforms
+        logging.debug('Setting up dataset transforms')
+        train_ds.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+
+        val_ds.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+
+        test_ds.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+    except RuntimeError:
+        logging.info("No point cloud found in dataset folder provided")
+
+    ###############################################################################################
+    # Verify that eventually a dataset has been correctly loaded
+    if ('train_ds' not in locals()) or ('val_ds' not in locals()) or ('test_ds' not in locals()):
+        logging.error("No datasets have been loaded. Verify dataset folder location or dataset folder structure")
+        sys.exit(-1)
 
     # Setup dataloaders
     logging.debug('Setting up dataloaders')
@@ -177,6 +213,43 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
                                               pin_memory=True)
 
     return train_loader, val_loader, test_loader, len(train_ds.classes)
+
+
+def _load_mean_std_from_file(dataset, dataset_folder, online=False):
+    """
+    This function simply recovers mean and std from the analytics.csv file
+
+    Parameters:
+    -----------
+    :param dataset: string
+        dataset name
+
+    :param dataset_folder: string
+        Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
+
+    :param online: boolean
+        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+        on demand. This is slower than storing everything in memory.
+
+    :return: double[], double[]
+        Mean and Std of the selected dataset, contained in the analytics.csv file. These are double arrays.
+    """
+    # If analytics.csv file not present, run the analytics on the dataset
+    if not os.path.exists(os.path.join(dataset_folder, "analytics.csv")):
+        logging.info('Missing analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
+        try:
+            logging.info(
+                'Attempt creating analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
+            compute_mean_std(dataset_folder=dataset_folder, online=online)
+        except:
+            logging.error('Creation of analytics.csv failed.')
+            sys.exit(-1)
+
+    # Loads the analytics csv and extract mean and std
+    df1 = pd.read_csv(os.path.join(dataset_folder, "analytics.csv"), header=None)
+    mean = np.asarray(df1.ix[0, 1:3])
+    std = np.asarray(df1.ix[1, 1:3])
+    return mean, std
 
 
 #######################################################################################################################
