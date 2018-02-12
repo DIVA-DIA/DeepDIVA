@@ -2,9 +2,8 @@
 This file allows to load a dataset of images by specifying the folder where its located.
 """
 
-
-import logging
 # Utils
+import logging
 import os
 import sys
 
