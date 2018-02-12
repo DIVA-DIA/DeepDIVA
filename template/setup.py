@@ -153,6 +153,11 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
+
+        test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
+                                                                           workers)
+        return train_loader, val_loader, test_loader, len(train_ds.classes)
+
     except RuntimeError:
         logging.info("No images found in dataset folder provided")
 
@@ -185,34 +190,18 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
+
+        test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
+                                                                           workers)
+        return train_loader, val_loader, test_loader, len(train_ds.classes)
+
     except RuntimeError:
         logging.info("No point cloud found in dataset folder provided")
 
     ###############################################################################################
     # Verify that eventually a dataset has been correctly loaded
-    if ('train_ds' not in locals()) or ('val_ds' not in locals()) or ('test_ds' not in locals()):
-        logging.error("No datasets have been loaded. Verify dataset folder location or dataset folder structure")
-        sys.exit(-1)
-
-    # Setup dataloaders
-    logging.debug('Setting up dataloaders')
-    train_loader = torch.utils.data.DataLoader(train_ds,
-                                               shuffle=True,
-                                               batch_size=batch_size,
-                                               num_workers=workers,
-                                               pin_memory=True)
-
-    val_loader = torch.utils.data.DataLoader(val_ds,
-                                             batch_size=batch_size,
-                                             num_workers=workers,
-                                             pin_memory=True)
-
-    test_loader = torch.utils.data.DataLoader(test_ds,
-                                              batch_size=batch_size,
-                                              num_workers=workers,
-                                              pin_memory=True)
-
-    return train_loader, val_loader, test_loader, len(train_ds.classes)
+    logging.error("No datasets have been loaded. Verify dataset folder location or dataset folder structure")
+    sys.exit(-1)
 
 
 def _load_mean_std_from_file(dataset, dataset_folder, online=False):
@@ -250,6 +239,40 @@ def _load_mean_std_from_file(dataset, dataset_folder, online=False):
     mean = np.asarray(df1.ix[0, 1:3])
     std = np.asarray(df1.ix[1, 1:3])
     return mean, std
+
+
+def _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds, workers):
+    """
+
+    Parameters:
+    -----------
+    :param batch_size: int
+        The size of the mini batch
+
+    :param train_ds, val_ds, test_ds: torch.utils.data.Dataset
+        The datasets split loaded, ready to be fed to a dataloader
+
+    :param workers:
+        Number of workers to use to load the data. If full reproducibility is desired select 1 (slower)
+
+    :return: torch.utils.data.DataLoader[]
+        The dataloaders for each split passed
+    """
+    # Setup dataloaders
+    logging.debug('Setting up dataloaders')
+    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True,
+                                               batch_size=batch_size,
+                                               num_workers=workers,
+                                               pin_memory=True)
+    val_loader = torch.utils.data.DataLoader(val_ds,
+                                             batch_size=batch_size,
+                                             num_workers=workers,
+                                             pin_memory=True)
+    test_loader = torch.utils.data.DataLoader(test_ds,
+                                              batch_size=batch_size,
+                                              num_workers=workers,
+                                              pin_memory=True)
+    return test_loader, train_loader, val_loader
 
 
 #######################################################################################################################
