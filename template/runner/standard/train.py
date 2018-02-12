@@ -49,7 +49,6 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     data_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
-    top5 = AverageMeter()
 
     # Switch to train mode (turn on dropout & stuff)
     model.train()
@@ -57,6 +56,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     # Iterate over whole training set
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
+
         # Measure data loading time
         data_time.update(time.time() - end)
 
@@ -77,9 +77,11 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         losses.update(loss.data[0], input.size(0))
 
         # Compute and record the accuracy
-        acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
+        # acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
+        acc1 = accuracy(output.data, target, topk=(1,))[0]
+
         top1.update(acc1[0], input.size(0))
-        top5.update(acc5[0], input.size(0))
+        # top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
         if multi_run == None:
@@ -108,10 +110,9 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                         'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5))
+                data_time=data_time, loss=losses, top1=top1))
 
     # Logging the epoch-wise accuracy
     if multi_run == None:

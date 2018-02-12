@@ -58,7 +58,6 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
-    top5 = AverageMeter()
 
     # Switch to evaluate mode (turn off dropout & such )
     model.eval()
@@ -84,12 +83,11 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         losses.update(loss.data[0], input.size(0))
 
         # Compute and record the accuracy
-        acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
+        acc1 = accuracy(output.data, target, topk=(1,))[0]
         top1.update(acc1[0], input.size(0))
-        top5.update(acc5[0], input.size(0))
 
         # Add loss and accuracy to Tensorboard
-        if multi_run == None:
+        if multi_run is None:
             writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + i)
             writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(), epoch * len(data_loader) + i)
         else:
@@ -106,18 +104,16 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
             logging.info(logging_label + ' Epoch [{0}][{1}/{2}]\t'
                                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                                         'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
                 epoch, i, len(data_loader), batch_time=batch_time, loss=losses,
-                top1=top1, top5=top5))
+                top1=top1))
 
     # Logging the epoch-wise accuracy
-    if multi_run == None:
+    if multi_run is None:
         writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
     else:
         writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
 
-    logging.info(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
-                 .format(top1=top1, top5=top5))
+    logging.info(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
     return top1.avg
