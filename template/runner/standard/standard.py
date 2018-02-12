@@ -7,9 +7,13 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
+import logging
+
+# Utils
+import numpy as np
+
 # DeepDIVA
 import models
-from init.initializer import *
 # Delegated
 from template.runner.standard import evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
