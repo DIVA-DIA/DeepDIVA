@@ -8,17 +8,18 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-# Utils
+import logging
 
+# Utils
+import numpy as np
 # Torch
+import torch
 from torch import nn
 
 # DeepDIVA
 import models
-from init.initializer import *
-from template.runner.point_cloud.evaluate import validate, test
-from template.runner.point_cloud.train import train
-from template.runner.standard import Standard
+# Delegated
+from template.runner.standard import Standard, evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 from util.visualization.decision_boundaries import plot_decision_boundaries
@@ -73,45 +74,43 @@ class PointCloud(Standard):
 
         # Core routine
         logging.info('Begin training')
-        val_precs = np.zeros((epochs - start_epoch))
-        train_precs = np.zeros((epochs - start_epoch))
+        val_value = np.zeros((epochs - start_epoch))
+        train_value = np.zeros((epochs - start_epoch))
 
         # Make data for points
         grid_resolution = 100
-        coords_grid = np.array([[x, y] for x in np.linspace(0.0, 1.0, grid_resolution) for y in
-                                np.linspace(0.0, 1.0, grid_resolution)])
-        coords = torch.autograd.Variable(torch.from_numpy(coords_grid).type(torch.FloatTensor))
+        coords = np.array([[x, y]
+                           for x in np.linspace(0.0, 1.0, grid_resolution)
+                           for y in np.linspace(0.0, 1.0, grid_resolution)
+                           ])
+        coords = torch.autograd.Variable(torch.from_numpy(coords).type(torch.FloatTensor))
 
         if not kwargs['no_cuda']:
             coords = coords.cuda(async=True)
 
+        # PLOT: decision boundary routine
         PointCloud.evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer,
                                                       epoch=-1, no_cuda=kwargs['no_cuda'])
 
-        validate(val_loader, model, criterion, writer, -1, **kwargs)
+        PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_precs[epoch] = train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = PointCloud._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
             # Validate
-            val_precs[epoch] = validate(val_loader, model, criterion, writer, epoch, **kwargs)
+            val_value[epoch] = PointCloud._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
-            best_value = checkpoint(epoch, val_precs[epoch], best_value, model, optimizer, log_dir)
+            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
 
-            # PLOT
+            # PLOT: decision boundary routine
             PointCloud.evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes,
                                                           writer, epoch=epoch, no_cuda=kwargs['no_cuda'])
 
         # Test
-        test_prec = test(test_loader, model, criterion, writer, epoch, **kwargs)
-
-        # PLOT
-        PointCloud.evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer,
-                                                      epoch=epochs, no_cuda=kwargs['no_cuda'])
-
+        test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)
         logging.info('Training completed')
 
-        return train_precs, val_precs, test_prec
+        return train_value, val_value, test_value
 
     @staticmethod
     def evalute_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, epoch,
@@ -137,4 +136,20 @@ class PointCloud(Standard):
                                  val_loader.dataset.data[:, 2], num_classes, step=epoch, writer=writer)
         return
 
+    ####################################################################################################################
+    """
+    These methods delegate their function to other classes in Standard package. 
+    It is useful because sub-classes can selectively change the logic of certain parts only.
+    """
 
+    @classmethod
+    def _train(cls, train_loader, model, criterion, optimizer, writer, epoch, **kwargs):
+        return train.train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+
+    @classmethod
+    def _validate(cls, val_loader, model, criterion, writer, epoch, **kwargs):
+        return evaluate.validate(val_loader, model, criterion, writer, epoch, **kwargs)
+
+    @classmethod
+    def _test(cls, test_loader, model, criterion, writer, epoch, **kwargs):
+        return evaluate.test(test_loader, model, criterion, writer, epoch, **kwargs)
