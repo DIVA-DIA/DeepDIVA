@@ -123,7 +123,7 @@ def parse_arguments():
                                help='random seed')
     parser_system.add_argument('--log-interval',
                                type=int,
-                               default=10,
+                               default=20,
                                help='print loss/accuracy every N batches')
     parser_system.add_argument('-j', '--workers',
                                type=int,
