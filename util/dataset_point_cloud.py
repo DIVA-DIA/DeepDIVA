@@ -30,6 +30,7 @@ Example:
 
 # Utils
 import argparse
+import logging
 import os
 import shutil
 import sys
@@ -44,9 +45,10 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # Distribution options:
-distribution_options = ['diagonal', 'circle', 'donut']
+distribution_options = ['diagonal', 'circle', 'donut', 'stripes']
 
 
+########################################################################################################################
 def diagonal(size):
     """
     Samples are generated in a grid fashion (np.linspace) and then draw a diagonal line on x=y
@@ -65,7 +67,7 @@ def diagonal(size):
                         for x in np.linspace(0, 1, np.sqrt(size))
                         for y in np.linspace(0, 1, np.sqrt(size))])
 
-    return split_data(samples)
+    return _split_data(samples)
 
 
 def circle(size):
@@ -81,7 +83,7 @@ def circle(size):
         train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
     """
 
-    # Generate data
+    # Compute center point lying on the grid of np.linspace (0.5050505050501)
     mid_pt = np.linspace(0, 1, np.sqrt(size))
     mid_pt = mid_pt[int(len(mid_pt) / 2)]
 
@@ -89,12 +91,12 @@ def circle(size):
                         for x in np.linspace(0, 1, np.sqrt(size))
                         for y in np.linspace(0, 1, np.sqrt(size))])
 
-    return split_data(samples)
+    return _split_data(samples)
 
 
 def donut(size):
     """
-    Samples are generated in a grid fashion (np.linspace) and then draw a circle on x*x + y*y > 0.5
+    Samples are generated in a grid fashion (np.linspace) and then draw a donut.
     2 classes.
 
     Parameters
@@ -109,15 +111,35 @@ def donut(size):
     mid_pt = np.linspace(0, 1, np.sqrt(size))
     mid_pt = mid_pt[int(len(mid_pt) / 2)]
 
-    samples = np.array([(x, y, 0 if ((x - mid_pt) ** 2 + (y - mid_pt) ** 2 < 0.15 and
-                                     (x - mid_pt) ** 2 + (y - mid_pt) ** 2 > 0.10) else 1)
+    samples = np.array([(x, y, 0 if (0.15 > (x - mid_pt) ** 2 + (y - mid_pt) ** 2 > 0.10) else 1)
                         for x in np.linspace(0, 1, np.sqrt(size))
                         for y in np.linspace(0, 1, np.sqrt(size))])
 
-    return split_data(samples)
+    return _split_data(samples)
 
 
-def split_data(samples):
+def stripes(size):
+    """
+    Samples are generated in a stripe fashion, like a TV color screen (vertical stripes). Each bin is a different class.
+    5 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+    # The *0.99 serves to make the points on 1.0 to "fall on the left bin" otherwise you get 1 more class
+    samples = np.array([(x, y, int((x * 0.99 * 100) / 20))
+                        for x in np.linspace(0, 1, np.sqrt(size))
+                        for y in np.linspace(0, 1, np.sqrt(size))])
+
+    return _split_data(samples)
+
+
+########################################################################################################################
+def _split_data(samples):
     """
     Split the given samples array into train validation and test sets with ratio 6, 2, 2
 
@@ -158,6 +180,7 @@ def get_data(distribution, size):
         'diagonal': diagonal,
         'circle': circle,
         'donut': donut,
+        'stripes': stripes,
     }[distribution](size)
 
 
@@ -180,6 +203,11 @@ def visualize_distribution(train, val, test, save_path, marker_size=1):
 
 
 if __name__ == "__main__":
+
+    logging.basicConfig(
+        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
+        level=logging.INFO)
+
     ###############################################################################
     # Argument Parser
 
@@ -207,23 +235,27 @@ if __name__ == "__main__":
 
     ###############################################################################
     # Getting the data
+    logging.info('Getting the data distribution {}'.format(args.distribution))
     train, val, test = get_data(args.distribution, args.size)
 
     ###############################################################################
     # Preparing the folders structure
 
     # Sanity check on the dataset folder
+    logging.info('Sanity check on the dataset folder')
     if not os.path.isdir(args.dataset_folder):
         print("Dataset folder not found in the args.dataset_folder={}".format(args.dataset_folder))
         sys.exit(-1)
 
     # Creating the folder for the dataset
+    logging.info('Creating the folder for the dataset')
     dataset_dir = os.path.join(args.dataset_folder, 'pc_' + args.distribution)
     if os.path.exists(dataset_dir):
         shutil.rmtree(dataset_dir)
     os.makedirs(dataset_dir)
 
     # Creating the folders for the splits
+    logging.info('Creating the folders for the splits')
     train_dir = os.path.join(dataset_dir, 'train')
     os.makedirs(train_dir)
 
@@ -235,22 +267,26 @@ if __name__ == "__main__":
 
     ###############################################################################
     # Save splits on csv format with n rows where each row is (x,y,label)
+    logging.info('Save splits on csv format')
     pd.DataFrame(train).to_csv(os.path.join(train_dir, 'data.csv'), index=False, header=False)
     pd.DataFrame(val).to_csv(os.path.join(val_dir, 'data.csv'), index=False, header=False)
     pd.DataFrame(test).to_csv(os.path.join(test_dir, 'data.csv'), index=False, header=False)
 
     ###############################################################################
     # Visualize the data
+    logging.info('Visualize the data')
     visualize_distribution(train, val, test, os.path.join(dataset_dir, 'visualize_distribution.pdf'))
 
     ###############################################################################
     # Run the analytics
+    logging.info('Run the analytics')
     mean = np.mean(train[:, 0:-1], 0)
     std = np.std(train[:, 0:-1], 0)
 
     # Save results as CSV file in the dataset folder
+    logging.info('Save results as CSV file in the dataset folder')
     df = pd.DataFrame([mean, std])
     df.index = ['mean[RGB]', 'std[RGB]']
     df.to_csv(os.path.join(dataset_dir, 'analytics.csv'), header=False)
 
-    print('done')
+    logging.info('Done!')
