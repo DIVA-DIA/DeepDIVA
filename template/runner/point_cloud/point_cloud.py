@@ -8,9 +8,11 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-import logging
 
+import logging
 # Utils
+import time
+
 import numpy as np
 # Torch
 import torch
@@ -29,7 +31,7 @@ from util.visualization.decision_boundaries import plot_decision_boundaries
 def evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, epoch,
                                         no_cuda):
     print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX{}.")
-
+    t = time.time()
     grid_x = np.linspace(0.0, 1.0, grid_resolution)
     grid_y = np.linspace(0.0, 1.0, grid_resolution)
 
@@ -48,20 +50,9 @@ def evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_load
     plot_decision_boundaries(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
                              val_loader.dataset.data[:, 0], val_loader.dataset.data[:, 1],
                              val_loader.dataset.data[:, 2], num_classes, step=epoch, writer=writer)
+    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC{}".format(time.time() - t))
     return
 
-
-def gatto(x, y):
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX{}{}.".format(x, y))
-
-
-data = [1]
-
-prefix = "test_"
-
-
-def add_prefix(model, coords, grid_resolution, val_loader, num_classes, writer, epochs, kwargs):
-    print("sbarbagatto")
 
 class PointCloud(Standard):
 
@@ -107,7 +98,9 @@ class PointCloud(Standard):
         # Setting up model, optimizer, criterion
         model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
                                                                             model_name=model_name,
-                                                                            lr=lr, **kwargs)
+                                                                            lr=lr,
+                                                                            train_loader=train_loader,
+                                                                            **kwargs)
 
         # Core routine
         logging.info('Begin training')
@@ -136,8 +129,10 @@ class PointCloud(Standard):
         #                 args=(model, coords, grid_resolution, val_loader, num_classes, writer, -1, kwargs['no_cuda']))
         # thread.start()
         # pool = ThreadPoolExecutor(1)
-        # args = ((model, coords, grid_resolution, val_loader, num_classes, writer, -1, kwargs['no_cuda']) for i in data)
+        # args = ((model, coords, grid_resolution, val_loader, num_classes, writer, -1, kwargs['no_cuda']) for i in [1])
         # pool.map(lambda p: evaluate_and_plot_decision_boundary(*p), args)
+        evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, -1,
+                                            kwargs['no_cuda'])
 
         PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
@@ -154,8 +149,11 @@ class PointCloud(Standard):
             #                 args=(model, coords, grid_resolution, val_loader, num_classes, writer, epoch, kwargs['no_cuda']))
             # thread.start()
 
-            # args = ((model, coords, grid_resolution, val_loader, num_classes, writer, epoch, kwargs['no_cuda']) for i in data)
+            # args = ((model, coords, grid_resolution, val_loader, num_classes, writer, epoch, kwargs['no_cuda']) for i in [1])
             # pool.map(lambda p: evaluate_and_plot_decision_boundary(*p), args)
+
+            evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, epochs,
+                                                kwargs['no_cuda'])
 
         # Test
         test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)
