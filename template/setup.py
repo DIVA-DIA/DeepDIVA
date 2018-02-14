@@ -21,7 +21,8 @@ from init.initializer import *
 from util.dataset_analytics import compute_mean_std
 
 
-def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
+def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, train_loader,
+                 **kwargs):
     """
     Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
 
@@ -63,8 +64,8 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     criterion = nn.CrossEntropyLoss()
 
     # Init the model
-    # if args.init:
-    #    init_model(model=model, data_loader=train_loader, num_points=50000)
+    if kwargs['init']:
+        init_model(model=model, data_loader=train_loader, num_points=50000)
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -260,7 +261,8 @@ def _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds, workers):
     """
     # Setup dataloaders
     logging.debug('Setting up dataloaders')
-    train_loader = torch.utils.data.DataLoader(train_ds, shuffle=True,
+    train_loader = torch.utils.data.DataLoader(train_ds,
+                                               shuffle=True,
                                                batch_size=batch_size,
                                                num_workers=workers,
                                                pin_memory=True)
