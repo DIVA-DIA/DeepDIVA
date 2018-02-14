@@ -61,8 +61,6 @@ def plot_decision_boundaries(grid_x, grid_y, grid_z, point_x, point_y, point_cla
             vmin, vmax = np.min(tmp[locs[0], locs[1]]), np.max(tmp[locs[0], locs[1]])
             axs.contourf(Y, X, tmp, levels=levels[i - 1], cmap=colors_contour[colors[i - 1]], vmin=vmin, vmax=vmax)
         except ValueError:
-            # TODO choose which of the 2 following lines :)
-            continue
             logging.warning("No predictions for class {}".format(i - 1))
 
     # Draw all the points
