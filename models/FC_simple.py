@@ -3,14 +3,13 @@ import torch.nn as nn
 
 
 class FC_simple(nn.Module):
-
-    def __init__(self, num_classes=10, **kwargs):
+    def __init__(self, num_classes=5, **kwargs):
         """
         :param num_classes: the number of classes in the dataset
         """
         super(FC_simple, self).__init__()
 
-        self.expected_input_size = (2)
+        self.expected_input_size = (5)
 
         # First layer
         self.fc1 = nn.Sequential(
