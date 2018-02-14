@@ -100,6 +100,10 @@ def parse_arguments():
                               action='store_true',
                               default=False,
                               help='use pretrained model. (Not applicable for all models)')
+    parser_train.add_argument('--init',
+                              action='store_true',
+                              default=False,
+                              help='use advanced init methods such as LDA')
     parser_train.add_argument('--decay_lr',
                               type=int,
                               default=None,
