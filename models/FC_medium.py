@@ -1,9 +1,7 @@
-
 import torch.nn as nn
 
 
 class FC_medium(nn.Module):
-
     def __init__(self, num_classes=10, **kwargs):
         """
         :param num_classes: the number of classes in the dataset
@@ -43,6 +41,7 @@ class FC_medium(nn.Module):
         :return: torch.Tensor
             Activations of the fully connected layer
         """
+        x = x.view(x.size(0), -1)
         x = self.fc1(x)
         x = self.fc2(x)
         x = self.fc3(x)
