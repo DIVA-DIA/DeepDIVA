@@ -3,10 +3,11 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-import logging
+from scipy.interpolate import griddata
 
 
-def plot_decision_boundaries(grid_x, grid_y, grid_z, point_x, point_y, point_class, num_classes, step, writer=None):
+def plot_decision_boundaries(coords, output_winners, output_confidence, grid_x, grid_y, point_x, point_y,
+                             point_class, num_classes, step, writer=None):
     """
     Plots the decision boundaries as a 2D image onto Tensorboard.
     :param grid_x: X axis locations of the decision grid
@@ -20,14 +21,9 @@ def plot_decision_boundaries(grid_x, grid_y, grid_z, point_x, point_y, point_cla
     :param writer: Tensorboard summarywriter object
     :return: None
     """
-    point_class = point_class.copy()
-    X, Y = grid_x.copy(), grid_y.copy()
-    zdata = grid_z.copy().T + 1
-    point_class += 1
 
-    levels = []
-    for i in range(0, num_classes):
-        levels.append(np.linspace(i + 1, i + 2, 1000))
+    point_class = point_class.copy()
+    point_class += 1
 
     # Matplotlib stuff
     fig = plt.figure(1)
@@ -45,23 +41,12 @@ def plot_decision_boundaries(grid_x, grid_y, grid_z, point_x, point_y, point_cla
                       'green': plt.get_cmap('Greens'),
                       'purple': plt.get_cmap('Purples')}
 
-    # Identify which locations belong to which classes
-    zdata_floor = np.floor(zdata)
-    locs = np.where(zdata_floor == num_classes + 1)
-    zdata_floor[locs[0], locs[1]] -= 0.001
-    zdata_floor = np.floor(zdata_floor)
-
-    # Draw all the decision boundaries
-    for i in range(1, num_classes + 1):
-        try:
-            tmp = np.copy(zdata)
-            locs = np.where(zdata_floor != i)
-            tmp[locs[0], locs[1]] = 0
-            locs = np.where(tmp != 0)
-            vmin, vmax = np.min(tmp[locs[0], locs[1]]), np.max(tmp[locs[0], locs[1]])
-            axs.contourf(Y, X, tmp, levels=levels[i - 1], cmap=colors_contour[colors[i - 1]], vmin=vmin, vmax=vmax)
-        except ValueError:
-            logging.warning("No predictions for class {}".format(i - 1))
+    for i in np.unique(output_winners):
+        locs = np.where(output_winners == i)
+        grid_vals = griddata(coords[locs[0]], output_confidence[locs[0]], (grid_x, grid_y), method='cubic')
+        grid_vals = np.flip(grid_vals, axis=0)
+        axs.imshow(grid_vals, extent=(np.min(grid_x), np.max(grid_x), np.min(grid_y), np.max(grid_y)),
+                   cmap=colors_contour[colors[i]])
 
     # Draw all the points
     for i in range(1, num_classes + 1):
@@ -75,7 +60,7 @@ def plot_decision_boundaries(grid_x, grid_y, grid_z, point_x, point_y, point_cla
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-    # Plot to visdom
+    # Plot to tensorboard
     writer.add_image('decision_boundary_overview', data, global_step=step)
     writer.add_image('decision_boundary/{}'.format(step), data, global_step=step)
 
