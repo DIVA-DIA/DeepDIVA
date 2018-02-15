@@ -65,7 +65,7 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
 
     # Init the model
     if kwargs['init']:
-        init_model(model=model, data_loader=train_loader, num_points=50000)
+        init_model(model=model, data_loader=train_loader, **kwargs)
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
