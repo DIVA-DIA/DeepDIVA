@@ -8,9 +8,8 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-
-import logging
 # Utils
+import logging
 import time
 
 import numpy as np

@@ -25,6 +25,7 @@ def parse_arguments():
     parser_data = parser.add_argument_group('DATA', 'Dataset Options')
     parser_train = parser.add_argument_group('TRAIN', 'Training Options')
     parser_system = parser.add_argument_group('SYS', 'System Options')
+    parser_init = parser.add_argument_group('INIT', 'Initialization Options')
 
     # General Options
     parser_general.add_argument('--experiment-name',
@@ -100,10 +101,6 @@ def parse_arguments():
                               action='store_true',
                               default=False,
                               help='use pretrained model. (Not applicable for all models)')
-    parser_train.add_argument('--init',
-                              action='store_true',
-                              default=False,
-                              help='use advanced init methods such as LDA')
     parser_train.add_argument('--decay_lr',
                               type=int,
                               default=None,
@@ -133,4 +130,15 @@ def parse_arguments():
                                type=int,
                                default=4,
                                help='workers used for train/val loaders')
+    # Init options
+    parser_init.add_argument('--init',
+                             action='store_true',
+                             default=False,
+                             help='use advanced init methods such as LDA')
+
+    parser_init.add_argument('--num-samples',
+                             type=int,
+                             default=50000,
+                             help='number of samples to use to perform data-driven initialization')
+
     return parser.parse_args(), parser
