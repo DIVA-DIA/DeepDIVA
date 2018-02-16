@@ -7,7 +7,6 @@ This file is the entry point of DeepDIVA.
 import json
 # Utils
 import os
-import sys
 import traceback
 
 # Tensor board
@@ -67,8 +66,6 @@ class RunMe:
         # Load parameters from file
         with open(args.sig_opt, 'r') as f:
             parameters = json.loads(f.read())
-        if args.experiment_name is None:
-            args.experiment_name = input("Experiment name:")
 
         # Client Token is currently Vinay's one
         conn = Connection(client_token="KXMUZNABYGKSXXRUEMELUYYRVRCRTRANKCPGDNNYDSGRHGUA")
