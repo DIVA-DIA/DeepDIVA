@@ -1,23 +1,26 @@
 # Utils
 import argparse
+import inspect
+import os
 
 # Torch
 import torch
 
 # DeepDIVA
-import datasets
 import models
+from init import advanced_init
+from template import runner
 
 
 def parse_arguments():
-    model_options = [name for name in models.__dict__ if callable(models.__dict__[name])]
-    dataset_options = [name for name in datasets.__dict__ if callable(datasets.__dict__[name])]
-    optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
-    runner_class_options = ["standard", "point_cloud"]
+    # NOTE: If a model is missing and you get a argument parser error: check in the init file of models if its there!
+    model_options = [name[0] for name in inspect.getmembers(models, inspect.isclass)]
+    optimizer_options = [name[0] for name in inspect.getmembers(torch.optim, inspect.isclass)]
+    init_options = [name[0] for name in inspect.getmembers(advanced_init, inspect.isfunction)]
+    runner_class_options = [name[0] for name in inspect.getmembers(runner, inspect.ismodule)]
 
     ###############################################################################
-    # Argument Parser
-    # Training Settings
+    # Parsers
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Template for training a network on a dataset')
@@ -27,6 +30,7 @@ def parse_arguments():
     parser_system = parser.add_argument_group('SYS', 'System Options')
     parser_init = parser.add_argument_group('INIT', 'Initialization Options')
 
+    ###############################################################################
     # General Options
     parser_general.add_argument('--experiment-name',
                                 type=str,
@@ -57,11 +61,8 @@ def parse_arguments():
                                 default="standard",
                                 help='which runner class to use.')
 
+    ###############################################################################
     # Data Options
-    # TODO dataset and dataset-folder should never exist together
-    parser_data.add_argument('--dataset',
-                             choices=dataset_options,
-                             help='which dataset to train/test on.')
     parser_data.add_argument('--dataset-folder',
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
@@ -69,6 +70,7 @@ def parse_arguments():
                              help='where to save logs. Can be used to resume logging of experiment.',
                              required=True)
 
+    ###############################################################################
     # Training Options
     parser_train.add_argument('--model',
                               type=str,
@@ -110,6 +112,8 @@ def parse_arguments():
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
+
+    ###############################################################################
     # System Options
     parser_system.add_argument('--gpu-id',
                                default=None,
@@ -130,15 +134,35 @@ def parse_arguments():
                                type=int,
                                default=4,
                                help='workers used for train/val loaders')
+
+    ###############################################################################
     # Init options
     parser_init.add_argument('--init',
                              action='store_true',
                              default=False,
                              help='use advanced init methods such as LDA')
-
     parser_init.add_argument('--num-samples',
                              type=int,
                              default=50000,
                              help='number of samples to use to perform data-driven initialization')
+    parser_init.add_argument('--init-function',
+                             choices=init_options,
+                             default="pure_lda",
+                             help='which initialization function should be used.')
 
-    return parser.parse_args(), parser
+    ###############################################################################
+    # Parse argument
+    args = parser.parse_args()
+
+    # Recover dataset name
+    dataset = os.path.basename(os.path.normpath(args.dataset_folder))
+
+    # If contains 'pc' override the runner class to point cloud
+    if 'pc_' in dataset:
+        args.runner_class = 'point_cloud'
+
+    # If experiment name is not set, ask for one
+    if args.experiment_name is None:
+        args.experiment_name = input("Experiment name:")
+
+    return args, parser
