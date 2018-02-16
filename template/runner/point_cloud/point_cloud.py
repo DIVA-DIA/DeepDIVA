@@ -49,7 +49,7 @@ def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resoluti
     output_winners = np.array([np.argmax(item) for item in outputs])
     outputs_confidence = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
 
-    plot_decision_boundaries(coords.data.cpu().numpy(), output_winners, outputs_confidence,
+    plot_decision_boundaries(output_winners, outputs_confidence,
                              grid_x, grid_y, val_coords[:, 0], val_coords[:, 1],
                              val_loader.dataset.data[:, 2], num_classes, step=epoch, writer=writer)
     return

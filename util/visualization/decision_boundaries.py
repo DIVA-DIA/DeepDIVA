@@ -6,13 +6,14 @@ import numpy as np
 from scipy.interpolate import griddata
 
 
-def plot_decision_boundaries(coords, output_winners, output_confidence, grid_x, grid_y, point_x, point_y,
+def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, point_x, point_y,
                              point_class, num_classes, step, writer=None):
     """
     Plots the decision boundaries as a 2D image onto Tensorboard.
+    :param output_winners: which class is the 'winner' of the network at each location
+    :param output_confidence: confidence value of the network for the 'winner' class
     :param grid_x: X axis locations of the decision grid
     :param grid_y: Y axis locations of the decision grid
-    :param grid_z: classification values at each point on the decision grid
     :param point_x: X axis locations of the real points to be plotted
     :param point_y: Y axis locations of the real points to be plotted
     :param point_class: class of the real points at each location
@@ -29,7 +30,7 @@ def plot_decision_boundaries(coords, output_winners, output_confidence, grid_x, 
     fig = plt.figure(1)
     axs = plt.gca()
 
-    colors = ['blue', 'orange', 'red', 'green', 'purple']
+    colors = ['blue', 'orange', 'green', 'red', 'purple']
     colors_points = {'blue': '#000099',
                      'orange': '#e68a00',
                      'red': '#b30000',
@@ -41,12 +42,15 @@ def plot_decision_boundaries(coords, output_winners, output_confidence, grid_x, 
                       'green': plt.get_cmap('Greens'),
                       'purple': plt.get_cmap('Purples')}
 
+
     for i in np.unique(output_winners):
         locs = np.where(output_winners == i)
-        grid_vals = griddata(coords[locs[0]], output_confidence[locs[0]], (grid_x, grid_y), method='cubic')
-        grid_vals = np.flip(grid_vals, axis=0)
+        tmp = np.zeros(output_confidence.shape)
+        tmp[:] = np.NaN
+        tmp[locs[0]] = output_confidence[locs[0]]
+        grid_vals = np.flip(tmp.reshape(grid_x.shape), 1).T
         axs.imshow(grid_vals, extent=(np.min(grid_x), np.max(grid_x), np.min(grid_y), np.max(grid_y)),
-                   cmap=colors_contour[colors[i]])
+                   cmap=colors_contour[colors[i]], alpha=0.9)
 
     # Draw all the points
     for i in range(1, num_classes + 1):
@@ -63,5 +67,6 @@ def plot_decision_boundaries(coords, output_winners, output_confidence, grid_x, 
     # Plot to tensorboard
     writer.add_image('decision_boundary_overview', data, global_step=step)
     writer.add_image('decision_boundary/{}'.format(step), data, global_step=step)
+    plt.clf()
 
     return None
