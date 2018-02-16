@@ -10,7 +10,6 @@ and they should be used instead of hard-coding stuff.
 
 # Utils
 import logging
-import time
 
 import numpy as np
 # Torch
@@ -122,15 +121,8 @@ class PointCloud(Standard):
             coords = coords.cuda(async=True)
 
         # PLOT: decision boundary routine
-        """
-        1.  The Thread() solution is much slower I guess because of the overhead of creating a new thread
-        2.  Also, the whole system slows down over time (meant as epochs proceeds). So it suggests that plotting function
-            slows down over time for some reason ? And I don't get why being the Thread asyn is slowing down the rest. It 
-            should slow down the process of most 1/(n-1) times (where n is number of cores) 
-        """
         evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes, writer,
-                                            -1,
-                                            kwargs['no_cuda'])
+                                            -1, kwargs['no_cuda'])
 
         PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
@@ -144,8 +136,7 @@ class PointCloud(Standard):
 
             # PLOT: decision boundary routine
             evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes,
-                                                writer, epoch,
-                                                kwargs['no_cuda'])
+                                                writer, epoch, kwargs['no_cuda'])
 
         # Test
         test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)
