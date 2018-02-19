@@ -147,6 +147,7 @@ class RunMe:
                 logging.warning('Running with an unclean working tree branch!')
         except Exception as exp:
             logging.warning('Git error: {}'.format(exp))
+            local_changes = True
         finally:
             if local_changes:
                 if args.ignoregit:
@@ -154,7 +155,7 @@ class RunMe:
                 else:
                     logging.error('Errors when acquiring git status. Use --ignoregit to still run.')
                     logging.shutdown()
-                    print('All done! (logged to {}'.format(args.log_dir))
+                    print('Finished with errors. (Log files at {} )'.format(args.log_dir))
                     sys.exit(-1)
 
         # Define Tensorboard SummaryWriter
@@ -185,7 +186,7 @@ class RunMe:
             logging.shutdown()
             logging.getLogger().handlers = []
             writer.close()
-            print('All done! (logged to {}'.format(args.log_dir))
+            print('All done! (Log files at {} )'.format(args.log_dir))
             args.log_dir = None
         return train_scores, val_scores, test_scores
 
