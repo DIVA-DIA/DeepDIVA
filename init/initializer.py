@@ -6,16 +6,17 @@ has two functions) one should implement his own init function.
 
 # Utils
 import logging
+import sys
 
 import numpy as np
 import torch
 from sklearn.feature_extraction.image import extract_patches_2d
 
 # DeepDIVA
-from init.advanced_init import perform_lda
+from init import advanced_init
 
 
-def init_model(model, data_loader, num_samples, **kwargs):
+def init_model(model, data_loader, num_samples, init_function, **kwargs):
     """
     Initialize a standard CNN composed by convolutional layer followed by fully
     connected layers.
@@ -73,46 +74,23 @@ def init_model(model, data_loader, num_samples, **kwargs):
         #######################################################################
         # Compute data-driven parameters
         logging.info('Compute data-driven parameters')
-        B, C, P, W = perform_lda(index, init_input, init_labels, model, module, module_type)
+        W, B = getattr(advanced_init, init_function)(index, init_input, init_labels, model, module, module_type, **kwargs)
 
         #######################################################################
         # Assign parameters
         logging.info('Assign parameters')
-        if 'conv' in module_type:
-            # if False:
-            # TODO un-hard-code the 10 as number of classes
-            """
-            module.weight.data[0:10] = torch.Tensor(W)[0:10]
-            module.bias.data[0:10] = torch.Tensor(B)[0:10]
-            module.weight.data[10:] = torch.Tensor(P)[0:-10]
-            module.bias.data[10:] = torch.Tensor(C)[0:B.shape[0]-10]
-            """
-            # WITH NOISE
-            ns_ratio = (np.abs(W.max()) + np.abs(W.min())) / (
-            np.abs(module.weight.data.max()) + np.abs(module.weight.data.min()))
+        if module.weight.data.shape != W.shape:
+            logging.error("Weight matrix dimension mis-match. Expected {} got {}".format(module.weight.data.shape, W.shape))
+            sys.exit(-1)
 
-            module.weight.data *= (ns_ratio / 3)
-            module.bias.data *= (ns_ratio / 3)
+        if module.bias.data.shape != B.shape:
+            logging.error("Bias matrix dimension mis-match. Expected {} got {}".format(module.bias.data.shape, B.shape))
+            sys.exit(-1)
 
-            n = int(np.max([10, np.round(B.shape[0] / 2)]))
-            lp_ratio = (np.abs(W.max()) + np.abs(W.min())) / (np.abs(P.max()) + np.abs(P.min()))
-            module.weight.data[0:n] += torch.Tensor(W)[0:n]
-            module.bias.data[0:n] += torch.Tensor(B)[0:n]
-            module.weight.data[n:] += lp_ratio * torch.Tensor(P)[0:-n]
-            module.bias.data[n:] += lp_ratio * torch.Tensor(C)[0:B.shape[0] - n]
+        module.weight.data = W
+        module.bias.data = B
 
-        else:
-            module.weight.data = torch.Tensor(W)
-            module.bias.data = torch.Tensor(B)
-
-        # UPDATE: as of the introduction of Flatten() module, this is no longer necessary.
-        # If the layer is not convolutional then flatten the data because we assume it is a fully connected one
-        # if 'conv' not in str(type(list(model.children())[index][0])) and 'conv' in str(
-        #         type(list(model.children())[index - 1][0])):
-        #     logging.info('Flattening input')
-        #     for i, minibatch in enumerate(X):
-        #         X[i] = X[i].view(X[i].size(0), -1)
-
+        #######################################################################
         # Forward pass
         logging.info('Forward pass')
         for i, _ in enumerate(X):
