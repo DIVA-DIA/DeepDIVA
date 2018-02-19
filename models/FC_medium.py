@@ -1,6 +1,11 @@
 import torch.nn as nn
 
 
+class Flatten(nn.Module):
+    def forward(self, x):
+        x = x.view(x.size()[0], -1)
+        return x
+
 class FC_medium(nn.Module):
     def __init__(self, num_classes=10, **kwargs):
         """
@@ -12,20 +17,21 @@ class FC_medium(nn.Module):
 
         # First layer
         self.fc1 = nn.Sequential(
+            Flatten(),
             nn.Linear(2, 1000),
-            nn.Softsign(),
+            nn.Tanh(),
         )
 
         # Second layer
         self.fc2 = nn.Sequential(
             nn.Linear(1000, 1000),
-            nn.Softsign(),
+            nn.Tanh(),
         )
 
         # Third layer
         self.fc3 = nn.Sequential(
             nn.Linear(1000, 100),
-            nn.Softsign(),
+            nn.Tanh(),
         )
 
         # Classification layer
@@ -41,7 +47,6 @@ class FC_medium(nn.Module):
         :return: torch.Tensor
             Activations of the fully connected layer
         """
-        x = x.view(x.size(0), -1)
         x = self.fc1(x)
         x = self.fc2(x)
         x = self.fc3(x)
