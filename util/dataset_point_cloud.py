@@ -30,6 +30,7 @@ Example:
 
 # Utils
 import argparse
+import inspect
 import logging
 import os
 import shutil
@@ -39,13 +40,9 @@ import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
-# Distribution options:
-distribution_options = ['diagonal', 'circle', 'donut', 'stripes']
 
 
 ########################################################################################################################
@@ -138,6 +135,26 @@ def stripes(size):
     return _split_data(samples)
 
 
+def spiral(size):
+    """
+    Samples are generated in a two spiral fashion, starting from the center.
+    2 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+    # The *0.99 serves to make the points on 1.0 to "fall on the left bin" otherwise you get 1 more class
+    samples = np.array([(x, y, int((x * 0.99 * 100) / 20))
+                        for x in np.linspace(0, 1, np.sqrt(size))
+                        for y in np.linspace(0, 1, np.sqrt(size))])
+
+    return _split_data(samples)
+
+
 ########################################################################################################################
 def _split_data(samples):
     """
@@ -162,28 +179,6 @@ def _split_data(samples):
            np.array([[a[0], a[1], b] for a, b in zip(test, label_test)])
 
 
-def get_data(distribution, size):
-    """
-    Return the train, val and test splits according to the distribution chosen.
-
-    Parameters
-    ----------
-    :param distribution: enum \in distribution_options
-        The chosen distribution
-    :param size:
-        The total number of samples in the dataset. It is advised to use a squared number if a grid-fashion distribution
-        is chosen (like 16, 25, 100, ... )
-    :return:
-        train, val and test splits
-    """
-    return {
-        'diagonal': diagonal,
-        'circle': circle,
-        'donut': donut,
-        'stripes': stripes,
-    }[distribution](size)
-
-
 def visualize_distribution(train, val, test, save_path, marker_size=1):
     fig, axs = plt.subplots(ncols=3, sharex=True, sharey=True)
     # fig.set_figheight(5)
@@ -203,6 +198,9 @@ def visualize_distribution(train, val, test, save_path, marker_size=1):
 
 
 if __name__ == "__main__":
+
+    # Distribution options:
+    distribution_options = [name[0] for name in inspect.getmembers(sys.modules[__name__], inspect.isfunction)]
 
     logging.basicConfig(
         format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
@@ -236,7 +234,7 @@ if __name__ == "__main__":
     ###############################################################################
     # Getting the data
     logging.info('Getting the data distribution {}'.format(args.distribution))
-    train, val, test = get_data(args.distribution, args.size)
+    train, val, test = getattr(sys.modules[__name__], args.distribution)(args.size)
 
     ###############################################################################
     # Preparing the folders structure
