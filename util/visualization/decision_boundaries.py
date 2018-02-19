@@ -7,7 +7,7 @@ from scipy.interpolate import griddata
 
 
 def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, point_x, point_y,
-                             point_class, num_classes, step, writer=None):
+                             point_class, num_classes, step, writer, epochs, **kwargs):
     """
     Plots the decision boundaries as a 2D image onto Tensorboard.
     :param output_winners: which class is the 'winner' of the network at each location
@@ -22,6 +22,8 @@ def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, 
     :param writer: Tensorboard summarywriter object
     :return: None
     """
+
+    multi_run = kwargs['run'] if 'run' in kwargs else None
 
     point_class = point_class.copy()
     point_class += 1
@@ -64,9 +66,20 @@ def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, 
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
+
+    overview_epochs = [-1, 0]
+    _ = [overview_epochs.append(i) for i in np.arange(1, epochs, step=np.ceil((epochs - 2)/8))]
+
+
     # Plot to tensorboard
-    writer.add_image('decision_boundary_overview', data, global_step=step)
-    writer.add_image('decision_boundary/{}'.format(step), data, global_step=step)
+    if multi_run is None:
+        if step in overview_epochs or epochs < 10:
+            writer.add_image('decision_boundary_overview', data, global_step=step)
+        writer.add_image('decision_boundary/{}'.format(step), data, global_step=step)
+    else:
+        if step in overview_epochs or epochs < 10:
+            writer.add_image('decision_boundary_overview_{}'.format(multi_run), data, global_step=step)
+        writer.add_image('decision_boundary_{}/{}'.format(multi_run, step), data, global_step=step)
     plt.clf()
 
     return None
