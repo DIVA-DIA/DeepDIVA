@@ -8,7 +8,6 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-# Utils
 import logging
 
 import numpy as np
@@ -23,6 +22,9 @@ from template.runner.standard import Standard, evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 from util.visualization.decision_boundaries import plot_decision_boundaries
+
+
+# Utils
 
 
 #######################################################################################################################
@@ -50,7 +52,7 @@ def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resoluti
 
     plot_decision_boundaries(output_winners, outputs_confidence,
                              grid_x, grid_y, val_coords[:, 0], val_coords[:, 1],
-                             val_loader.dataset.data[:, 2], num_classes, step=epoch, writer=writer)
+                             val_loader.dataset.data[:, 2], num_classes, epoch, writer)
     return
 
 
@@ -136,7 +138,8 @@ class PointCloud(Standard):
 
             # PLOT: decision boundary routine
             evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes,
-                                                writer, epoch, kwargs['no_cuda'])
+                                                writer, epoch,
+                                                kwargs['no_cuda'])
 
         # Test
         test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)
