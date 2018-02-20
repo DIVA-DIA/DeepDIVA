@@ -147,10 +147,17 @@ def spiral(size):
     :return:
         train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
     """
-    # The *0.99 serves to make the points on 1.0 to "fall on the left bin" otherwise you get 1 more class
-    samples = np.array([(x, y, int((x * 0.99 * 100) / 20))
-                        for x in np.linspace(0, 1, np.sqrt(size))
-                        for y in np.linspace(0, 1, np.sqrt(size))])
+
+    turn_factor = 12
+
+    samples = np.zeros((2 * size, 3))
+
+    for n in range(size):
+        r = 0.05 + 0.4 * n / size
+        angle = r * turn_factor * np.math.pi
+        samples[n] = [0.5 + r * np.math.cos(angle), 0.5 + r * np.math.sin(angle), 0]
+        angle = r * turn_factor * np.math.pi + np.math.pi
+        samples[n + size] = [0.5 + r * np.math.cos(angle), 0.5 + r * np.math.sin(angle), 1]
 
     return _split_data(samples)
 
@@ -180,9 +187,7 @@ def _split_data(samples):
 
 
 def visualize_distribution(train, val, test, save_path, marker_size=1):
-    fig, axs = plt.subplots(ncols=3, sharex=True, sharey=True)
-    # fig.set_figheight(5)
-    # fig.set_figwidth(15)
+    fig, axs = plt.subplots(ncols=3, sharex='all', sharey='all')
     plt.setp(axs.flat, aspect=1.0, adjustable='box-forced')
     axs[0].scatter(train[:, 0], train[:, 1], c=train[:, 2], s=marker_size, cmap=plt.get_cmap('Set1'))
     axs[0].set_title('train')
