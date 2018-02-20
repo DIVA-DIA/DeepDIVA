@@ -24,13 +24,9 @@ from util.misc import checkpoint, adjust_learning_rate
 from util.visualization.decision_boundaries import plot_decision_boundaries
 
 
-# Utils
-
-
 #######################################################################################################################
 def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes, writer,
-                                        epoch,
-                                        no_cuda):
+                                        epoch, no_cuda, epochs, **kwargs):
     min_x, min_y = np.min(val_coords[:, 0]), np.min(val_coords[:, 1])
     max_x, max_y = np.max(val_coords[:, 0]), np.max(val_coords[:, 1])
 
@@ -50,9 +46,10 @@ def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resoluti
     output_winners = np.array([np.argmax(item) for item in outputs])
     outputs_confidence = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
 
-    plot_decision_boundaries(output_winners, outputs_confidence,
-                             grid_x, grid_y, val_coords[:, 0], val_coords[:, 1],
-                             val_loader.dataset.data[:, 2], num_classes, epoch, writer)
+    plot_decision_boundaries(output_winners=output_winners, output_confidence=outputs_confidence,
+                             grid_x=grid_x, grid_y=grid_y, point_x=val_coords[:, 0], point_y=val_coords[:, 1],
+                             point_class=val_loader.dataset.data[:, 2], num_classes=num_classes,
+                             step=epoch, writer=writer, epochs=epochs, **kwargs)
     return
 
 
@@ -123,8 +120,10 @@ class PointCloud(Standard):
             coords = coords.cuda(async=True)
 
         # PLOT: decision boundary routine
-        evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes, writer,
-                                            -1, kwargs['no_cuda'])
+        evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
+                                            grid_resolution=grid_resolution, val_loader=val_loader,
+                                            num_classes=num_classes, writer=writer, epoch=-1, epochs=epochs,
+                                            **kwargs)
 
         PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
@@ -137,9 +136,10 @@ class PointCloud(Standard):
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
 
             # PLOT: decision boundary routine
-            evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes,
-                                                writer, epoch,
-                                                kwargs['no_cuda'])
+            evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
+                                                grid_resolution=grid_resolution, val_loader=val_loader,
+                                                num_classes=num_classes, writer=writer, epoch=epoch, epochs=epochs,
+                                                **kwargs)
 
         # Test
         test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)

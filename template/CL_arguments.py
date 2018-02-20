@@ -60,6 +60,9 @@ def parse_arguments():
                                 choices=runner_class_options,
                                 default="standard",
                                 help='which runner class to use.')
+    parser_general.add_argument('--ignoregit',
+                                action='store_true',
+                                help='Run irrespective of git status.')
 
     ###############################################################################
     # Data Options
