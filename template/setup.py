@@ -396,7 +396,8 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
     # Seed the random
     if seed is None:
         # If seed is not specified by user, select a random value for the seed and then log it.
-        seed = np.random.randint(10000)
+        seed = np.random.randint(2 ** 32 - 1,)
+        logging.info('Randomly chosen seed is: {}'.format(seed))
     else:
         try:
             assert multi_run == None

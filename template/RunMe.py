@@ -23,7 +23,7 @@ import template.runner
 from init.initializer import *
 from template.setup import set_up_env, set_up_logging
 from util.misc import to_capital_camel_case
-from util.visualization.mean_std_plot import plot_mean_variance
+from util.visualization.mean_std_plot import plot_mean_std
 
 
 ########################################################################################################################
@@ -220,21 +220,21 @@ class RunMe:
                                                                                            **args.__dict__)
 
             # Generate and add to tensorboard the shaded plot for train
-            train_curve = plot_mean_variance(train_scores[:i + 1],
-                                             suptitle='Multi-Run: Train',
-                                             title='Runs: {}'.format(i + 1),
-                                             xlabel='Epochs', ylabel='Accuracy',
-                                             ylim=[0, 100.0])
-            writer.add_image('train_curve', train_curve)
+            train_curve = plot_mean_std(train_scores[:i + 1],
+                                        suptitle='Multi-Run: Train',
+                                        title='Runs: {}'.format(i + 1),
+                                        xlabel='Epoch', ylabel='Score',
+                                        ylim=[0, 100.0])
+            writer.add_image('train_curve', train_curve, global_step=i)
             logging.info('Generated mean-variance plot for train')
 
             # Generate and add to tensorboard the shaded plot for val
-            val_curve = plot_mean_variance(val_scores[:i + 1],
-                                           suptitle='Multi-Run: Val',
-                                           title='Runs: {}'.format(i + 1),
-                                           xlabel='Epochs', ylabel='Accuracy',
-                                           ylim=[0, 100.0])
-            writer.add_image('val_curve', val_curve)
+            val_curve = plot_mean_std(val_scores[:i + 1],
+                                      suptitle='Multi-Run: Val',
+                                      title='Runs: {}'.format(i + 1),
+                                      xlabel='Epoch', ylabel='Score',
+                                      ylim=[0, 100.0])
+            writer.add_image('val_curve', val_curve, global_step=i)
             logging.info('Generated mean-variance plot for val')
 
         # Log results on disk
