@@ -395,8 +395,10 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
         os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
 
     # Seed the random
-
-    if seed is not None:
+    if seed is None:
+        # If seed is not specified by user, select a random value for the seed and then log it.
+        seed = np.random.randint(10000)
+    else:
         try:
             assert multi_run == None
         except:
@@ -404,17 +406,24 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
             raise SystemExit
         if workers > 1:
             logging.warning('Setting seed when workers > 1 may lead to non-deterministic outcomes!')
-        # Python
-        random.seed(seed)
 
-        # Numpy random
-        np.random.seed(seed)
-
-        # Torch random
-        torch.manual_seed(seed)
+        # Disable CuDNN only if seed is specified by user. Otherwise we can assume that the user does not want to
+        # sacrifice speed for deterministic behaviour.
         if not no_cuda:
-            torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.enabled = False
+
+
+    # Python
+    random.seed(seed)
+
+    # Numpy random
+    np.random.seed(seed)
+
+    # Torch random
+    torch.manual_seed(seed)
+    if not no_cuda:
+        torch.cuda.manual_seed_all(seed)
+
     return
 
 
