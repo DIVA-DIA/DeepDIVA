@@ -20,6 +20,7 @@ def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, 
     :param num_classes: number of unique classes
     :param step: global training step
     :param writer: Tensorboard summarywriter object
+    :param epochs: total number of training epochs
     :return: None
     """
 
