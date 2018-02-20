@@ -13,30 +13,30 @@ class FC_medium(nn.Module):
         """
         super(FC_medium, self).__init__()
 
-        self.expected_input_size = (2)
+        self.expected_input_size = 2
 
         # First layer
         self.fc1 = nn.Sequential(
             Flatten(),
-            nn.Linear(2, 1000),
+            nn.Linear(2, 12),
             nn.Tanh(),
         )
 
         # Second layer
         self.fc2 = nn.Sequential(
-            nn.Linear(1000, 1000),
+            nn.Linear(12, 16),
             nn.Tanh(),
         )
 
         # Third layer
         self.fc3 = nn.Sequential(
-            nn.Linear(1000, 100),
+            nn.Linear(16, 20),
             nn.Tanh(),
         )
 
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(100, num_classes)
+            nn.Linear(20, num_classes)
         )
 
     def forward(self, x):
