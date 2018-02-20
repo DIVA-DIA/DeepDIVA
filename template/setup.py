@@ -2,7 +2,6 @@
 import json
 import os
 import random
-import sys
 import time
 
 import pandas as pd
@@ -412,7 +411,6 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
         # sacrifice speed for deterministic behaviour.
         if not no_cuda:
             torch.backends.cudnn.enabled = False
-
 
     # Python
     random.seed(seed)
