@@ -7,10 +7,8 @@ This file is the entry point of DeepDIVA.
 import json
 # Utils
 import os
-import traceback
 import subprocess
-
-
+import traceback
 
 # Tensor board
 import tensorboardX
