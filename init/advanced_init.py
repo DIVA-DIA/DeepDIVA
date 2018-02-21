@@ -54,6 +54,7 @@ def pure_lda(index, init_input, init_labels, model, module, module_type, **kwarg
         W = np.vstack((W, module.weight.data.numpy()[W.shape[0]:, :]))
         B = np.hstack((B, module.bias.data.numpy()[B.shape[0]:]))
 
+    # Keep only necessary dimensions when num_columns > num_desired_dimensions
     if module.weight.data.shape[0] < W.shape[0] and (module.weight.data.shape[1] == W.shape[1]):
         W = W[:module.weight.data.shape[0], :]
         B = B[:module.bias.data.shape[0]]
