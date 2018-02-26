@@ -8,22 +8,23 @@ import logging
 
 import numpy as np
 
-"""
-X = [[4, 1],
-     [2, 4],
-     [2, 3],
-     [3, 6],
-     [4, 4],
-     [9, 10],
-     [6, 8],
-     [9, 5],
-     [8, 7],
-     [10, 8]]
-X = np.array(X)
 
-y = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
-y = np.array(y)
-"""
+# X = [[4, 1],
+#      [2, 4],
+#      [2, 3],
+#      [3, 6],
+#      [4, 4],
+#      [9, 10],
+#      [6, 8],
+#      [9, 5],
+#      [8, 7],
+#      [10, 8]]
+# X = np.array(X)
+#
+# y = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+# y = np.array(y)
+
+
 
 
 def transform(X, y):
@@ -106,8 +107,11 @@ def transform(X, y):
     # print('Matrix L:\n', L.real)
     L = eig_vecs[:, np.argsort(eig_vals)[::-1]]
 
-    # Biases are zero in LDA transform
+    # Biases are needed to re-center the data
+    # TODO add mroe explanaiton for that
     B = np.zeros(X.shape[1])
+    # B = np.mean(X, 0)
+    # B = -np.matmul(L, B)
 
     # We return the transpose because PYTORCH WANT THE MATRIX to be flipped!! BE CAREFUL WHEN THINKING ABOUT THIS!
     return L.T, B.T

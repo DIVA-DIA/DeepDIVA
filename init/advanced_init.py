@@ -48,9 +48,6 @@ def pure_lda(index, init_input, init_labels, model, module, module_type, **kwarg
         logging.warning("LDA weight matrix smaller than the number of neurons. Expected {} got {}. "
                         "Filling missing dimensions with default values".format(module.weight.data.shape[0], W.shape[0]))
 
-        # module.weight.data = torch.Tensor(np.zeros(module.weight.data.shape))
-        # module.bias.data = torch.Tensor(np.zeros(module.bias.data.shape))
-
         W = np.vstack((W, module.weight.data.numpy()[W.shape[0]:, :]))
         B = np.hstack((B, module.bias.data.numpy()[B.shape[0]:]))
 
@@ -63,6 +60,60 @@ def pure_lda(index, init_input, init_labels, model, module, module_type, **kwarg
 
 
 def advanced_lda(index, init_input, init_labels, model, module, module_type, **kwargs):
+    if index != len(list(model.children())) - 1:
+        logging.info('LDA Transform')
+        # Check if size of model allows (has enough neurons)
+        if module.weight.data.shape[0] < len(np.unique(init_labels)) * 2:
+            logging.error("Model does not have enough neurons. Expected at least |C|*2 got {}".format(module.weight.data.shape[0]))
+        # W, B = lda.transform(X=init_input, y=init_labels)
+        W = module.weight.data.numpy()
+        B = module.bias.data.numpy()
+    else:
+        logging.info('LDA Discriminants')
+        W, B = lda.discriminants(X=init_input, y=init_labels)
+
+    #######################################################################
+    # Reshape / Crop the parameters matrix to the proper size
+    if 'conv' in module_type:
+        # Get kernel size of current layer
+        kernel_size = module.kernel_size
+
+        # The T belongs to the reshape operation! It is NOT transposing the input! It is necessary to select columns
+        W = W.T.reshape(W.shape[0], module.in_channels, kernel_size[0], kernel_size[1])[:module.out_channels]
+        B = B[:module.out_channels]
+
+    #######################################################################
+    # Modify the range of the weights (clipping, normalize, ... )
+    # W = W / (max(np.max(np.abs(B)), np.max(np.abs(W))) * math.sqrt(W.shape[0]))
+    # B = B / (max(np.max(np.abs(B)), np.max(np.abs(W))) * math.sqrt(W.shape[0]))
+
+    #######################################################################
+    # Check size of W and B
+    if module.weight.data.shape[0] > W.shape[0] and (module.weight.data.shape[1] == W.shape[1]):
+        """
+        This can and will happen when the dimensionality of the data is smaller than the number of neurons. 
+        For example on cloud points having more than 2 neurons will trigger this. 
+        """
+        logging.warning("LDA weight matrix smaller than the number of neurons. Expected {} got {}. "
+                        "Filling missing dimensions with default values".format(module.weight.data.shape[0], W.shape[0]))
+
+        # Set current values to 0 on the model (all of them)
+        # module.weight.data = torch.Tensor(np.zeros(module.weight.data.shape))
+        # module.bias.data = torch.Tensor(np.zeros(module.bias.data.shape))
+
+        W = np.vstack((W, module.weight.data.numpy()[W.shape[0]:, :]))
+        B = -np.matmul(W, B)
+        B = np.hstack((B, module.bias.data.numpy()[B.shape[0]:]))
+
+    # Keep only necessary dimensions when num_columns > num_desired_dimensions
+    if module.weight.data.shape[0] < W.shape[0] and (module.weight.data.shape[1] == W.shape[1]):
+        W = W[:module.weight.data.shape[0], :]
+        B = B[:module.bias.data.shape[0]]
+
+    return torch.Tensor(W), torch.Tensor(B)
+
+
+def lda_pca(index, init_input, init_labels, model, module, module_type, **kwargs):
     num_classes = np.unique(init_labels)
 
     if index != len(list(model.children())) - 1:
