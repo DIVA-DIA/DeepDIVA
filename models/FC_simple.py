@@ -19,13 +19,13 @@ class FC_simple(nn.Module):
         # First layer
         self.fc1 = nn.Sequential(
             Flatten(),
-            nn.Linear(2, 2),
-            nn.Tanh(),
+            nn.Linear(2, 10),
+            nn.LeakyReLU(),
         )
 
         # Classification layer
         self.fc2 = nn.Sequential(
-            nn.Linear(2, num_classes)
+            nn.Linear(10, num_classes)
         )
 
     def forward(self, x):

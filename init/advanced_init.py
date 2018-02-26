@@ -65,9 +65,7 @@ def advanced_lda(index, init_input, init_labels, model, module, module_type, **k
         # Check if size of model allows (has enough neurons)
         if module.weight.data.shape[0] < len(np.unique(init_labels)) * 2:
             logging.error("Model does not have enough neurons. Expected at least |C|*2 got {}".format(module.weight.data.shape[0]))
-        # W, B = lda.transform(X=init_input, y=init_labels)
-        W = module.weight.data.numpy()
-        B = module.bias.data.numpy()
+        W, B = lda.transform(X=init_input, y=init_labels)
     else:
         logging.info('LDA Discriminants')
         W, B = lda.discriminants(X=init_input, y=init_labels)
