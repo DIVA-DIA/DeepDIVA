@@ -14,18 +14,18 @@ class FC_simple(nn.Module):
         """
         super(FC_simple, self).__init__()
 
-        self.expected_input_size = (5)
+        self.expected_input_size = 2
 
         # First layer
         self.fc1 = nn.Sequential(
             Flatten(),
-            nn.Linear(2, 40),
-            nn.LeakyReLU(),
+            nn.Linear(2, 2),
+            nn.Tanh(),
         )
 
         # Classification layer
         self.fc2 = nn.Sequential(
-            nn.Linear(40, num_classes)
+            nn.Linear(2, num_classes)
         )
 
     def forward(self, x):
