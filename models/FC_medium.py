@@ -18,25 +18,25 @@ class FC_medium(nn.Module):
         # First layer
         self.fc1 = nn.Sequential(
             Flatten(),
-            nn.Linear(2, 12),
-            nn.Tanh(),
+            nn.Linear(2, 40),
+            nn.LeakyReLU(),
         )
 
         # Second layer
         self.fc2 = nn.Sequential(
-            nn.Linear(12, 16),
-            nn.Tanh(),
+            nn.Linear(40, 60),
+            nn.LeakyReLU(),
         )
 
         # Third layer
         self.fc3 = nn.Sequential(
-            nn.Linear(16, 20),
-            nn.Tanh(),
+            nn.Linear(60, 80),
+            nn.LeakyReLU(),
         )
 
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(20, num_classes)
+            nn.Linear(80, num_classes)
         )
 
     def forward(self, x):

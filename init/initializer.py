@@ -56,9 +56,9 @@ def init_model(model, data_loader, num_samples, init_function, **kwargs):
         #######################################################################
         # In case of conv layer, get the patches of data, else just reshape minibatches into a matrix LDA friendly
         if 'conv' in module_type:
-            logging.info('Get the patches of kernel size {} from data'.format(kernel_size))
             # Get kernel size of current layer
             kernel_size = module.kernel_size
+            logging.info('Get the patches of kernel size {} from data'.format(kernel_size))
             # Get the patches
             patches, labels = get_patches(
                 np.array([element.data.numpy() for minibatch in X for element in minibatch]),
@@ -95,6 +95,9 @@ def init_model(model, data_loader, num_samples, init_function, **kwargs):
         logging.info('Forward pass')
         for i, _ in enumerate(X):
             X[i] = layer(X[i])
+
+            # if index != len(list(model.children())) - 1:
+            #     module.bias.data = -torch.Tensor(np.mean(minibatches_to_matrix(X), 0))
 
 
 def _collect_initial_data(data_loader, num_points):

@@ -33,6 +33,7 @@ import argparse
 import inspect
 import logging
 import os
+import random
 import shutil
 import sys
 
@@ -162,6 +163,49 @@ def spiral(size):
     return _split_data(samples)
 
 
+def spiral_multi(size):
+    """
+    Samples are generated in a two spiral fashion, starting from the center.
+    4 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+    turn_factor = -4
+    noise = 0.07
+
+    samples = np.zeros((4 * size, 3))
+
+    for n in range(size):
+        r = 0.05 + 0.4 * n / size
+        # Class 1
+        angle = r * turn_factor * np.math.pi
+        samples[n + 0 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 0]
+        # Class 2
+        angle = r * turn_factor * np.math.pi + np.math.pi * 2 / 4.0
+        samples[n + 1 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 1]
+        # Class 3
+        angle = r * turn_factor * np.math.pi + np.math.pi * 4 / 4.0
+        samples[n + 2 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 2]
+        # Class 4
+        angle = r * turn_factor * np.math.pi + np.math.pi * 6 / 4.0
+        samples[n + 3 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 3]
+    return _split_data(samples)
+
+
 ########################################################################################################################
 def _split_data(samples):
     """
@@ -186,7 +230,7 @@ def _split_data(samples):
            np.array([[a[0], a[1], b] for a, b in zip(test, label_test)])
 
 
-def visualize_distribution(train, val, test, save_path, marker_size=1):
+def _visualize_distribution(train, val, test, save_path, marker_size=1):
     fig, axs = plt.subplots(ncols=3, sharex='all', sharey='all')
     plt.setp(axs.flat, aspect=1.0, adjustable='box-forced')
     axs[0].scatter(train[:, 0], train[:, 1], c=train[:, 2], s=marker_size, cmap=plt.get_cmap('Set1'))
@@ -278,7 +322,7 @@ if __name__ == "__main__":
     ###############################################################################
     # Visualize the data
     logging.info('Visualize the data')
-    visualize_distribution(train, val, test, os.path.join(dataset_dir, 'visualize_distribution.pdf'))
+    _visualize_distribution(train, val, test, os.path.join(dataset_dir, 'visualize_distribution.pdf'))
 
     ###############################################################################
     # Run the analytics
