@@ -126,6 +126,10 @@ class PointCloud(Standard):
                                             **kwargs)
 
         PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        # Add model parameters to Tensorboard
+        for name, param in model.named_parameters():
+            writer.add_histogram(name, param.clone().cpu().data.numpy(), -1, bins='auto')
+
         for epoch in range(start_epoch, epochs):
             # Train
             train_value[epoch] = PointCloud._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
@@ -140,6 +144,9 @@ class PointCloud(Standard):
                                                 grid_resolution=grid_resolution, val_loader=val_loader,
                                                 num_classes=num_classes, writer=writer, epoch=epoch, epochs=epochs,
                                                 **kwargs)
+            # Add model parameters to Tensorboard
+            for name, param in model.named_parameters():
+                writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch, bins='auto')
 
         # Test
         test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)
