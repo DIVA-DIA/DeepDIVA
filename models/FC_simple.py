@@ -8,7 +8,7 @@ class Flatten(nn.Module):
 
 
 class FC_simple(nn.Module):
-    def __init__(self, num_classes=5, **kwargs):
+    def __init__(self, num_classes=5, leakyrelu=False, **kwargs):
         """
         :param num_classes: the number of classes in the dataset
         """
@@ -16,12 +16,20 @@ class FC_simple(nn.Module):
 
         self.expected_input_size = 2
 
-        # First layer
-        self.fc1 = nn.Sequential(
-            Flatten(),
-            nn.Linear(2, 10),
-            nn.LeakyReLU(),
-        )
+        if leakyrelu == False:
+            # First layer
+            self.fc1 = nn.Sequential(
+                Flatten(),
+                nn.Linear(2, 10),
+                nn.Tanh(),
+            )
+        else:
+            # First layer
+            self.fc1 = nn.Sequential(
+                Flatten(),
+                nn.Linear(2, 10),
+                nn.LeakyReLU(),
+            )
 
         # Classification layer
         self.fc2 = nn.Sequential(

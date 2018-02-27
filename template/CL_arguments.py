@@ -115,6 +115,10 @@ def parse_arguments():
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
+    parser_train.add_argument('--leakyrelu',
+                              action='store_true',
+                              default=False,
+                              help='use leakyrelu for the model instead of tanh')
 
     ###############################################################################
     # System Options
