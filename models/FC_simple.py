@@ -17,6 +17,7 @@ class FC_simple(nn.Module):
         self.expected_input_size = 2
 
         if leakyrelu == False:
+            logging.info('Using TanH for the model')
             # First layer
             self.fc1 = nn.Sequential(
                 Flatten(),
@@ -24,6 +25,7 @@ class FC_simple(nn.Module):
                 nn.Tanh(),
             )
         else:
+            logging.info('Using LeakyReLu for the model')
             # First layer
             self.fc1 = nn.Sequential(
                 Flatten(),
