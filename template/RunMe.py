@@ -169,9 +169,10 @@ class RunMe:
 
         try:
             if args.multi_run is not None:
-                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, args)
+                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, current_log_folder,  args)
             else:
-                train_scores, val_scores, test_scores = runner_class.single_run(writer, **args.__dict__)
+                train_scores, val_scores, test_scores = runner_class.single_run(writer, current_log_folder=current_log_folder,
+                                                                                **args.__dict__)
         except Exception as exp:
             if args.quiet:
                 print('Unhandled error: {}'.format(repr(exp)))
@@ -188,7 +189,7 @@ class RunMe:
         return train_scores, val_scores, test_scores
 
     @staticmethod
-    def _multi_run(runner_class, writer, args):
+    def _multi_run(runner_class, writer, current_log_folder, args):
         """
         Here multiple runs with same parameters are executed and the results averaged.
         Additionally "variance shaded plots" gets to be generated and are visible not only on FS but also on
@@ -219,6 +220,7 @@ class RunMe:
             logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
             train_scores[i, :], val_scores[i, :], test_scores[i] = runner_class.single_run(writer,
                                                                                            run=i,
+                                                                                           log_dir=current_log_folder,
                                                                                            **args.__dict__)
 
             # Generate and add to tensorboard the shaded plot for train
@@ -240,8 +242,8 @@ class RunMe:
             logging.info('Generated mean-variance plot for val')
 
         # Log results on disk
-        np.save(os.path.join(args.log_dir, 'train_values.npy'), train_scores)
-        np.save(os.path.join(args.log_dir, 'val_values.npy'), val_scores)
+        np.save(os.path.join(current_log_folder, 'train_values.npy'), train_scores)
+        np.save(os.path.join(current_log_folder, 'val_values.npy'), val_scores)
         logging.info('Multi-run values for test-mean:{} test-std: {}'.format(np.mean(test_scores), np.std(test_scores)))
 
         return train_scores, val_scores, test_scores

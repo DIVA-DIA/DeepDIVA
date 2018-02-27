@@ -23,7 +23,7 @@ from util.misc import checkpoint, adjust_learning_rate
 #######################################################################################################################
 class Standard:
     @staticmethod
-    def single_run(writer, log_dir, model_name, epochs, lr, decay_lr, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -32,7 +32,7 @@ class Standard:
         :param writer: Tensorboard SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.
 
-        :param log_dir: string
+        :param current_log_folder: string
             Path to where logs/checkpoints are saved
 
         :param model_name: string
@@ -81,7 +81,7 @@ class Standard:
             val_value[epoch] = Standard._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
+            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
         # Test
         test_value = Standard._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)

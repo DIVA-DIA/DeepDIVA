@@ -335,6 +335,15 @@ def set_up_logging(parser, experiment_name, log_dir, quiet, args_dict, **kwargs)
         if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default):
             non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
 
+    # Get the INIT arguments group, which we know its the number 6
+    group = parser._action_groups[6]
+    assert group.title == 'INIT'
+
+    # Fetch all non-default parameters passed
+    for action in group._group_actions:
+        if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default):
+            non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
+
     # Build up final logging folder tree with the non-default training parameters
     log_folder = os.path.join(*[log_dir, experiment_name, dataset, *non_default_parameters,
                                 '{}'.format(time.strftime('%d-%m-%y-%Hh-%Mm-%Ss'))])

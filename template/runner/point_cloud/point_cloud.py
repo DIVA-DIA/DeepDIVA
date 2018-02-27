@@ -57,7 +57,7 @@ def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resoluti
 
 class PointCloud(Standard):
     @staticmethod
-    def single_run(writer, log_dir, model_name, epochs, lr, decay_lr, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, **kwargs):
         """
            This is the main routine where train(), validate() and test() are called.
 
@@ -66,7 +66,7 @@ class PointCloud(Standard):
            :param writer: Tensorboard SummaryWriter
                Responsible for writing logs in Tensorboard compatible format.
 
-           :param log_dir: string
+           :param current_log_folder: string
                Path to where logs/checkpoints are saved
 
            :param model_name: string
@@ -139,7 +139,7 @@ class PointCloud(Standard):
             val_value[epoch] = PointCloud._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
+            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
             # PLOT: decision boundary routine
             evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
