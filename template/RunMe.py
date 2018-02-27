@@ -220,7 +220,7 @@ class RunMe:
             logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
             train_scores[i, :], val_scores[i, :], test_scores[i] = runner_class.single_run(writer,
                                                                                            run=i,
-                                                                                           log_dir=current_log_folder,
+                                                                                           current_log_folder=current_log_folder,
                                                                                            **args.__dict__)
 
             # Generate and add to tensorboard the shaded plot for train
