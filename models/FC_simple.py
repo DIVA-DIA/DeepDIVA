@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+import logging
 
 class Flatten(nn.Module):
     def forward(self, x):
