@@ -80,6 +80,8 @@ class RunMe:
             suggestion = conn.experiments(experiment.id).suggestions().create()
             params = suggestion.assignments
             for key in params:
+                if isinstance(args.__dict__[key], bool):
+                    params[key] = params[key].lower() in ['true']
                 args.__dict__[key] = params[key]
             _, _, score = self._execute(args)
             # In case of multi-run the return type will be a list (otherwise is a single float)
@@ -122,7 +124,7 @@ class RunMe:
         :return:
         """
         # Set up logging
-        args.__dict__['log_dir'] = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
+        current_log_folder = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
 
         # Check Git status
         try:
@@ -150,12 +152,12 @@ class RunMe:
                 else:
                     logging.error('Errors when acquiring git status. Use --ignoregit to still run.')
                     logging.shutdown()
-                    print('Finished with errors. (Log files at {} )'.format(args.log_dir))
+                    print('Finished with errors. (Log files at {} )'.format(current_log_folder))
                     sys.exit(-1)
 
         # Define Tensorboard SummaryWriter
         logging.info('Initialize Tensorboard SummaryWriter')
-        writer = tensorboardX.SummaryWriter(log_dir=args.log_dir)
+        writer = tensorboardX.SummaryWriter(log_dir=current_log_folder)
 
         # Set up execution environment
         # Specify CUDA_VISIBLE_DEVICES and seeds
@@ -181,8 +183,8 @@ class RunMe:
             logging.shutdown()
             logging.getLogger().handlers = []
             writer.close()
-            print('All done! (Log files at {} )'.format(args.log_dir))
-            args.log_dir = None
+            print('All done! (Log files at {} )'.format(current_log_folder))
+            current_log_folder = None
         return train_scores, val_scores, test_scores
 
     @staticmethod
