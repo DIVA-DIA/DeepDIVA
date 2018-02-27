@@ -206,6 +206,26 @@ def spiral_multi(size):
     return _split_data(samples)
 
 
+def xor(size):
+    """
+    XOR problem
+    2 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+    samples = np.array([(x, y, ((x < 0.5) and (y < 0.5)) or ((x > 0.5) and (y > 0.5)))
+                        for x in np.linspace(0, 1, np.sqrt(size))
+                        for y in np.linspace(0, 1, np.sqrt(size))])
+
+    return _split_data(samples)
+
+
 ########################################################################################################################
 def _split_data(samples):
     """
