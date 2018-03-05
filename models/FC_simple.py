@@ -8,7 +8,7 @@ class Flatten(nn.Module):
 
 
 class FC_simple(nn.Module):
-    def __init__(self, num_classes=5, leakyrelu=False, **kwargs):
+    def __init__(self, num_classes=5, activation='Tanh', **kwargs):
         """
         :param num_classes: the number of classes in the dataset
         """
@@ -16,22 +16,13 @@ class FC_simple(nn.Module):
 
         self.expected_input_size = 2
 
-        if leakyrelu == False:
-            logging.info('Using TanH for the model')
-            # First layer
-            self.fc1 = nn.Sequential(
-                Flatten(),
-                nn.Linear(2, 4),
-                nn.Tanh(),
-            )
-        else:
-            logging.info('Using LeakyReLu for the model')
-            # First layer
-            self.fc1 = nn.Sequential(
-                Flatten(),
-                nn.Linear(2, 4),
-                nn.LeakyReLU(),
-            )
+        logging.info('Using {} for the model'.format(activation))
+        # First layer
+        self.fc1 = nn.Sequential(
+            Flatten(),
+            nn.Linear(2, 4),
+            nn.__dict__[activation](),
+        )
 
         # Classification layer
         self.fc2 = nn.Sequential(
