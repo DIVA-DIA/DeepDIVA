@@ -115,10 +115,11 @@ def parse_arguments():
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
-    parser_train.add_argument('--leakyrelu',
-                              action='store_true',
-                              default=False,
-                              help='use leakyrelu for the model instead of tanh')
+    parser_train.add_argument('--activation',
+                              dest='activation',
+                              type=str,
+                              default='Tanh',
+                              help='specify activation function to use for FC_simple')
 
     ###############################################################################
     # System Options
