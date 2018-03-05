@@ -109,8 +109,8 @@ def transform(X, y):
 
     # Biases are needed to re-center the data
     # TODO add mroe explanaiton for that
-    # B = np.zeros(X.shape[1])
-    B = np.mean(X, 0)
+    B = np.zeros(X.shape[1])
+    # B = np.mean(X, 0)
     # B = -np.matmul(L, B)
 
     # We return the transpose because PYTORCH WANT THE MATRIX to be flipped!! BE CAREFUL WHEN THINKING ABOUT THIS!

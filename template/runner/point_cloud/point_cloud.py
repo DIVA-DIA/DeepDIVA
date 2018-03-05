@@ -9,8 +9,6 @@ and they should be used instead of hard-coding stuff.
 """
 
 import logging
-# Utils
-import time
 
 import numpy as np
 # Torch

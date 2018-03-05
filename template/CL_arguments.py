@@ -115,6 +115,8 @@ def parse_arguments():
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
+
+    ###############################################################################
     parser_train.add_argument('--activation',
                               dest='activation',
                               type=str,
