@@ -401,11 +401,11 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
         except:
             logging.warning('Arguments for seed AND multi-run should not be active at the same time!')
             raise SystemExit
-        if workers > 1:
-            logging.warning('Setting seed when workers > 1 may lead to non-deterministic outcomes!')
 
         # Disable CuDNN only if seed is specified by user. Otherwise we can assume that the user does not want to
         # sacrifice speed for deterministic behaviour.
+        # TODO: Check if setting torch.backends.cudnn.deterministic=True will ensure deterministic behavior.
+        # Initial tests show torch.backends.cudnn.deterministic=True does not work correctly.
         if not no_cuda:
             torch.backends.cudnn.enabled = False
 
