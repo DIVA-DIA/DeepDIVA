@@ -3,7 +3,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import griddata
 
 
 def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, point_x, point_y,
@@ -67,9 +66,8 @@ def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, 
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-
     overview_epochs = [-1, 0]
-    _ = [overview_epochs.append(i) for i in np.arange(1, epochs, step=np.ceil((epochs - 2)/8))]
+    _ = [overview_epochs.append(i) for i in np.arange(1, epochs, step=np.ceil((epochs - 2) / 8))]
 
 
     # Plot to tensorboard

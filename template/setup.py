@@ -2,10 +2,11 @@
 import json
 import os
 import random
-import sys
 import time
+import logging
 
 import pandas as pd
+import numpy as np
 # Torch related stuff
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -17,14 +18,13 @@ import torchvision.transforms as transforms
 # DeepDIVA
 import models
 from datasets import image_folder_dataset, point_cloud_dataset
-from init.initializer import *
 from util.dataset_analytics import compute_mean_std
 
 
 def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, train_loader,
                  **kwargs):
     """
-    Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
+    Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
     Parameters
     ----------
@@ -62,10 +62,6 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained)
     optimizer = torch.optim.__dict__[optimizer_name](model.parameters(), lr)
     criterion = nn.CrossEntropyLoss()
-
-    # Init the model
-    if kwargs['init']:
-        init_model(model=model, data_loader=train_loader, num_points=50000)
 
     # Transfer model to GPU (if desired)
     if not no_cuda:

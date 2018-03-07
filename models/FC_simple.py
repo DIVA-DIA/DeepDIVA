@@ -1,5 +1,10 @@
-
 import torch.nn as nn
+
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        x = x.view(x.size()[0], -1)
+        return x
 
 
 class FC_simple(nn.Module):
@@ -9,17 +14,18 @@ class FC_simple(nn.Module):
         """
         super(FC_simple, self).__init__()
 
-        self.expected_input_size = (5)
+        self.expected_input_size = 2
 
         # First layer
         self.fc1 = nn.Sequential(
-            nn.Linear(2, 4),
-            nn.Tanh(),
+            Flatten(),
+            nn.Linear(2, 10),
+            nn.LeakyReLU(),
         )
 
         # Classification layer
         self.fc2 = nn.Sequential(
-            nn.Linear(4, num_classes)
+            nn.Linear(10, num_classes)
         )
 
     def forward(self, x):
@@ -30,7 +36,7 @@ class FC_simple(nn.Module):
         :return: torch.Tensor
             Activations of the fully connected layer
         """
-        x = x.view(x.size(0), -1)
         x = self.fc1(x)
         x = self.fc2(x)
+
         return x

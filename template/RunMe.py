@@ -4,14 +4,14 @@ This file is the entry point of DeepDIVA.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-import json
+
 # Utils
 import os
 import sys
-import traceback
+import json
+import logging
 import subprocess
-
-
+import traceback
 
 # Tensor board
 import tensorboardX
@@ -23,7 +23,6 @@ from sklearn.model_selection import ParameterGrid
 # DeepDIVA
 import template.CL_arguments
 import template.runner
-from init.initializer import *
 from template.setup import set_up_env, set_up_logging
 from util.misc import to_capital_camel_case
 from util.visualization.mean_std_plot import plot_mean_std
@@ -70,8 +69,6 @@ class RunMe:
         # Load parameters from file
         with open(args.sig_opt, 'r') as f:
             parameters = json.loads(f.read())
-        if args.experiment_name is None:
-            args.experiment_name = input("Experiment name:")
 
         # Client Token is currently Vinay's one
         conn = Connection(client_token="KXMUZNABYGKSXXRUEMELUYYRVRCRTRANKCPGDNNYDSGRHGUA")
@@ -212,7 +209,7 @@ class RunMe:
             Train, Val and Test results for each run (n) and epoch
         """
 
-        # Init the scores tables which will stores the results.
+        # Instantiate the scores tables which will stores the results.
         train_scores = np.zeros((args.multi_run, args.epochs))
         val_scores = np.zeros((args.multi_run, args.epochs))
         test_scores = np.zeros(args.multi_run)
