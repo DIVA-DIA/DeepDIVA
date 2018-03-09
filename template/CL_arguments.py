@@ -10,23 +10,31 @@ import models
 
 
 def parse_arguments():
-    model_options = [name for name in models.__dict__ if callable(models.__dict__[name])]
-    dataset_options = [name for name in datasets.__dict__ if callable(datasets.__dict__[name])]
-    optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
-    runner_class_options = ["standard", "point_cloud"]
-
-    ###############################################################################
-    # Argument Parser
-    # Training Settings
+    """
+    Argument Parser
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Template for training a network on a dataset')
-    parser_general = parser.add_argument_group('GENERAL', 'General Options')
-    parser_data = parser.add_argument_group('DATA', 'Dataset Options')
-    parser_train = parser.add_argument_group('TRAIN', 'Training Options')
-    parser_system = parser.add_argument_group('SYS', 'System Options')
 
-    # General Options
+    # Add all options
+    _general_parameters(parser)
+    _data_options(parser)
+    _training_options(parser)
+    _system_options(parser)
+    _triplet_options(parser)
+
+    return parser.parse_args(), parser
+
+
+def _general_parameters(parser):
+    """
+    General options
+    """
+    # List of possible custom runner class. A runner class is defined as a module in template.runner
+    runner_class_options = ["standard", "point_cloud", "triplet"]
+
+    parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_general.add_argument('--experiment-name',
                                 type=str,
                                 default=None,
@@ -56,8 +64,16 @@ def parse_arguments():
                                 default="standard",
                                 help='which runner class to use.')
 
-    # Data Options
+
+def _data_options(parser):
+    """
+    Defines all parameters relative to the data.
+    """
+    # List of possible custom dataset already implemented
+    dataset_options = [name for name in datasets.__dict__ if callable(datasets.__dict__[name])]
+
     # TODO dataset and dataset-folder should never exist together
+    parser_data = parser.add_argument_group('DATA', 'Dataset Options')
     parser_data.add_argument('--dataset',
                              choices=dataset_options,
                              help='which dataset to train/test on.')
@@ -68,7 +84,17 @@ def parse_arguments():
                              help='where to save logs. Can be used to resume logging of experiment.',
                              required=True)
 
-    # Training Options
+
+def _training_options(parser):
+    """
+    Training options
+    """
+    # List of possible custom models already implemented
+    model_options = [name for name in models.__dict__ if callable(models.__dict__[name])]
+    # List of possible optimizers already implemented in PyTorch
+    optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
+
+    parser_train = parser.add_argument_group('TRAIN', 'Training Options')
     parser_train.add_argument('--model',
                               type=str,
                               dest='model_name',
@@ -79,6 +105,10 @@ def parse_arguments():
                               type=float,
                               default=0.001,
                               help='learning rate to be used for training')
+    parser_train.add_argument('--decay_lr',
+                              type=int,
+                              default=None,
+                              help='drop LR by 10 every N epochs')
     parser_train.add_argument('--optimizer',
                               choices=optimizer_options,
                               dest='optimizer_name',
@@ -104,16 +134,19 @@ def parse_arguments():
                               action='store_true',
                               default=False,
                               help='use advanced init methods such as LDA')
-    parser_train.add_argument('--decay_lr',
-                              type=int,
-                              default=None,
-                              help='drop LR by 10 every N epochs')
     parser_train.add_argument('--start-epoch',
                               type=int,
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
-    # System Options
+
+
+def _system_options(parser):
+    """
+    System options
+    """
+
+    parser_system = parser.add_argument_group('SYS', 'System Options')
     parser_system.add_argument('--gpu-id',
                                default=None,
                                help='which GPUs to use for training (use all by default)')
@@ -133,4 +166,43 @@ def parse_arguments():
                                type=int,
                                default=4,
                                help='workers used for train/val loaders')
-    return parser.parse_args(), parser
+
+
+def _triplet_options(parser):
+    """
+    Triplet options
+
+    These parameters are used by the runner class template.runner.triplet
+    """
+    parser.add_argument('--dataroot',
+                        type=str,
+                        default='/tmp/phototour_dataset',
+                        help='path to dataset')
+    parser.add_argument('--imageSize',
+                        type=int,
+                        default=32,
+                        help='the height / width of the input image to network')
+    parser.add_argument('--test-batch-size',
+                        type=int,
+                        default=1000,
+                        help='input batch size for testing (default: 1000)')
+    parser.add_argument('--n-triplets',
+                        type=int,
+                        default=1280000, metavar='N',
+                        help='how many triplets will generate from the dataset')
+    parser.add_argument('--margin',
+                        type=float,
+                        default=2.0,
+                        help='the margin value for the triplet loss function')
+    parser.add_argument('--lr-decay',
+                        default=1e-6,
+                        type=float,
+                        help='learning rate decay ratio (default: 1e-6')
+    parser.add_argument('--wd',
+                        default=1e-4,
+                        type=float,
+                        help='weight decay (default: 1e-4)')
+    parser.add_argument('--anchorswap',
+                        type=bool,
+                        default=False,
+                        help='turns on anchor swap')
