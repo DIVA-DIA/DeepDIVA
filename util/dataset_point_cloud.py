@@ -30,8 +30,10 @@ Example:
 
 # Utils
 import argparse
+import inspect
 import logging
 import os
+import random
 import shutil
 import sys
 
@@ -39,13 +41,9 @@ import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
-# Distribution options:
-distribution_options = ['diagonal', 'circle', 'donut', 'stripes']
 
 
 ########################################################################################################################
@@ -138,6 +136,96 @@ def stripes(size):
     return _split_data(samples)
 
 
+def spiral(size):
+    """
+    Samples are generated in a two spiral fashion, starting from the center.
+    2 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+    turn_factor = 12
+
+    samples = np.zeros((2 * size, 3))
+
+    for n in range(size):
+        r = 0.05 + 0.4 * n / size
+        angle = r * turn_factor * np.math.pi
+        samples[n] = [0.5 + r * np.math.cos(angle), 0.5 + r * np.math.sin(angle), 0]
+        angle = r * turn_factor * np.math.pi + np.math.pi
+        samples[n + size] = [0.5 + r * np.math.cos(angle), 0.5 + r * np.math.sin(angle), 1]
+
+    return _split_data(samples)
+
+
+def spiral_multi(size):
+    """
+    Samples are generated in a two spiral fashion, starting from the center.
+    4 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+    turn_factor = -4
+    noise = 0.07
+
+    samples = np.zeros((4 * size, 3))
+
+    for n in range(size):
+        r = 0.05 + 0.4 * n / size
+        # Class 1
+        angle = r * turn_factor * np.math.pi
+        samples[n + 0 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 0]
+        # Class 2
+        angle = r * turn_factor * np.math.pi + np.math.pi * 2 / 4.0
+        samples[n + 1 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 1]
+        # Class 3
+        angle = r * turn_factor * np.math.pi + np.math.pi * 4 / 4.0
+        samples[n + 2 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 2]
+        # Class 4
+        angle = r * turn_factor * np.math.pi + np.math.pi * 6 / 4.0
+        samples[n + 3 * size] = [0.5 + r * np.math.cos(angle) + random.random() * noise,
+                                 0.5 + r * np.math.sin(angle) + random.random() * noise,
+                                 3]
+    return _split_data(samples)
+
+
+def xor(size):
+    """
+    XOR problem
+    2 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+    samples = np.array([(x, y, ((x < 0.5) and (y < 0.5)) or ((x > 0.5) and (y > 0.5)))
+                        for x in np.linspace(0, 1, np.sqrt(size))
+                        for y in np.linspace(0, 1, np.sqrt(size))])
+
+    return _split_data(samples)
+
+
 ########################################################################################################################
 def _split_data(samples):
     """
@@ -162,32 +250,8 @@ def _split_data(samples):
            np.array([[a[0], a[1], b] for a, b in zip(test, label_test)])
 
 
-def get_data(distribution, size):
-    """
-    Return the train, val and test splits according to the distribution chosen.
-
-    Parameters
-    ----------
-    :param distribution: enum \in distribution_options
-        The chosen distribution
-    :param size:
-        The total number of samples in the dataset. It is advised to use a squared number if a grid-fashion distribution
-        is chosen (like 16, 25, 100, ... )
-    :return:
-        train, val and test splits
-    """
-    return {
-        'diagonal': diagonal,
-        'circle': circle,
-        'donut': donut,
-        'stripes': stripes,
-    }[distribution](size)
-
-
-def visualize_distribution(train, val, test, save_path, marker_size=1):
-    fig, axs = plt.subplots(ncols=3, sharex=True, sharey=True)
-    # fig.set_figheight(5)
-    # fig.set_figwidth(15)
+def _visualize_distribution(train, val, test, save_path, marker_size=1):
+    fig, axs = plt.subplots(ncols=3, sharex='all', sharey='all')
     plt.setp(axs.flat, aspect=1.0, adjustable='box-forced')
     axs[0].scatter(train[:, 0], train[:, 1], c=train[:, 2], s=marker_size, cmap=plt.get_cmap('Set1'))
     axs[0].set_title('train')
@@ -203,6 +267,9 @@ def visualize_distribution(train, val, test, save_path, marker_size=1):
 
 
 if __name__ == "__main__":
+
+    # Distribution options:
+    distribution_options = [name[0] for name in inspect.getmembers(sys.modules[__name__], inspect.isfunction)]
 
     logging.basicConfig(
         format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
@@ -236,7 +303,7 @@ if __name__ == "__main__":
     ###############################################################################
     # Getting the data
     logging.info('Getting the data distribution {}'.format(args.distribution))
-    train, val, test = get_data(args.distribution, args.size)
+    train, val, test = getattr(sys.modules[__name__], args.distribution)(args.size)
 
     ###############################################################################
     # Preparing the folders structure
@@ -275,7 +342,7 @@ if __name__ == "__main__":
     ###############################################################################
     # Visualize the data
     logging.info('Visualize the data')
-    visualize_distribution(train, val, test, os.path.join(dataset_dir, 'visualize_distribution.pdf'))
+    _visualize_distribution(train, val, test, os.path.join(dataset_dir, 'visualize_distribution.pdf'))
 
     ###############################################################################
     # Run the analytics

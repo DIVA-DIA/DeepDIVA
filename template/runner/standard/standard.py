@@ -64,7 +64,9 @@ class Standard:
         # Setting up model, optimizer, criterion
         model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
                                                                             model_name=model_name,
-                                                                            lr=lr, **kwargs)
+                                                                            lr=lr,
+                                                                            train_loader=train_loader,
+                                                                            **kwargs)
 
         # Core routine
         logging.info('Begin training')

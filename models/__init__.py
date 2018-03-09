@@ -1,9 +1,10 @@
 # Keep the list of models implemented up-2-date
 from .AlexNet import AlexNet, alexnet
 from .CNN_basic import CNN_basic
-from .LDA_test import LDA_simple, LDA_CIFAR
-from .FC_simple import FC_simple
 from .FC_medium import FC_medium
+from .FC_simple import FC_simple
+from .LDA_test import LDA_Deep, LDA_simple, LDA_CIFAR
+
 """
 Formula to compute the output size of a conv. layer
 

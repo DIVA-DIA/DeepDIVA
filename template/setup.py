@@ -1,11 +1,12 @@
 # Utils
 import json
+import logging
 import os
 import random
-import sys
 import time
 
 import cv2
+import numpy as np
 import pandas as pd
 # Torch related stuff
 import torch.backends.cudnn as cudnn
@@ -18,13 +19,12 @@ import torchvision.transforms as transforms
 # DeepDIVA
 import models
 from datasets import image_folder_dataset, point_cloud_dataset
-from init.initializer import *
 from util.dataset_analytics import compute_mean_std
 
 
 def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
     """
-    Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
+    Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
     Parameters
     ----------
@@ -135,19 +135,19 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
         train_ds.transform = transforms.Compose([
-            transforms.Scale(model_expected_input_size),
+            transforms.Resize(model_expected_input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
 
         val_ds.transform = transforms.Compose([
-            transforms.Scale(model_expected_input_size),
+            transforms.Resize(model_expected_input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
 
         test_ds.transform = transforms.Compose([
-            transforms.Scale(model_expected_input_size),
+            transforms.Resize(model_expected_input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
@@ -392,29 +392,37 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
         os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
 
     # Seed the random
-
-    if seed is not None:
+    if seed is None:
+        # If seed is not specified by user, select a random value for the seed and then log it.
+        seed = np.random.randint(2 ** 32 - 1, )
+        logging.info('Randomly chosen seed is: {}'.format(seed))
+    else:
         try:
             assert multi_run is None
         except:
             logging.warning('Arguments for seed AND multi-run should not be active at the same time!')
             raise SystemExit
-        if workers > 1:
-            logging.warning('Setting seed when workers > 1 may lead to non-deterministic outcomes!')
-        # Python
-        random.seed(seed)
 
-        # Numpy random
-        np.random.seed(seed)
-
-        # Torch random
-        torch.manual_seed(seed)
+        # Disable CuDNN only if seed is specified by user. Otherwise we can assume that the user does not want to
+        # sacrifice speed for deterministic behaviour.
+        # TODO: Check if setting torch.backends.cudnn.deterministic=True will ensure deterministic behavior.
+        # Initial tests show torch.backends.cudnn.deterministic=True does not work correctly.
         if not no_cuda:
-            torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.enabled = False
 
-        # Cv2 random
-        cv2.setRNGSeed(seed)
+    # Python
+    random.seed(seed)
+
+    # Numpy random
+    np.random.seed(seed)
+
+    # Torch random
+    torch.manual_seed(seed)
+    if not no_cuda:
+        torch.cuda.manual_seed_all(seed)
+
+    # Cv2 random
+    cv2.setRNGSeed(seed)
 
     return
 

@@ -4,9 +4,12 @@ This file is the entry point of DeepDIVA.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
+
 import json
+import logging
 # Utils
 import os
+import subprocess
 import sys
 import traceback
 
@@ -20,10 +23,9 @@ from sklearn.model_selection import ParameterGrid
 # DeepDIVA
 import template.CL_arguments
 import template.runner
-from init.initializer import *
 from template.setup import set_up_env, set_up_logging
 from util.misc import to_capital_camel_case
-from util.visualization.mean_std_plot import plot_mean_variance
+from util.visualization.mean_std_plot import plot_mean_std
 
 
 ########################################################################################################################
@@ -67,8 +69,6 @@ class RunMe:
         # Load parameters from file
         with open(args.sig_opt, 'r') as f:
             parameters = json.loads(f.read())
-        if args.experiment_name is None:
-            args.experiment_name = input("Experiment name:")
 
         # Client Token is currently Vinay's one
         conn = Connection(client_token="KXMUZNABYGKSXXRUEMELUYYRVRCRTRANKCPGDNNYDSGRHGUA")
@@ -126,6 +126,35 @@ class RunMe:
         # Set up logging
         args.__dict__['log_dir'] = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
 
+        # Check Git status
+        try:
+            local_changes = False
+            deepdiva_directory = os.path.split(os.getcwd())[0]
+            git_url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"])
+            git_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            git_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+            git_status = str(subprocess.check_output(["git", "status"]))
+
+            logging.debug('DeepDIVA directory is:'.format(deepdiva_directory))
+            logging.info('Git origin URL is: {}'.format(str(git_url)))
+            logging.info('Current branch and hash are: {}  {}'.format(str(git_branch), str(git_hash)))
+            local_changes = "nothing to commit" not in git_status and \
+                            "working directory clean" not in git_status
+            if local_changes:
+                logging.warning('Running with an unclean working tree branch!')
+        except Exception as exp:
+            logging.warning('Git error: {}'.format(exp))
+            local_changes = True
+        finally:
+            if local_changes:
+                if args.ignoregit:
+                    logging.warning('Git status is ignored!')
+                else:
+                    logging.error('Errors when acquiring git status. Use --ignoregit to still run.')
+                    logging.shutdown()
+                    print('Finished with errors. (Log files at {} )'.format(args.log_dir))
+                    sys.exit(-1)
+
         # Define Tensorboard SummaryWriter
         logging.info('Initialize Tensorboard SummaryWriter')
         writer = tensorboardX.SummaryWriter(log_dir=args.log_dir)
@@ -154,7 +183,7 @@ class RunMe:
             logging.shutdown()
             logging.getLogger().handlers = []
             writer.close()
-            print('All done! (logged to {}'.format(args.log_dir))
+            print('All done! (Log files at {} )'.format(args.log_dir))
             args.log_dir = None
         return train_scores, val_scores, test_scores
 
@@ -180,7 +209,7 @@ class RunMe:
             Train, Val and Test results for each run (n) and epoch
         """
 
-        # Init the scores tables which will stores the results.
+        # Instantiate the scores tables which will stores the results.
         train_scores = np.zeros((args.multi_run, args.epochs))
         val_scores = np.zeros((args.multi_run, args.epochs))
         test_scores = np.zeros(args.multi_run)
@@ -193,21 +222,21 @@ class RunMe:
                                                                                            **args.__dict__)
 
             # Generate and add to tensorboard the shaded plot for train
-            train_curve = plot_mean_variance(train_scores[:i + 1],
-                                             suptitle='Multi-Run: Train',
-                                             title='Runs: {}'.format(i + 1),
-                                             xlabel='Epochs', ylabel='Accuracy',
-                                             ylim=[0, 100.0])
-            writer.add_image('train_curve', train_curve)
+            train_curve = plot_mean_std(train_scores[:i + 1],
+                                        suptitle='Multi-Run: Train',
+                                        title='Runs: {}'.format(i + 1),
+                                        xlabel='Epoch', ylabel='Score',
+                                        ylim=[0, 100.0])
+            writer.add_image('train_curve', train_curve, global_step=i)
             logging.info('Generated mean-variance plot for train')
 
             # Generate and add to tensorboard the shaded plot for val
-            val_curve = plot_mean_variance(val_scores[:i + 1],
-                                           suptitle='Multi-Run: Val',
-                                           title='Runs: {}'.format(i + 1),
-                                           xlabel='Epochs', ylabel='Accuracy',
-                                           ylim=[0, 100.0])
-            writer.add_image('val_curve', val_curve)
+            val_curve = plot_mean_std(val_scores[:i + 1],
+                                      suptitle='Multi-Run: Val',
+                                      title='Runs: {}'.format(i + 1),
+                                      xlabel='Epoch', ylabel='Score',
+                                      ylim=[0, 100.0])
+            writer.add_image('val_curve', val_curve, global_step=i)
             logging.info('Generated mean-variance plot for val')
 
         # Log results on disk

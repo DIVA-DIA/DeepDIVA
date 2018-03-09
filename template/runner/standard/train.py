@@ -44,7 +44,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     """
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
-    # Init the counters
+    # Instantiate the counters
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()

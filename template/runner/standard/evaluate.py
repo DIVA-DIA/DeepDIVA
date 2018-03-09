@@ -54,7 +54,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     """
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
-    # Init the counters
+    # Instantiate the counters
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()

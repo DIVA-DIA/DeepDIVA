@@ -1,5 +1,7 @@
 # Utils
 import argparse
+import inspect
+import os
 
 # Torch
 import torch
@@ -7,9 +9,17 @@ import torch
 # DeepDIVA
 import datasets
 import models
+from template import runner
 
 
 def parse_arguments():
+    # NOTE: If a model is missing and you get a argument parser error: check in the init file of models if its there!
+    model_options = [name[0] for name in inspect.getmembers(models, inspect.isclass)]
+    optimizer_options = [name[0] for name in inspect.getmembers(torch.optim, inspect.isclass)]
+    runner_class_options = [name[0] for name in inspect.getmembers(runner, inspect.ismodule)]
+
+    ###############################################################################
+    # Parsers
     """
     Argument Parser
     """
@@ -23,6 +33,22 @@ def parse_arguments():
     _training_options(parser)
     _system_options(parser)
     _triplet_options(parser)
+    ###############################################################################
+    # Parse argument
+    args = parser.parse_args()
+
+    # Recover dataset name
+    dataset = os.path.basename(os.path.normpath(args.dataset_folder))
+
+    # If contains 'pc' override the runner class to point cloud
+    if 'pc_' in dataset:
+        args.runner_class = 'point_cloud'
+
+    # If experiment name is not set, ask for one
+    if args.experiment_name is None:
+        args.experiment_name = input("Experiment name:")
+
+    return args, parser
 
     return parser.parse_args(), parser
 
@@ -63,6 +89,9 @@ def _general_parameters(parser):
                                 choices=runner_class_options,
                                 default="standard",
                                 help='which runner class to use.')
+    parser_general.add_argument('--ignoregit',
+                                action='store_true',
+                                help='Run irrespective of git status.')
 
 
 def _data_options(parser):
@@ -122,18 +151,14 @@ def _training_options(parser):
                               type=int,
                               default=5,
                               help='how many epochs to train')
-    parser_train.add_argument('--resume',
-                              type=str,
-                              default=None,
-                              help='path to latest checkpoint')
     parser_train.add_argument('--pretrained',
                               action='store_true',
                               default=False,
                               help='use pretrained model. (Not applicable for all models)')
-    parser_train.add_argument('--init',
-                              action='store_true',
-                              default=False,
-                              help='use advanced init methods such as LDA')
+    parser_train.add_argument('--resume',
+                              type=str,
+                              default=None,
+                              help='path to latest checkpoint')
     parser_train.add_argument('--start-epoch',
                               type=int,
                               metavar='N',

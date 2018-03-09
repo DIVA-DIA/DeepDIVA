@@ -5,6 +5,11 @@ CNN with 3 conv layers and a fully connected classification layer
 import torch.nn as nn
 
 
+class Flatten(nn.Module):
+    def forward(self, x):
+        x = x.view(x.size()[0], -1)
+        return x
+
 class CNN_basic(nn.Module):
     """
     :var conv1   : torch.nn.Conv2d
@@ -27,21 +32,22 @@ class CNN_basic(nn.Module):
         # First layer
         self.conv1 = nn.Sequential(
             nn.Conv2d(input_channels, 24, kernel_size=5, stride=3),
-            nn.Softsign()
+            nn.LeakyReLU()
         )
         # Second layer
         self.conv2 = nn.Sequential(
             nn.Conv2d(24, 48, kernel_size=3, stride=2),
-            nn.Softsign()
+            nn.LeakyReLU()
         )
         # Third layer
         self.conv3 = nn.Sequential(
             nn.Conv2d(48, 72, kernel_size=3, stride=1),
-            nn.Softsign()
+            nn.LeakyReLU()
         )
 
         # Classification layer
         self.fc = nn.Sequential(
+            Flatten(),
             nn.Linear(288, num_classes)
         )
 
@@ -56,6 +62,5 @@ class CNN_basic(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-        x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x

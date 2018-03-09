@@ -8,10 +8,7 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-
 import logging
-# Utils
-import time
 
 import numpy as np
 # Torch
@@ -28,12 +25,15 @@ from util.visualization.decision_boundaries import plot_decision_boundaries
 
 
 #######################################################################################################################
-def evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, epoch,
-                                        no_cuda):
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX{}.")
-    t = time.time()
-    grid_x = np.linspace(0.0, 1.0, grid_resolution)
-    grid_y = np.linspace(0.0, 1.0, grid_resolution)
+def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes, writer,
+                                        epoch, no_cuda, epochs, **kwargs):
+    min_x, min_y = np.min(val_coords[:, 0]), np.min(val_coords[:, 1])
+    max_x, max_y = np.max(val_coords[:, 0]), np.max(val_coords[:, 1])
+
+    grid_x = np.linspace(min_x, max_x, grid_resolution)
+    grid_y = np.linspace(min_y, max_y, grid_resolution)
+
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
 
     sm = nn.Softmax()
 
@@ -44,18 +44,16 @@ def evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_load
     else:
         outputs = sm(model(coords)).data.numpy()
     output_winners = np.array([np.argmax(item) for item in outputs])
-    outputs = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
-    outputs = outputs + output_winners
+    outputs_confidence = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
 
-    plot_decision_boundaries(grid_x, grid_y, outputs.reshape(len(grid_x), len(grid_x)),
-                             val_loader.dataset.data[:, 0], val_loader.dataset.data[:, 1],
-                             val_loader.dataset.data[:, 2], num_classes, step=epoch, writer=writer)
-    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC{}".format(time.time() - t))
+    plot_decision_boundaries(output_winners=output_winners, output_confidence=outputs_confidence,
+                             grid_x=grid_x, grid_y=grid_y, point_x=val_coords[:, 0], point_y=val_coords[:, 1],
+                             point_class=val_loader.dataset.data[:, 2], num_classes=num_classes,
+                             step=epoch, writer=writer, epochs=epochs, **kwargs)
     return
 
 
 class PointCloud(Standard):
-
     @staticmethod
     def single_run(writer, log_dir, model_name, epochs, lr, decay_lr, **kwargs):
         """
@@ -109,9 +107,12 @@ class PointCloud(Standard):
 
         # Make data for points
         grid_resolution = 100
+        val_coords = np.squeeze(np.array([input.numpy() for input, target in val_loader]))
+        min_x, min_y = np.min(val_coords[:, 0]), np.min(val_coords[:, 1])
+        max_x, max_y = np.max(val_coords[:, 0]), np.max(val_coords[:, 1])
         coords = np.array([[x, y]
-                           for x in np.linspace(0.0, 1.0, grid_resolution)
-                           for y in np.linspace(0.0, 1.0, grid_resolution)
+                           for x in np.linspace(min_x, max_x, grid_resolution)
+                           for y in np.linspace(min_y, max_y, grid_resolution)
                            ])
         coords = torch.autograd.Variable(torch.from_numpy(coords).type(torch.FloatTensor))
 
@@ -119,22 +120,16 @@ class PointCloud(Standard):
             coords = coords.cuda(async=True)
 
         # PLOT: decision boundary routine
-        """
-        1.  The Thread() solution is much slower I guess because of the overhead of creating a new thread
-        2.  Also, the whole system slows down over time (meant as epochs proceeds). So it suggests that plotting function
-            slows down over time for some reason ? And I don't get why being the Thread asyn is slowing down the rest. It 
-            should slow down the process of most 1/(n-1) times (where n is number of cores) 
-        """
-        # thread = Thread(target=evaluate_and_plot_decision_boundary,
-        #                 args=(model, coords, grid_resolution, val_loader, num_classes, writer, -1, kwargs['no_cuda']))
-        # thread.start()
-        # pool = ThreadPoolExecutor(1)
-        # args = ((model, coords, grid_resolution, val_loader, num_classes, writer, -1, kwargs['no_cuda']) for i in [1])
-        # pool.map(lambda p: evaluate_and_plot_decision_boundary(*p), args)
-        evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, -1,
-                                            kwargs['no_cuda'])
+        evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
+                                            grid_resolution=grid_resolution, val_loader=val_loader,
+                                            num_classes=num_classes, writer=writer, epoch=-1, epochs=epochs,
+                                            **kwargs)
 
         PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        # Add model parameters to Tensorboard
+        for name, param in model.named_parameters():
+            writer.add_histogram(name, param.clone().cpu().data.numpy(), -1, bins='auto')
+
         for epoch in range(start_epoch, epochs):
             # Train
             train_value[epoch] = PointCloud._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
@@ -145,15 +140,13 @@ class PointCloud(Standard):
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
 
             # PLOT: decision boundary routine
-            # thread = Thread(target=evaluate_and_plot_decision_boundary,
-            #                 args=(model, coords, grid_resolution, val_loader, num_classes, writer, epoch, kwargs['no_cuda']))
-            # thread.start()
-
-            # args = ((model, coords, grid_resolution, val_loader, num_classes, writer, epoch, kwargs['no_cuda']) for i in [1])
-            # pool.map(lambda p: evaluate_and_plot_decision_boundary(*p), args)
-
-            evaluate_and_plot_decision_boundary(model, coords, grid_resolution, val_loader, num_classes, writer, epochs,
-                                                kwargs['no_cuda'])
+            evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
+                                                grid_resolution=grid_resolution, val_loader=val_loader,
+                                                num_classes=num_classes, writer=writer, epoch=epoch, epochs=epochs,
+                                                **kwargs)
+            # Add model parameters to Tensorboard
+            for name, param in model.named_parameters():
+                writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch, bins='auto')
 
         # Test
         test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)

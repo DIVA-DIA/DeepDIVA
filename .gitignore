@@ -108,3 +108,6 @@ data/
 
 # Mac folder
 .DS_Store
+
+# Log folder
+.logs
