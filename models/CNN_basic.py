@@ -16,7 +16,7 @@ class CNN_basic(nn.Module):
         Final fully connected layer
     """
 
-    def __init__(self, num_classes=10, **kwargs):
+    def __init__(self, num_classes=10, input_channels=3, **kwargs):
         """
         :param num_classes: the number of classes in the dataset
         """
@@ -26,7 +26,7 @@ class CNN_basic(nn.Module):
 
         # First layer
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 24, kernel_size=5, stride=3),
+            nn.Conv2d(input_channels, 24, kernel_size=5, stride=3),
             nn.Softsign()
         )
         # Second layer
