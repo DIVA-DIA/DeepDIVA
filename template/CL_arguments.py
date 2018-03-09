@@ -66,6 +66,11 @@ def parse_arguments():
     parser_data.add_argument('--dataset-folder',
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
+    parser_general.add_argument('--inmem',
+                                dest='online',
+                                default=True,
+                                action='store_false',
+                                help='Attempt to load the entire image dataset in memory')
     parser_data.add_argument('--log-dir',
                              help='where to save logs. Can be used to resume logging of experiment.',
                              required=True)

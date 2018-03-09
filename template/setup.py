@@ -89,7 +89,7 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     return model, criterion, optimizer, best_value, start_epoch
 
 
-def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, online=False, **kwargs):
+def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, inmem=False, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -107,8 +107,8 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     :param workers: int
         Number of workers to use for the dataloaders
 
-    :param online: boolean
-        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+    :param inmem: boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
 
     :param kwargs: dict
@@ -126,10 +126,10 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     # Load the dataset splits as images
     try:
         logging.info("Try to load dataset as images")
-        train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, online)
+        train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder, online)
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem)
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
@@ -201,7 +201,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     sys.exit(-1)
 
 
-def _load_mean_std_from_file(dataset, dataset_folder, online=False):
+def _load_mean_std_from_file(dataset, dataset_folder, inmem=False):
     """
     This function simply recovers mean and std from the analytics.csv file
 
@@ -213,8 +213,8 @@ def _load_mean_std_from_file(dataset, dataset_folder, online=False):
     :param dataset_folder: string
         Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
 
-    :param online: boolean
-        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+    :param inmem: boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
 
     :return: double[], double[]
@@ -226,7 +226,7 @@ def _load_mean_std_from_file(dataset, dataset_folder, online=False):
         try:
             logging.info(
                 'Attempt creating analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
-            compute_mean_std(dataset_folder=dataset_folder, online=online)
+            compute_mean_std(dataset_folder=dataset_folder, inmem=inmem)
         except:
             logging.error('Creation of analytics.csv failed.')
             sys.exit(-1)

@@ -15,7 +15,7 @@ import torchvision
 from PIL import Image
 
 
-def load_dataset(dataset_folder, online):
+def load_dataset(dataset_folder, inmem=False):
     """
     Parameters
     ----------
@@ -23,8 +23,8 @@ def load_dataset(dataset_folder, online):
     :param dataset_folder: string (path)
         Specifies where the dataset is located on the file System
 
-    :param online: boolean
-        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+    :param inmem: boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
 
     :return train_ds, val_da, test_da: data.Dataset
@@ -79,7 +79,7 @@ def load_dataset(dataset_folder, online):
         sys.exit(-1)
 
     # If its requested online, delegate to torchvision.datasets.ImageFolder()
-    if online:
+    if not inmem:
         # Get an online dataset for each split
         train_ds = torchvision.datasets.ImageFolder(train_dir)
         val_ds = torchvision.datasets.ImageFolder(val_dir)

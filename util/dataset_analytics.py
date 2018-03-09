@@ -44,7 +44,7 @@ import pandas as pd
 import torchvision.datasets as datasets
 
 
-def compute_mean_std(dataset_folder, online=False):
+def compute_mean_std(dataset_folder, inmem=False):
     """
     Computes mean and std of a dataset. Saves the results as CSV file in the dataset folder.
 
@@ -53,7 +53,7 @@ def compute_mean_std(dataset_folder, online=False):
     :param dataset_folder: String (path)
         Path to the dataset folder (see above for details)
 
-    :param online: Boolean
+    :param inmem: Boolean
         Specifies whether is should be computed i nan online of offline fashion.
 
     :return:
@@ -75,7 +75,7 @@ def compute_mean_std(dataset_folder, online=False):
     file_names = np.asarray([item[0] for item in train_ds.imgs])
 
     # Compute mean and std
-    if online:
+    if not inmem:
         mean, std = cms_online(file_names)
     else:
         mean, std = cms_offline(file_names)
@@ -169,4 +169,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     compute_mean_std(dataset_folder=args.dataset_folder,
-                     online=args.online)
+                     inmem=args.online)
