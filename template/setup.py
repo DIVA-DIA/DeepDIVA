@@ -5,6 +5,7 @@ import random
 import sys
 import time
 
+import cv2
 import pandas as pd
 # Torch related stuff
 import torch.backends.cudnn as cudnn
@@ -21,8 +22,7 @@ from init.initializer import *
 from util.dataset_analytics import compute_mean_std
 
 
-def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, train_loader,
-                 **kwargs):
+def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
     """
     Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
 
@@ -57,15 +57,12 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
 
     :return: model, criterion, optimizer, best_value, start_epoch
     """
+
     # Initialize the model
     logging.info('Setting up model {}'.format(model_name))
     model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained)
     optimizer = torch.optim.__dict__[optimizer_name](model.parameters(), lr)
     criterion = nn.CrossEntropyLoss()
-
-    # Init the model
-    if kwargs['init']:
-        init_model(model=model, data_loader=train_loader, num_points=50000)
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -398,7 +395,7 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
 
     if seed is not None:
         try:
-            assert multi_run == None
+            assert multi_run is None
         except:
             logging.warning('Arguments for seed AND multi-run should not be active at the same time!')
             raise SystemExit
@@ -415,6 +412,10 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
         if not no_cuda:
             torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.enabled = False
+
+        # Cv2 random
+        cv2.setRNGSeed(seed)
+
     return
 
 
