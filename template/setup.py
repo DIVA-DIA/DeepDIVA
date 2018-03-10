@@ -3,9 +3,9 @@ import json
 import logging
 import os
 import random
+import sys
 import time
 
-import cv2
 import numpy as np
 import pandas as pd
 # Torch related stuff
@@ -420,9 +420,6 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
     torch.manual_seed(seed)
     if not no_cuda:
         torch.cuda.manual_seed_all(seed)
-
-    # Cv2 random
-    cv2.setRNGSeed(seed)
 
     return
 

@@ -1,6 +1,5 @@
 # Utils
 import argparse
-import inspect
 import os
 
 # Torch
@@ -9,20 +8,15 @@ import torch
 # DeepDIVA
 import datasets
 import models
-from template import runner
 
 
 def parse_arguments():
-    # NOTE: If a model is missing and you get a argument parser error: check in the init file of models if its there!
-    model_options = [name[0] for name in inspect.getmembers(models, inspect.isclass)]
-    optimizer_options = [name[0] for name in inspect.getmembers(torch.optim, inspect.isclass)]
-    runner_class_options = [name[0] for name in inspect.getmembers(runner, inspect.ismodule)]
-
-    ###############################################################################
-    # Parsers
     """
     Argument Parser
     """
+
+    ###############################################################################
+    # Parsers
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Template for training a network on a dataset')
@@ -33,6 +27,7 @@ def parse_arguments():
     _training_options(parser)
     _system_options(parser)
     _triplet_options(parser)
+
     ###############################################################################
     # Parse argument
     args = parser.parse_args()
@@ -41,7 +36,7 @@ def parse_arguments():
     dataset = os.path.basename(os.path.normpath(args.dataset_folder))
 
     # If contains 'pc' override the runner class to point cloud
-    if 'pc_' in dataset:
+    if 'pc_' in dataset and args.runner_class == 'standard':
         args.runner_class = 'point_cloud'
 
     # If experiment name is not set, ask for one
@@ -49,8 +44,6 @@ def parse_arguments():
         args.experiment_name = input("Experiment name:")
 
     return args, parser
-
-    return parser.parse_args(), parser
 
 
 def _general_parameters(parser):
@@ -101,11 +94,7 @@ def _data_options(parser):
     # List of possible custom dataset already implemented
     dataset_options = [name for name in datasets.__dict__ if callable(datasets.__dict__[name])]
 
-    # TODO dataset and dataset-folder should never exist together
     parser_data = parser.add_argument_group('DATA', 'Dataset Options')
-    parser_data.add_argument('--dataset',
-                             choices=dataset_options,
-                             help='which dataset to train/test on.')
     parser_data.add_argument('--dataset-folder',
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
@@ -119,6 +108,7 @@ def _training_options(parser):
     Training options
     """
     # List of possible custom models already implemented
+    # NOTE: If a model is missing and you get a argument parser error: check in the init file of models if its there!
     model_options = [name for name in models.__dict__ if callable(models.__dict__[name])]
     # List of possible optimizers already implemented in PyTorch
     optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]

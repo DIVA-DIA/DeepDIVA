@@ -127,29 +127,29 @@ class RunMe:
         args.__dict__['log_dir'] = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
 
         # Check Git status
-        try:
-            local_changes = False
-            deepdiva_directory = os.path.split(os.getcwd())[0]
-            git_url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"])
-            git_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-            git_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-            git_status = str(subprocess.check_output(["git", "status"]))
+        if args.ignoregit:
+            logging.warning('Git status is ignored!')
+        else:
+            try:
+                local_changes = False
+                deepdiva_directory = os.path.split(os.getcwd())[0]
+                git_url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"])
+                git_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+                git_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+                git_status = str(subprocess.check_output(["git", "status"]))
 
-            logging.debug('DeepDIVA directory is:'.format(deepdiva_directory))
-            logging.info('Git origin URL is: {}'.format(str(git_url)))
-            logging.info('Current branch and hash are: {}  {}'.format(str(git_branch), str(git_hash)))
-            local_changes = "nothing to commit" not in git_status and \
-                            "working directory clean" not in git_status
-            if local_changes:
-                logging.warning('Running with an unclean working tree branch!')
-        except Exception as exp:
-            logging.warning('Git error: {}'.format(exp))
-            local_changes = True
-        finally:
-            if local_changes:
-                if args.ignoregit:
-                    logging.warning('Git status is ignored!')
-                else:
+                logging.debug('DeepDIVA directory is:'.format(deepdiva_directory))
+                logging.info('Git origin URL is: {}'.format(str(git_url)))
+                logging.info('Current branch and hash are: {}  {}'.format(str(git_branch), str(git_hash)))
+                local_changes = "nothing to commit" not in git_status and \
+                                "working directory clean" not in git_status
+                if local_changes:
+                    logging.warning('Running with an unclean working tree branch!')
+            except Exception as exp:
+                logging.warning('Git error: {}'.format(exp))
+                local_changes = True
+            finally:
+                if local_changes:
                     logging.error('Errors when acquiring git status. Use --ignoregit to still run.')
                     logging.shutdown()
                     print('Finished with errors. (Log files at {} )'.format(args.log_dir))
