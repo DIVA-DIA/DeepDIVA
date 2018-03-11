@@ -25,8 +25,10 @@ def parse_arguments():
     _general_parameters(parser)
     _data_options(parser)
     _training_options(parser)
+    _optimizer_options(parser)
     _system_options(parser)
     _triplet_options(parser)
+
 
     ###############################################################################
     # Parse argument
@@ -120,19 +122,10 @@ def _training_options(parser):
                               choices=model_options,
                               default='CNN_basic',
                               help='which model to use for training')
-    parser_train.add_argument('--lr',
-                              type=float,
-                              default=0.001,
-                              help='learning rate to be used for training')
     parser_train.add_argument('--decay_lr',
                               type=int,
                               default=None,
                               help='drop LR by 10 every N epochs')
-    parser_train.add_argument('--optimizer',
-                              choices=optimizer_options,
-                              dest='optimizer_name',
-                              default='SGD',
-                              help='optimizer to be used for training')
     parser_train.add_argument('--batch-size',
                               type=int,
                               default=64,
@@ -154,6 +147,37 @@ def _training_options(parser):
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
+
+
+def _optimizer_options(parser):
+    """
+    Options specific for optimizers
+    """
+    optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
+
+    parser_optimizer = parser.add_argument_group('OPTIMIZER', 'Optimizer Options')
+
+    parser_optimizer.add_argument('--optimizer',
+                                  choices=optimizer_options,
+                                  dest='optimizer_name',
+                                  default='SGD',
+                                  help='optimizer to be used for training')
+    parser_optimizer.add_argument('--lr',
+                                  type=float,
+                                  default=0.001,
+                                  help='learning rate to be used for training')
+    parser_optimizer.add_argument('--momentum',
+                                  type=float,
+                                  default=0,
+                                  help='momentum (parameter for the optimizer)')
+    parser_optimizer.add_argument('--dampening',
+                                  type=float,
+                                  default=0,
+                                  help='dampening (parameter for the SGD)')
+    parser_optimizer.add_argument('--weight-decay',
+                                  type=float,
+                                  default=0,
+                                  help='weight_decay coefficient, also known as L2 regularization')
 
 
 def _system_options(parser):
@@ -189,35 +213,36 @@ def _triplet_options(parser):
 
     These parameters are used by the runner class template.runner.triplet
     """
-    parser.add_argument('--dataroot',
-                        type=str,
-                        default='/tmp/phototour_dataset',
-                        help='path to dataset')
-    parser.add_argument('--imageSize',
-                        type=int,
-                        default=32,
-                        help='the height / width of the input image to network')
-    parser.add_argument('--test-batch-size',
-                        type=int,
-                        default=1000,
-                        help='input batch size for testing (default: 1000)')
-    parser.add_argument('--n-triplets',
-                        type=int,
-                        default=1280000, metavar='N',
-                        help='how many triplets will generate from the dataset')
-    parser.add_argument('--margin',
-                        type=float,
-                        default=2.0,
-                        help='the margin value for the triplet loss function')
-    parser.add_argument('--lr-decay',
-                        default=1e-6,
-                        type=float,
-                        help='learning rate decay ratio (default: 1e-6')
-    parser.add_argument('--wd',
-                        default=1e-4,
-                        type=float,
-                        help='weight decay (default: 1e-4)')
-    parser.add_argument('--anchorswap',
-                        type=bool,
-                        default=False,
-                        help='turns on anchor swap')
+    parser_triplet = parser.add_argument_group('TRIPLET', 'Triplet Options')
+    parser_triplet.add_argument('--dataroot',
+                                type=str,
+                                default='/tmp/phototour_dataset',
+                                help='path to dataset')
+    parser_triplet.add_argument('--imageSize',
+                                type=int,
+                                default=32,
+                                help='the height / width of the input image to network')
+    parser_triplet.add_argument('--test-batch-size',
+                                type=int,
+                                default=1000,
+                                help='input batch size for testing (default: 1000)')
+    parser_triplet.add_argument('--n-triplets',
+                                type=int,
+                                default=1280000, metavar='N',
+                                help='how many triplets will generate from the dataset')
+    parser_triplet.add_argument('--margin',
+                                type=float,
+                                default=2.0,
+                                help='the margin value for the triplet loss function')
+    parser_triplet.add_argument('--lr-decay',
+                                default=1e-6,
+                                type=float,
+                                help='learning rate decay ratio (default: 1e-6')
+    parser_triplet.add_argument('--wd',
+                                default=1e-4,
+                                type=float,
+                                help='weight decay (default: 1e-4)')
+    parser_triplet.add_argument('--anchorswap',
+                                type=bool,
+                                default=False,
+                                help='turns on anchor swap')

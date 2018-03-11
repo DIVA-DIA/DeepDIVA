@@ -8,9 +8,9 @@ class Flatten(nn.Module):
 
 
 class FC_simple(nn.Module):
-    def __init__(self, num_classes=5, **kwargs):
+    def __init__(self, output_channels=5, **kwargs):
         """
-        :param num_classes: the number of classes in the dataset
+        :param output_channels: the number of classes in the dataset
         """
         super(FC_simple, self).__init__()
 
@@ -25,7 +25,7 @@ class FC_simple(nn.Module):
 
         # Classification layer
         self.fc2 = nn.Sequential(
-            nn.Linear(10, num_classes)
+            nn.Linear(10, output_channels)
         )
 
     def forward(self, x):

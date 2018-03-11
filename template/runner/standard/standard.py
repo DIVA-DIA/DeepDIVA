@@ -54,7 +54,7 @@ class Standard:
             Precision values for train and validation splits. Single precision value for the test split.
         """
 
-        # Get the selected model
+        # Get the selected model input size
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
@@ -62,7 +62,7 @@ class Standard:
         train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
 
         # Setting up model, optimizer, criterion
-        model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
+        model, criterion, optimizer, best_value, start_epoch = set_up_model(output_channels=num_classes,
                                                                             model_name=model_name,
                                                                             lr=lr,
                                                                             train_loader=train_loader,

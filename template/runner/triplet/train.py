@@ -1,15 +1,17 @@
 # Utils
-import logging
 import time
 
-# Torch related stuff
-import torch
-
 # DeepDIVA
-from util.misc import AverageMeter, accuracy
+from torch.autograd import Variable
+from tqdm import tqdm
+
+from util.misc import AverageMeter
 
 
-def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=False, log_interval=25, **kwargs):
+# Torch related stuff
+
+
+def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log_interval=25, **kwargs):
     """
     Training routine
 
@@ -55,43 +57,27 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
     # Iterate over whole training set
     end = time.time()
-    for i, (input, target) in enumerate(train_loader):
+    pbar = tqdm(enumerate(train_loader))
+    for batch_idx, (data_a, data_p, data_n) in pbar:
 
         # Measure data loading time
         data_time.update(time.time() - end)
 
         # Moving data to GPU
         if not no_cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
+            data_a, data_p, data_n = data_a.cuda(), data_p.cuda(), data_n.cuda()
 
         # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
+        data_a, data_p, data_n = Variable(data_a), Variable(data_p), Variable(data_n)
 
         # Compute output
-        output = model(input_var)
+        out_a, out_p, out_n = model(data_a), model(data_p), model(data_n)
 
         # Compute and record the loss
-        loss = criterion(output, target_var)
-        losses.update(loss.data[0], input.size(0))
+        loss = criterion(out_p, out_a, out_n)
 
-        # Compute and record the accuracy
-        # acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
-        acc1 = accuracy(output.data, target, topk=(1,))[0]
-
-        top1.update(acc1[0], input.size(0))
-        # top5.update(acc5[0], input.size(0))
-
-        # Add loss and accuracy to Tensorboard
-        if multi_run == None:
-            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
-            writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
-        else:
-            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
-                              epoch * len(train_loader) + i)
-            writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
-                              epoch * len(train_loader) + i)
+        # TODO here input would be the normal input in a standard situation. How to conveert it to the triplet?
+        # losses.update(loss.data[0], input.size(0))
 
         # Reset gradient
         optimizer.zero_grad()
@@ -100,24 +86,23 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         # Perform a step by updating the weights
         optimizer.step()
 
+        # Log to console
+        if batch_idx % log_interval == 0:
+            pbar.set_description(
+                'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, batch_idx * len(data_a),
+                    len(train_loader.dataset),
+                           100. * batch_idx / len(train_loader),
+                    loss.data[0]))
+
+        # Add mb loss to Tensorboard
+        if multi_run is None:
+            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
+        else:
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0], epoch * len(train_loader) + batch_idx)
+
         # Measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # Log to console
-        if i % log_interval == 0:
-            logging.info('Epoch [{0}][{1}/{2}]\t'
-                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                         'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-                epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1))
-
-    # Logging the epoch-wise accuracy
-    if multi_run == None:
-        writer.add_scalar('train/accuracy', top1.avg, epoch)
-    else:
-        writer.add_scalar('train/accuracy_{}'.format(multi_run), top1.avg, epoch)
-
-    return top1.avg
+    return 0

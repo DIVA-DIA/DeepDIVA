@@ -7,9 +7,9 @@ class Flatten(nn.Module):
         return x
 
 class FC_medium(nn.Module):
-    def __init__(self, num_classes=10, **kwargs):
+    def __init__(self, output_channels=10, **kwargs):
         """
-        :param num_classes: the number of classes in the dataset
+        :param output_channels: the number of classes in the dataset
         """
         super(FC_medium, self).__init__()
 
@@ -36,7 +36,7 @@ class FC_medium(nn.Module):
 
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(80, num_classes)
+            nn.Linear(80, output_channels)
         )
 
     def forward(self, x):

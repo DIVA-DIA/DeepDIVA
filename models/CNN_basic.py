@@ -21,9 +21,9 @@ class CNN_basic(nn.Module):
         Final fully connected layer
     """
 
-    def __init__(self, num_classes=10, input_channels=3, **kwargs):
+    def __init__(self, output_channels=10, input_channels=3, **kwargs):
         """
-        :param num_classes: the number of classes in the dataset
+        :param output_channels: the number of classes in the dataset
         """
         super(CNN_basic, self).__init__()
 
@@ -48,7 +48,7 @@ class CNN_basic(nn.Module):
         # Classification layer
         self.fc = nn.Sequential(
             Flatten(),
-            nn.Linear(288, num_classes)
+            nn.Linear(288, output_channels)
         )
 
     def forward(self, x):

@@ -9,7 +9,7 @@ model_urls = {
 
 
 class AlexNet(nn.Module):
-    def __init__(self, num_classes=1000):
+    def __init__(self, output_channels=1000):
         super(AlexNet, self).__init__()
 
         self.expected_input_size = (227, 227)
@@ -59,7 +59,7 @@ class AlexNet(nn.Module):
         )
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(4096, num_classes),
+            nn.Linear(4096, output_channels),
         )
 
     def forward(self, x):

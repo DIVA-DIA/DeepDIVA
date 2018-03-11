@@ -156,3 +156,17 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir):
 
 def to_capital_camel_case(s):
     return s[0].capitalize() + string.capwords(s, sep='_').replace('_', '')[1:] if s else s
+
+
+def adjust_learning_rate(optimizer, lr, lr_decay=1e-6):
+    """
+    Updates the learning rate given the learning rate decay.
+    The routine has been implemented according to the original Lua SGD optimizer
+    Original implementation from: https://github.com/vbalnt/tfeat
+    """
+    for group in optimizer.param_groups:
+        if 'step' not in group:
+            group['step'] = 0
+        group['step'] += 1
+
+        group['lr'] = lr / (1 + group['step'] * lr_decay)

@@ -1,4 +1,5 @@
 # Utils
+import inspect
 import json
 import logging
 import os
@@ -22,13 +23,13 @@ from datasets import image_folder_dataset, point_cloud_dataset
 from util.dataset_analytics import compute_mean_std
 
 
-def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, **kwargs):
+def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, start_epoch, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
     Parameters
     ----------
-    :param num_classes: int
+    :param output_channels: int
         Number of classes for the model
 
     :param model_name: string
@@ -60,8 +61,12 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
 
     # Initialize the model
     logging.info('Setting up model {}'.format(model_name))
-    model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained)
-    optimizer = torch.optim.__dict__[optimizer_name](model.parameters(), lr)
+    model = models.__dict__[model_name](output_channels=output_channels, pretrained=pretrained)
+
+    # Get the optimizer created with the specified parameters in kwargs (such as lr, momentum, ... )
+    optimizer = _get_optimizer(optimizer_name, model, **kwargs)
+
+    # Get the criterion
     criterion = nn.CrossEntropyLoss()
 
     # Transfer model to GPU (if desired)
@@ -87,7 +92,34 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
             sys.exit(-1)
     else:
         best_value = 0.0
+
     return model, criterion, optimizer, best_value, start_epoch
+
+
+def _get_optimizer(optimizer_name, model, **kwargs):
+    """
+    This function serves as interface between the command line and the optimizer.
+    In fact each optimizer has a different set of parameters and in this way one can just change the optimizer
+    in his experiments just by changing the parameters passed to the entry point.
+    :param optimizer_name:
+        Name of the optimizers. See: torch.optim for a list of possible values
+    :param model:
+        The model with which the training will be done
+    :param kwargs:
+        List of all arguments to be used to init the optimizer
+    :return:
+        The optimizer initialized with the provided parameters
+    """
+    # Verify the optimizer exists
+    assert optimizer_name in torch.optim.__dict__
+
+    params = {}
+    # For all arguments declared in the constructor signature of the selected optimizer
+    for p in inspect.getfullargspec(torch.optim.__dict__[optimizer_name].__init__).args:
+        # Add it to a dictionary in case it exists a corresponding value in kwargs
+        if p in kwargs: params.update({p: kwargs[p]})
+    # Create an return the optimizer with the correct list of parameters
+    return torch.optim.__dict__[optimizer_name](model.parameters(), **params)
 
 
 def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, online=False, **kwargs):

@@ -15,10 +15,13 @@ class TNet(nn.Module):
     TFeat model definition
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, output_channels=128, input_channels=1, **kwargs):
         super(TNet, self).__init__()
+
+        self.expected_input_size = (32, 32)
+
         self.features = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=7),
+            nn.Conv2d(input_channels, 32, kernel_size=7),
             nn.Tanh(),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Conv2d(32, 64, kernel_size=6),
@@ -27,7 +30,7 @@ class TNet(nn.Module):
 
         self.classifier = nn.Sequential(
             Flatten(),
-            nn.Linear(64 * 8 * 8, 128),
+            nn.Linear(64 * 8 * 8, output_channels),
             nn.Tanh()
         )
 
