@@ -1,14 +1,12 @@
 # Utils
 import time
 
-# DeepDIVA
+# Torch related stuff
 from torch.autograd import Variable
 from tqdm import tqdm
 
+# DeepDIVA
 from util.misc import AverageMeter
-
-
-# Torch related stuff
 
 
 def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log_interval=25, **kwargs):
@@ -65,7 +63,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
 
         # Moving data to GPU
         if not no_cuda:
-            data_a, data_p, data_n = data_a.cuda(), data_p.cuda(), data_n.cuda()
+            data_a, data_p, data_n = data_a.cuda(async=True), data_p.cuda(async=True), data_n.cuda(async=True)
 
         # Convert the input and its labels to Torch Variables
         data_a, data_p, data_n = Variable(data_a), Variable(data_p), Variable(data_n)

@@ -8,6 +8,7 @@ import numpy as np
 import torch
 # Torch related stuff
 import torchvision
+from PIL import Image
 from tqdm import tqdm
 
 
@@ -63,9 +64,8 @@ class TripletPhotoTour(torchvision.datasets.PhotoTour):
     def __getitem__(self, index):
         def transform_img(img):
             if self.transform is not None:
-                # img = Image.fromarray(img.numpy())
-                # img = self.transform(img)
-                img = self.transform(img.numpy())
+                img = Image.fromarray(img.numpy())
+                img = self.transform(img)
             return img
 
         if not self.train:

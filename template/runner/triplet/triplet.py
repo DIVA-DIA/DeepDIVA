@@ -31,8 +31,10 @@ from template.runner.triplet import train, evaluate
 # Delegated
 from template.runner.triplet.setup import setup_dataloaders
 from template.setup import set_up_model
-#######################################################################################################################
 from util.misc import adjust_learning_rate, checkpoint
+
+
+#######################################################################################################################
 
 
 class Triplet:
