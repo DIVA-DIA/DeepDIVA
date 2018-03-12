@@ -20,7 +20,6 @@ else
   wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   chmod +x Miniconda3-latest-Linux-x86_64.sh
   ./Miniconda3-latest-Linux-x86_64.sh
-  export PATH="$HOME/miniconda/bin:$PATH"
 
 
   # Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)
