@@ -1,6 +1,7 @@
 # Utils
 import json
 import os
+import sys
 import random
 import time
 import logging
@@ -20,9 +21,22 @@ import models
 from datasets import image_folder_dataset, point_cloud_dataset
 from util.dataset_analytics import compute_mean_std
 
+def _get_weights(train_loader):
+    classes = [int(item) for item in train_loader.dataset.classes]
+    imgs = np.array([item[1] for item in train_loader.dataset.imgs])
+    total_num_images = len(imgs)
+    image_ratio_per_class = []
+    images_per_class = []
+    for i in classes:
+        images_per_class.append(np.where(imgs == i)[0].size)
+        image_ratio_per_class.append(np.where(imgs == i)[0].size/total_num_images)
+    logging.info('The images per class are: {}'.format(images_per_class))
+    logging.info('The image ratio per class is: {}'.format(image_ratio_per_class))
+    return 1.0 / np.array(image_ratio_per_class)
+
 
 def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, train_loader,
-                 **kwargs):
+                 disable_databalancing, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
@@ -61,7 +75,11 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     logging.info('Setting up model {}'.format(model_name))
     model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained)
     optimizer = torch.optim.__dict__[optimizer_name](model.parameters(), lr)
-    criterion = nn.CrossEntropyLoss()
+    if disable_databalancing:
+        criterion = nn.CrossEntropyLoss()
+    else:
+        weight = _get_weights(train_loader)
+        criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weight).type(torch.FloatTensor))
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -126,10 +144,10 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     # Load the dataset splits as images
     try:
         logging.info("Try to load dataset as images")
-        train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem)
+        train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem, workers)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem)
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
@@ -165,7 +183,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_ds, val_ds, test_ds = point_cloud_dataset.load_dataset(dataset_folder)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder)
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder, **kwargs)
 
         # Bring mean and std into range [0:1] from original domain
         mean = np.divide((mean - train_ds.min_coords), np.subtract(train_ds.max_coords, train_ds.min_coords))
@@ -201,7 +219,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     sys.exit(-1)
 
 
-def _load_mean_std_from_file(dataset, dataset_folder, inmem=False):
+def _load_mean_std_from_file(dataset, dataset_folder, inmem, workers):
     """
     This function simply recovers mean and std from the analytics.csv file
 
@@ -217,6 +235,9 @@ def _load_mean_std_from_file(dataset, dataset_folder, inmem=False):
         Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
 
+    :param workers: int
+        Number of workers to use for the mean/std computation
+
     :return: double[], double[]
         Mean and Std of the selected dataset, contained in the analytics.csv file. These are double arrays.
     """
@@ -226,7 +247,7 @@ def _load_mean_std_from_file(dataset, dataset_folder, inmem=False):
         try:
             logging.info(
                 'Attempt creating analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
-            compute_mean_std(dataset_folder=dataset_folder, inmem=inmem)
+            compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
         except:
             logging.error('Creation of analytics.csv failed.')
             sys.exit(-1)

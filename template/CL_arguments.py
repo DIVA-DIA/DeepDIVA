@@ -14,6 +14,7 @@ from template import runner
 def parse_arguments():
     # NOTE: If a model is missing and you get a argument parser error: check in the init file of models if its there!
     model_options = [name[0] for name in inspect.getmembers(models, inspect.isclass)]
+    _ = [model_options.append(name[0]) for name in inspect.getmembers(models, inspect.isfunction)]
     optimizer_options = [name[0] for name in inspect.getmembers(torch.optim, inspect.isclass)]
     runner_class_options = [name[0] for name in inspect.getmembers(runner, inspect.ismodule)]
 
@@ -66,11 +67,15 @@ def parse_arguments():
     parser_data.add_argument('--dataset-folder',
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
-    parser_general.add_argument('--inmem',
-                                dest='online',
-                                default=True,
-                                action='store_false',
+    parser_data.add_argument('--inmem',
+                                dest='inmem',
+                                default=False,
+                                action='store_true',
                                 help='Attempt to load the entire image dataset in memory')
+    parser_data.add_argument('--disable_databalancing',
+                                default=False,
+                                action='store_true',
+                                help='Supress data balacing')
     parser_data.add_argument('--log-dir',
                              help='where to save logs. Can be used to resume logging of experiment.',
                              required=True)
