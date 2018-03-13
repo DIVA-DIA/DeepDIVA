@@ -1,5 +1,6 @@
 import torch.nn as nn
 import math
+import logging
 import torch.utils.model_zoo as model_zoo
 
 
@@ -155,6 +156,17 @@ class ResNet(nn.Module):
 
         return x
 
+    def load_pretrained_state_dict(self, state_dict):
+        own_state = self.state_dict()
+        for own, pt in zip(own_state.keys(), state_dict.keys()):
+
+            try:
+                own_state[own].copy_(state_dict[pt].data)
+            except:
+                logging.debug('While copying the parameter named {}, whose dimensions in the model are'
+                              ' {} and whose dimensions in the checkpoint are {}, ...'.format(
+                    own, own_state[own].size(), state_dict[pt].size()))
+
 
 def resnet18(pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
@@ -164,7 +176,7 @@ def resnet18(pretrained=False, **kwargs):
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
+        model.load_pretrained_state_dict(model_zoo.load_url(model_urls['resnet18']))
     return model
 
 
@@ -176,7 +188,7 @@ def resnet34(pretrained=False, **kwargs):
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
+        model.load_pretrained_state_dict(model_zoo.load_url(model_urls['resnet34']))
     return model
 
 
@@ -188,7 +200,7 @@ def resnet50(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
+        model.load_pretrained_state_dict(model_zoo.load_url(model_urls['resnet50']))
     return model
 
 
@@ -200,7 +212,7 @@ def resnet101(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet101']))
+        model.load_pretrained_state_dict(model_zoo.load_url(model_urls['resnet101']))
     return model
 
 
@@ -212,5 +224,5 @@ def resnet152(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet152']))
+        model.load_pretrained_state_dict(model_zoo.load_url(model_urls['resnet152']))
     return model
