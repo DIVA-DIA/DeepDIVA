@@ -4,6 +4,7 @@ from .CNN_basic import CNN_basic
 from .FC_medium import FC_medium
 from .FC_simple import FC_simple
 from .LDA_test import LDA_Deep, LDA_simple, LDA_CIFAR
+from .ResNet import resnet18, resnet34, resnet50, resnet101, resnet152
 from .TNet import TNet
 
 """

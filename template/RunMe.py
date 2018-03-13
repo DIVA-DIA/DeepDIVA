@@ -6,9 +6,11 @@ This file is the entry point of DeepDIVA.
 
 
 import json
+import time
 import logging
 # Utils
 import os
+import datetime
 import subprocess
 import sys
 import traceback
@@ -168,10 +170,13 @@ class RunMe:
                                args.runner_class).__dict__[to_capital_camel_case(args.runner_class)]
 
         try:
+            start_time = time.time()
             if args.multi_run is not None:
                 train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, args)
             else:
                 train_scores, val_scores, test_scores = runner_class.single_run(writer, **args.__dict__)
+            end_time = time.time()
+            logging.info('Time taken for train/eval/test is: {}'.format(datetime.timedelta(end_time - start_time)))
         except Exception as exp:
             if args.quiet:
                 print('Unhandled error: {}'.format(repr(exp)))

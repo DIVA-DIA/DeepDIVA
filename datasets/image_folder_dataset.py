@@ -6,6 +6,7 @@ This file allows to load a dataset of images by specifying the folder where its 
 import logging
 import os
 import sys
+from multiprocessing import Pool
 
 import cv2
 import numpy as np
@@ -15,7 +16,7 @@ import torchvision
 from PIL import Image
 
 
-def load_dataset(dataset_folder, online):
+def load_dataset(dataset_folder, inmem=False, workers=1):
     """
     Parameters
     ----------
@@ -23,9 +24,12 @@ def load_dataset(dataset_folder, online):
     :param dataset_folder: string (path)
         Specifies where the dataset is located on the file System
 
-    :param online: boolean
-        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+    :param inmem: boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
+
+    :param workers: int
+        Number of workers to use for the dataloaders
 
     :return train_ds, val_da, test_da: data.Dataset
         Return a torch dataset for each split
@@ -79,7 +83,7 @@ def load_dataset(dataset_folder, online):
         sys.exit(-1)
 
     # If its requested online, delegate to torchvision.datasets.ImageFolder()
-    if online:
+    if not inmem:
         # Get an online dataset for each split
         train_ds = torchvision.datasets.ImageFolder(train_dir)
         val_ds = torchvision.datasets.ImageFolder(val_dir)
@@ -87,9 +91,9 @@ def load_dataset(dataset_folder, online):
         return train_ds, val_ds, test_ds
     else:
         # Get an offline (in-memory) dataset for each split
-        train_ds = ImageFolderInMemory(train_dir)
-        val_ds = ImageFolderInMemory(val_dir)
-        test_ds = ImageFolderInMemory(test_dir)
+        train_ds = ImageFolderInMemory(train_dir, workers)
+        val_ds = ImageFolderInMemory(val_dir, workers)
+        test_ds = ImageFolderInMemory(test_dir, workers)
         return train_ds, val_ds, test_ds
 
 
@@ -100,7 +104,7 @@ class ImageFolderInMemory(data.Dataset):
     It is responsibility of the user ensuring the dataset actually fits in memory.
     """
 
-    def __init__(self, dataset_folder, transform=None, target_transform=None, ):
+    def __init__(self, dataset_folder, transform=None, target_transform=None, workers=1):
         self.dataset_folder = os.path.expanduser(dataset_folder)
         self.transform = transform
         self.target_transform = target_transform
@@ -116,13 +120,16 @@ class ImageFolderInMemory(data.Dataset):
         self.labels = np.asarray([item[1] for item in dataset.imgs])
 
         # Load all samples
-        self.data = np.zeros([file_names.size] + list(cv2.imread(file_names[0]).shape), dtype='uint8')
-        for i, sample in enumerate(file_names):
-            self.data[i] = cv2.imread(sample)
+        pool = Pool(workers)
+        self.data = pool.map(self._load_into_mem, file_names)
+        pool.close()
 
         # Set expected class attributes
         self.classes = np.unique(self.labels)
 
+
+    def _load_into_mem(self, path):
+        return cv2.imread(path)
 
 
     def __getitem__(self, index):
