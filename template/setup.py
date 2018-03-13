@@ -22,12 +22,12 @@ from datasets import image_folder_dataset, point_cloud_dataset
 from util.dataset_analytics import compute_mean_std
 
 def _get_weights(train_loader):
-    classes = [int(item) for item in train_loader.dataset.classes]
+    classes = [item for item in train_loader.dataset.classes]
     imgs = np.array([item[1] for item in train_loader.dataset.imgs])
     total_num_images = len(imgs)
     image_ratio_per_class = []
     images_per_class = []
-    for i in classes:
+    for i in range(len(classes)):
         images_per_class.append(np.where(imgs == i)[0].size)
         image_ratio_per_class.append(np.where(imgs == i)[0].size/total_num_images)
     logging.info('The images per class are: {}'.format(images_per_class))
