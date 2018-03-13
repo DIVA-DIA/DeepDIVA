@@ -3,7 +3,7 @@ import logging
 import time
 
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
 # Torch related stuff
 import torch
 
@@ -125,7 +125,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     confusion_matrix_heatmap = make_heatmap(cm, data_loader.dataset.classes)
 
 
-    # Logging the epoch-wise accuracy
+    # Logging the epoch-wise accuracy and confusion matrix
     if multi_run is None:
         writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
         writer.add_image(logging_label + '/confusion_matrix', confusion_matrix_heatmap, epoch)
@@ -134,5 +134,10 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         writer.add_image(logging_label + '/confusion_matrix_{}'.format(multi_run), confusion_matrix_heatmap, epoch)
     logging.info(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
+    # Generate a classification report for each epoch
+    logging.info('Classification Report for epoch {}\n'.format(epoch))
+    logging.info(classification_report(y_true=targets,
+                                       y_pred=preds,
+                                       target_names=data_loader.dataset.classes))
 
     return top1.avg
