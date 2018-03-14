@@ -217,6 +217,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_ds, val_ds, test_ds = point_cloud_dataset.load_dataset(dataset_folder)
 
         # Loads the analytics csv and extract mean and std
+        # TODO: update point cloud to work with new load_mean_std functions
         mean, std = _load_mean_std_from_file(dataset, dataset_folder, **kwargs)
 
         # Bring mean and std into range [0:1] from original domain
