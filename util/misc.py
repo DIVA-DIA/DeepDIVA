@@ -103,10 +103,9 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
-def adjust_learning_rate(lr, optimizer, epoch, num_epochs):
+def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
     """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
-    lr = lr * (0.1 ** (epoch // num_epochs))
-    logging.info("Learning rate decayed to: {}".format(lr))
+    lr = lr * (0.1 ** (epoch // decay_lr_epochs))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
