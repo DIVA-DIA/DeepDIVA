@@ -176,7 +176,7 @@ class RunMe:
             else:
                 train_scores, val_scores, test_scores = runner_class.single_run(writer, **args.__dict__)
             end_time = time.time()
-            logging.info('Time taken for train/eval/test is: {}'.format(datetime.timedelta(end_time - start_time)))
+            logging.info('Time taken for train/eval/test is: {}'.format(datetime.timedelta(seconds=int(end_time - start_time))))
         except Exception as exp:
             if args.quiet:
                 print('Unhandled error: {}'.format(repr(exp)))
