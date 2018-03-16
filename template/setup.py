@@ -1,10 +1,13 @@
 # Utils
 import json
 import os
+import sys
 import random
 import time
+import logging
 
 import pandas as pd
+import numpy as np
 # Torch related stuff
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -16,14 +19,26 @@ import torchvision.transforms as transforms
 # DeepDIVA
 import models
 from datasets import image_folder_dataset, point_cloud_dataset
-from init.initializer import *
 from util.dataset_analytics import compute_mean_std
+
+def _get_weights(train_loader):
+    classes = [item for item in train_loader.dataset.classes]
+    imgs = np.array([item[1] for item in train_loader.dataset.imgs])
+    total_num_images = len(imgs)
+    image_ratio_per_class = []
+    images_per_class = []
+    for i in range(len(classes)):
+        images_per_class.append(np.where(imgs == i)[0].size)
+        image_ratio_per_class.append(np.where(imgs == i)[0].size/total_num_images)
+    logging.info('The images per class are: {}'.format(images_per_class))
+    logging.info('The image ratio per class is: {}'.format(image_ratio_per_class))
+    return 1.0 / np.array(image_ratio_per_class)
 
 
 def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cuda, resume, start_epoch, train_loader,
-                 **kwargs):
+                 disable_databalancing, **kwargs):
     """
-    Instantiate model, optimizer, criterion. Init or load a pretrained model or resume from a checkpoint.
+    Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
     Parameters
     ----------
@@ -58,13 +73,14 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     """
     # Initialize the model
     logging.info('Setting up model {}'.format(model_name))
-    model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained, **kwargs)
+    model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained)
     optimizer = torch.optim.__dict__[optimizer_name](model.parameters(), lr)
-    criterion = nn.CrossEntropyLoss()
-
-    # Init the model
-    if kwargs['init']:
-        init_model(model=model, data_loader=train_loader, **kwargs)
+    if disable_databalancing:
+        criterion = nn.CrossEntropyLoss()
+    else:
+        # TODO: make data balancing agnostic to type of dataset
+        weight = _get_weights(train_loader)
+        criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weight).type(torch.FloatTensor))
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -92,7 +108,7 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     return model, criterion, optimizer, best_value, start_epoch
 
 
-def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, online=False, **kwargs):
+def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, inmem=False, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -110,8 +126,8 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     :param workers: int
         Number of workers to use for the dataloaders
 
-    :param online: boolean
-        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+    :param inmem: boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
 
     :param kwargs: dict
@@ -129,27 +145,27 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     # Load the dataset splits as images
     try:
         logging.info("Try to load dataset as images")
-        train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, online)
+        train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem, workers)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder, online)
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
         train_ds.transform = transforms.Compose([
-            transforms.Scale(model_expected_input_size),
+            transforms.Resize(model_expected_input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
 
         val_ds.transform = transforms.Compose([
-            transforms.Scale(model_expected_input_size),
+            transforms.Resize(model_expected_input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
 
         test_ds.transform = transforms.Compose([
-            transforms.Scale(model_expected_input_size),
+            transforms.Resize(model_expected_input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
@@ -168,7 +184,8 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_ds, val_ds, test_ds = point_cloud_dataset.load_dataset(dataset_folder)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder)
+        # TODO: update point cloud to work with new load_mean_std functions
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
 
         # Bring mean and std into range [0:1] from original domain
         mean = np.divide((mean - train_ds.min_coords), np.subtract(train_ds.max_coords, train_ds.min_coords))
@@ -204,7 +221,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     sys.exit(-1)
 
 
-def _load_mean_std_from_file(dataset, dataset_folder, online=False):
+def _load_mean_std_from_file(dataset, dataset_folder, inmem, workers):
     """
     This function simply recovers mean and std from the analytics.csv file
 
@@ -216,9 +233,12 @@ def _load_mean_std_from_file(dataset, dataset_folder, online=False):
     :param dataset_folder: string
         Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
 
-    :param online: boolean
-        Flag: if True, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+    :param inmem: boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
+
+    :param workers: int
+        Number of workers to use for the mean/std computation
 
     :return: double[], double[]
         Mean and Std of the selected dataset, contained in the analytics.csv file. These are double arrays.
@@ -229,7 +249,7 @@ def _load_mean_std_from_file(dataset, dataset_folder, online=False):
         try:
             logging.info(
                 'Attempt creating analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
-            compute_mean_std(dataset_folder=dataset_folder, online=online)
+            compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
         except:
             logging.error('Creation of analytics.csv failed.')
             sys.exit(-1)
@@ -335,15 +355,6 @@ def set_up_logging(parser, experiment_name, log_dir, quiet, args_dict, **kwargs)
         if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default):
             non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
 
-    # Get the INIT arguments group, which we know its the number 6
-    group = parser._action_groups[6]
-    assert group.title == 'INIT'
-
-    # Fetch all non-default parameters passed
-    for action in group._group_actions:
-        if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default):
-            non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
-
     # Build up final logging folder tree with the non-default training parameters
     log_folder = os.path.join(*[log_dir, experiment_name, dataset, *non_default_parameters,
                                 '{}'.format(time.strftime('%d-%m-%y-%Hh-%Mm-%Ss'))])
@@ -413,11 +424,11 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
         except:
             logging.warning('Arguments for seed AND multi-run should not be active at the same time!')
             raise SystemExit
-        if workers > 1:
-            logging.warning('Setting seed when workers > 1 may lead to non-deterministic outcomes!')
 
         # Disable CuDNN only if seed is specified by user. Otherwise we can assume that the user does not want to
         # sacrifice speed for deterministic behaviour.
+        # TODO: Check if setting torch.backends.cudnn.deterministic=True will ensure deterministic behavior.
+        # Initial tests show torch.backends.cudnn.deterministic=True does not work correctly.
         if not no_cuda:
             torch.backends.cudnn.enabled = False
 

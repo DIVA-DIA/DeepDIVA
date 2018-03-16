@@ -8,7 +8,7 @@ class Flatten(nn.Module):
 
 
 class FC_simple(nn.Module):
-    def __init__(self, num_classes=5, activation='Tanh', **kwargs):
+    def __init__(self, num_classes=5, **kwargs):
         """
         :param num_classes: the number of classes in the dataset
         """
@@ -16,17 +16,16 @@ class FC_simple(nn.Module):
 
         self.expected_input_size = 2
 
-        logging.info('Using {} for the model'.format(activation))
         # First layer
         self.fc1 = nn.Sequential(
             Flatten(),
-            nn.Linear(2, 4),
-            nn.__dict__[activation](),
+            nn.Linear(2, 10),
+            nn.LeakyReLU(),
         )
 
         # Classification layer
         self.fc2 = nn.Sequential(
-            nn.Linear(4, num_classes)
+            nn.Linear(10, num_classes)
         )
 
     def forward(self, x):

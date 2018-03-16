@@ -80,7 +80,7 @@ class Standard:
             # Validate
             val_value[epoch] = Standard._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
-                adjust_learning_rate(lr, optimizer, epoch, epochs)
+                adjust_learning_rate(lr, optimizer, epoch, decay_lr)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
         # Test

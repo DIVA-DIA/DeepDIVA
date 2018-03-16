@@ -4,9 +4,14 @@ This file is the entry point of DeepDIVA.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-import json
+
 # Utils
 import os
+import sys
+import json
+import time
+import logging
+import datetime
 import subprocess
 import traceback
 
@@ -20,7 +25,6 @@ from sklearn.model_selection import ParameterGrid
 # DeepDIVA
 import template.CL_arguments
 import template.runner
-from init.initializer import *
 from template.setup import set_up_env, set_up_logging
 from util.misc import to_capital_camel_case
 from util.visualization.mean_std_plot import plot_mean_std
@@ -169,11 +173,14 @@ class RunMe:
                                args.runner_class).__dict__[to_capital_camel_case(args.runner_class)]
 
         try:
+            start_time = time.time()
             if args.multi_run is not None:
                 train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, current_log_folder,  args)
             else:
                 train_scores, val_scores, test_scores = runner_class.single_run(writer, current_log_folder=current_log_folder,
                                                                                 **args.__dict__)
+            end_time = time.time()
+            logging.info('Time taken for train/eval/test is: {}'.format(datetime.timedelta(seconds=int(end_time - start_time))))
         except Exception as exp:
             if args.quiet:
                 print('Unhandled error: {}'.format(repr(exp)))
@@ -211,7 +218,7 @@ class RunMe:
             Train, Val and Test results for each run (n) and epoch
         """
 
-        # Init the scores tables which will stores the results.
+        # Instantiate the scores tables which will stores the results.
         train_scores = np.zeros((args.multi_run, args.epochs))
         val_scores = np.zeros((args.multi_run, args.epochs))
         test_scores = np.zeros(args.multi_run)

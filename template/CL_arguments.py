@@ -8,15 +8,14 @@ import torch
 
 # DeepDIVA
 import models
-from init import advanced_init
 from template import runner
 
 
 def parse_arguments():
     # NOTE: If a model is missing and you get a argument parser error: check in the init file of models if its there!
     model_options = [name[0] for name in inspect.getmembers(models, inspect.isclass)]
+    _ = [model_options.append(name[0]) for name in inspect.getmembers(models, inspect.isfunction)]
     optimizer_options = [name[0] for name in inspect.getmembers(torch.optim, inspect.isclass)]
-    init_options = [name[0] for name in inspect.getmembers(advanced_init, inspect.isfunction)]
     runner_class_options = [name[0] for name in inspect.getmembers(runner, inspect.ismodule)]
 
     ###############################################################################
@@ -28,7 +27,6 @@ def parse_arguments():
     parser_data = parser.add_argument_group('DATA', 'Dataset Options')
     parser_train = parser.add_argument_group('TRAIN', 'Training Options')
     parser_system = parser.add_argument_group('SYS', 'System Options')
-    parser_init = parser.add_argument_group('INIT', 'Initialization Options')
 
     ###############################################################################
     # General Options
@@ -69,15 +67,22 @@ def parse_arguments():
     parser_data.add_argument('--dataset-folder',
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
+    parser_data.add_argument('--inmem',
+                                default=False,
+                                action='store_true',
+                                help='Attempt to load the entire image dataset in memory')
+    parser_data.add_argument('--disable-databalancing',
+                                default=False,
+                                action='store_true',
+                                help='Supress data balacing')
     parser_data.add_argument('--log-dir',
                              help='where to save logs. Can be used to resume logging of experiment.',
                              required=True)
 
     ###############################################################################
     # Training Options
-    parser_train.add_argument('--model',
+    parser_train.add_argument('--model-name',
                               type=str,
-                              dest='model_name',
                               choices=model_options,
                               default='CNN_basic',
                               help='which model to use for training')
@@ -85,9 +90,8 @@ def parse_arguments():
                               type=float,
                               default=0.001,
                               help='learning rate to be used for training')
-    parser_train.add_argument('--optimizer',
+    parser_train.add_argument('--optimizer-name',
                               choices=optimizer_options,
-                              dest='optimizer_name',
                               default='SGD',
                               help='optimizer to be used for training')
     parser_train.add_argument('--batch-size',
@@ -106,7 +110,7 @@ def parse_arguments():
                               action='store_true',
                               default=False,
                               help='use pretrained model. (Not applicable for all models)')
-    parser_train.add_argument('--decay_lr',
+    parser_train.add_argument('--decay-lr',
                               type=int,
                               default=None,
                               help='drop LR by 10 every N epochs')
@@ -115,13 +119,6 @@ def parse_arguments():
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
-
-    ###############################################################################
-    parser_train.add_argument('--activation',
-                              dest='activation',
-                              type=str,
-                              default='Tanh',
-                              help='specify activation function to use for FC_simple')
 
     ###############################################################################
     # System Options
@@ -144,21 +141,6 @@ def parse_arguments():
                                type=int,
                                default=4,
                                help='workers used for train/val loaders')
-
-    ###############################################################################
-    # Init options
-    parser_init.add_argument('--init',
-                             action='store_true',
-                             default=False,
-                             help='use advanced init methods such as LDA')
-    parser_init.add_argument('--num-samples',
-                             type=int,
-                             default=50000,
-                             help='number of samples to use to perform data-driven initialization')
-    parser_init.add_argument('--init-function',
-                             choices=init_options,
-                             default="pure_lda",
-                             help='which initialization function should be used.')
 
     ###############################################################################
     # Parse argument
