@@ -68,11 +68,10 @@ def parse_arguments():
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
     parser_data.add_argument('--inmem',
-                                dest='inmem',
                                 default=False,
                                 action='store_true',
                                 help='Attempt to load the entire image dataset in memory')
-    parser_data.add_argument('--disable_databalancing',
+    parser_data.add_argument('--disable-databalancing',
                                 default=False,
                                 action='store_true',
                                 help='Supress data balacing')
@@ -82,9 +81,8 @@ def parse_arguments():
 
     ###############################################################################
     # Training Options
-    parser_train.add_argument('--model',
+    parser_train.add_argument('--model-name',
                               type=str,
-                              dest='model_name',
                               choices=model_options,
                               default='CNN_basic',
                               help='which model to use for training')
@@ -92,9 +90,8 @@ def parse_arguments():
                               type=float,
                               default=0.001,
                               help='learning rate to be used for training')
-    parser_train.add_argument('--optimizer',
+    parser_train.add_argument('--optimizer-name',
                               choices=optimizer_options,
-                              dest='optimizer_name',
                               default='SGD',
                               help='optimizer to be used for training')
     parser_train.add_argument('--batch-size',
@@ -113,7 +110,7 @@ def parse_arguments():
                               action='store_true',
                               default=False,
                               help='use pretrained model. (Not applicable for all models)')
-    parser_train.add_argument('--decay_lr',
+    parser_train.add_argument('--decay-lr',
                               type=int,
                               default=None,
                               help='drop LR by 10 every N epochs')
