@@ -78,6 +78,7 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     if disable_databalancing:
         criterion = nn.CrossEntropyLoss()
     else:
+        # TODO: make data balancing agnostic to type of dataset
         weight = _get_weights(train_loader)
         criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weight).type(torch.FloatTensor))
 
@@ -184,7 +185,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
 
         # Loads the analytics csv and extract mean and std
         # TODO: update point cloud to work with new load_mean_std functions
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder, **kwargs)
+        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
 
         # Bring mean and std into range [0:1] from original domain
         mean = np.divide((mean - train_ds.min_coords), np.subtract(train_ds.max_coords, train_ds.min_coords))
