@@ -22,15 +22,12 @@ def make_heatmap(confusion_matrix, class_names):
     plt.tight_layout()
     mpl.rc("font", family="Times New Roman")
 
-
     try:
-        heatmap = sns.heatmap(df_cm, annot=False, fmt="d", cmap=plt.get_cmap('Blues'))
+        heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cmap=plt.get_cmap('Blues'), annot_kws={"size": 14})
     except ValueError:
         raise ValueError("Confusion matrix values must be integers.")
     heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=14)
     heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(), rotation=45, ha='right', fontsize=14)
-    # plt.ylabel('True label')
-    # plt.xlabel('Predicted label')
 
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
