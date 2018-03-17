@@ -29,7 +29,6 @@ def parse_arguments():
     _system_options(parser)
     _triplet_options(parser)
 
-
     ###############################################################################
     # Parse argument
     args = parser.parse_args()
