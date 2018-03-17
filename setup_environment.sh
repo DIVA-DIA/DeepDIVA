@@ -19,8 +19,7 @@ else
   echo "installing conda"
   wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   chmod +x Miniconda3-latest-Linux-x86_64.sh
-  ./Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda
-  export PATH="$HOME/miniconda/bin:$PATH"
+  ./Miniconda3-latest-Linux-x86_64.sh
 
 
   # Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)

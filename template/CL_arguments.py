@@ -99,6 +99,15 @@ def _data_options(parser):
     parser_data.add_argument('--dataset-folder',
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
+    parser_data.add_argument('--inmem',
+                                dest='inmem',
+                                default=False,
+                                action='store_true',
+                                help='Attempt to load the entire image dataset in memory')
+    parser_data.add_argument('--disable_databalancing',
+                                default=False,
+                                action='store_true',
+                                help='Supress data balacing')
     parser_data.add_argument('--log-dir',
                              help='where to save logs. Can be used to resume logging of experiment.',
                              required=True)

@@ -2,11 +2,14 @@
 import logging
 import time
 
+import numpy as np
+from sklearn.metrics import confusion_matrix, classification_report
 # Torch related stuff
 import torch
 
 # DeepDIVA
 from util.misc import AverageMeter, accuracy
+from util.visualization.confusion_matrix_heatmap import make_heatmap
 
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
@@ -64,6 +67,11 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
     # Iterate over whole evaluation set
     end = time.time()
+
+    # Empty lists to store the predictions and target values
+    preds = []
+    targets = []
+
     for i, (input, target) in enumerate(data_loader):
 
         # Moving data to GPU
@@ -85,6 +93,10 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         # Compute and record the accuracy
         acc1 = accuracy(output.data, target, topk=(1,))[0]
         top1.update(acc1[0], input.size(0))
+
+        # Get the predictions
+        _ = [preds.append(item) for item in [np.argmax(item) for item in output.data.cpu().numpy()]]
+        _ = [targets.append(item) for item in target.cpu().numpy()]
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
@@ -108,12 +120,24 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
                 epoch, i, len(data_loader), batch_time=batch_time, loss=losses,
                 top1=top1))
 
-    # Logging the epoch-wise accuracy
+    # Make a confusion matrix
+    cm = confusion_matrix(y_true=targets, y_pred=preds)
+    confusion_matrix_heatmap = make_heatmap(cm, data_loader.dataset.classes)
+
+
+    # Logging the epoch-wise accuracy and confusion matrix
     if multi_run is None:
         writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
+        writer.add_image(logging_label + '/confusion_matrix', confusion_matrix_heatmap, epoch)
     else:
         writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
-
+        writer.add_image(logging_label + '/confusion_matrix_{}'.format(multi_run), confusion_matrix_heatmap, epoch)
     logging.info(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
+
+    # Generate a classification report for each epoch
+    logging.info('Classification Report for epoch {}\n'.format(epoch))
+    logging.info(classification_report(y_true=targets,
+                                       y_pred=preds,
+                                       target_names=data_loader.dataset.classes))
 
     return top1.avg
