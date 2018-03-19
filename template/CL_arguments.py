@@ -100,11 +100,10 @@ def _data_options(parser):
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
     parser_data.add_argument('--inmem',
-                                dest='inmem',
                                 default=False,
                                 action='store_true',
                                 help='Attempt to load the entire image dataset in memory')
-    parser_data.add_argument('--disable_databalancing',
+    parser_data.add_argument('--disable-databalancing',
                                 default=False,
                                 action='store_true',
                                 help='Supress data balacing')
@@ -124,16 +123,11 @@ def _training_options(parser):
     optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
 
     parser_train = parser.add_argument_group('TRAIN', 'Training Options')
-    parser_train.add_argument('--model',
+    parser_train.add_argument('--model-name',
                               type=str,
-                              dest='model_name',
                               choices=model_options,
                               default='CNN_basic',
                               help='which model to use for training')
-    parser_train.add_argument('--decay_lr',
-                              type=int,
-                              default=None,
-                              help='drop LR by 10 every N epochs')
     parser_train.add_argument('--batch-size',
                               type=int,
                               default=64,
@@ -165,15 +159,18 @@ def _optimizer_options(parser):
 
     parser_optimizer = parser.add_argument_group('OPTIMIZER', 'Optimizer Options')
 
-    parser_optimizer.add_argument('--optimizer',
+    parser_optimizer.add_argument('--optimizer-name',
                                   choices=optimizer_options,
-                                  dest='optimizer_name',
                                   default='SGD',
                                   help='optimizer to be used for training')
     parser_optimizer.add_argument('--lr',
                                   type=float,
                                   default=0.001,
                                   help='learning rate to be used for training')
+    parser_optimizer.add_argument('--decay-lr',
+                                  type=int,
+                                  default=None,
+                                  help='drop LR by 10 every N epochs')
     parser_optimizer.add_argument('--momentum',
                                   type=float,
                                   default=0,

@@ -84,6 +84,8 @@ class RunMe:
             suggestion = conn.experiments(experiment.id).suggestions().create()
             params = suggestion.assignments
             for key in params:
+                if isinstance(args.__dict__[key], bool):
+                    params[key] = params[key].lower() in ['true']
                 args.__dict__[key] = params[key]
             _, _, score = self._execute(args)
             # In case of multi-run the return type will be a list (otherwise is a single float)
@@ -126,7 +128,8 @@ class RunMe:
         :return:
         """
         # Set up logging
-        args.__dict__['log_dir'] = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
+        # Don't use args.log_dir as that breaks when using SigOpt
+        current_log_folder = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
 
         # Check Git status
         if args.ignoregit:
@@ -154,12 +157,12 @@ class RunMe:
                 if local_changes:
                     logging.error('Errors when acquiring git status. Use --ignoregit to still run.')
                     logging.shutdown()
-                    print('Finished with errors. (Log files at {} )'.format(args.log_dir))
+                    print('Finished with errors. (Log files at {} )'.format(current_log_folder))
                     sys.exit(-1)
 
         # Define Tensorboard SummaryWriter
         logging.info('Initialize Tensorboard SummaryWriter')
-        writer = tensorboardX.SummaryWriter(log_dir=args.log_dir)
+        writer = tensorboardX.SummaryWriter(log_dir=current_log_folder)
 
         # Set up execution environment
         # Specify CUDA_VISIBLE_DEVICES and seeds
@@ -172,9 +175,10 @@ class RunMe:
         try:
             start_time = time.time()
             if args.multi_run is not None:
-                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, args)
+                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, current_log_folder,  args)
             else:
-                train_scores, val_scores, test_scores = runner_class.single_run(writer, **args.__dict__)
+                train_scores, val_scores, test_scores = runner_class.single_run(writer, current_log_folder=current_log_folder,
+                                                                                **args.__dict__)
             end_time = time.time()
             logging.info('Time taken for train/eval/test is: {}'.format(datetime.timedelta(seconds=int(end_time - start_time))))
         except Exception as exp:
@@ -188,12 +192,12 @@ class RunMe:
             logging.shutdown()
             logging.getLogger().handlers = []
             writer.close()
-            print('All done! (Log files at {} )'.format(args.log_dir))
-            args.log_dir = None
+            print('All done! (Log files at {} )'.format(current_log_folder))
+            current_log_folder = None
         return train_scores, val_scores, test_scores
 
     @staticmethod
-    def _multi_run(runner_class, writer, args):
+    def _multi_run(runner_class, writer, current_log_folder, args):
         """
         Here multiple runs with same parameters are executed and the results averaged.
         Additionally "variance shaded plots" gets to be generated and are visible not only on FS but also on
@@ -224,6 +228,7 @@ class RunMe:
             logging.info('Multi-Run: {} of {}'.format(i + 1, args.multi_run))
             train_scores[i, :], val_scores[i, :], test_scores[i] = runner_class.single_run(writer,
                                                                                            run=i,
+                                                                                           current_log_folder=current_log_folder,
                                                                                            **args.__dict__)
 
             # Generate and add to tensorboard the shaded plot for train
@@ -245,8 +250,8 @@ class RunMe:
             logging.info('Generated mean-variance plot for val')
 
         # Log results on disk
-        np.save(os.path.join(args.log_dir, 'train_values.npy'), train_scores)
-        np.save(os.path.join(args.log_dir, 'val_values.npy'), val_scores)
+        np.save(os.path.join(current_log_folder, 'train_values.npy'), train_scores)
+        np.save(os.path.join(current_log_folder, 'val_values.npy'), val_scores)
         logging.info('Multi-run values for test-mean:{} test-std: {}'.format(np.mean(test_scores), np.std(test_scores)))
 
         return train_scores, val_scores, test_scores
