@@ -4,7 +4,6 @@ This file is the entry point of DeepDIVA.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
-
 import json
 import time
 import logging
@@ -15,6 +14,7 @@ import subprocess
 import sys
 import traceback
 
+import numpy as np
 # Tensor board
 import tensorboardX
 # SigOpt
