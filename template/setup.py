@@ -73,7 +73,7 @@ def set_up_model(num_classes, model_name, pretrained, optimizer_name, lr, no_cud
     """
     # Initialize the model
     logging.info('Setting up model {}'.format(model_name))
-    model = models.__dict__[model_name](num_classes=num_classes, pretrained=pretrained)
+    model = models.__dict__[model_name](output_channels=num_classes, pretrained=pretrained)
     optimizer = torch.optim.__dict__[optimizer_name](model.parameters(), lr)
     if disable_databalancing:
         criterion = nn.CrossEntropyLoss()

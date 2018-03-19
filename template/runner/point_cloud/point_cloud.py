@@ -102,7 +102,7 @@ class PointCloud(Standard):
 
         # Core routine
         logging.info('Begin training')
-        val_value = np.zeros((epochs - start_epoch))
+        val_value = np.zeros((epochs + 1 - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
         # Make data for points
@@ -125,7 +125,7 @@ class PointCloud(Standard):
                                             num_classes=num_classes, writer=writer, epoch=-1, epochs=epochs,
                                             **kwargs)
 
-        PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[-1] = PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
         # Add model parameters to Tensorboard
         for name, param in model.named_parameters():
             writer.add_histogram(name, param.clone().cpu().data.numpy(), -1, bins='auto')

@@ -70,10 +70,10 @@ class Standard:
 
         # Core routine
         logging.info('Begin training')
-        val_value = np.zeros((epochs - start_epoch))
+        val_value = np.zeros((epochs + 1 - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
-        Standard._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[0] = Standard._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
             train_value[epoch] = Standard._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
