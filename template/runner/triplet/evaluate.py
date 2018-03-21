@@ -79,21 +79,21 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
         # Log progress to console
         if batch_idx % log_interval == 0:
-            pbar.set_description('Test Epoch: {} [{}/{} ({:.0f}%)]'.format(
+            pbar.set_description(logging_label + ' Epoch: {} [{}/{} ({:.0f}%)]'.format(
                 epoch, batch_idx * len(data_a), len(data_loader.dataset),
                        100. * batch_idx / len(data_loader)))
 
     # Measure accuracy (FPR95)
-    num_tests = data_loader.dataset.matches.size(0)
-    labels = np.vstack(labels).reshape(num_tests)
-    distances = np.vstack(distances).reshape(num_tests)
+    num_tests = len(data_loader.dataset.matches)
+    labels = np.concatenate(labels, 0).reshape(num_tests)
+    distances = np.concatenate(distances, 0).reshape(num_tests)
     fpr95 = ErrorRateAt95Recall(labels, distances)
-    logging.info('\33[91mTest set: Accuracy(FPR95): {:.8f}\n\33[0m'.format(fpr95))
+    logging.info('\33[91m ' + logging_label +' set: ErrorRate(FPR95): {:.8f}\n\33[0m'.format(fpr95))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
-        writer.add_scalar(logging_label + '/accuracy', fpr95, epoch)
+        writer.add_scalar(logging_label + '/ErrorRate', fpr95, epoch)
     else:
-        writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), fpr95, epoch)
+        writer.add_scalar(logging_label + '/ErrorRate_{}'.format(multi_run), fpr95, epoch)
 
     return fpr95

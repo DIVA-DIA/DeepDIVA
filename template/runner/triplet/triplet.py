@@ -39,7 +39,7 @@ from util.misc import adjust_learning_rate, checkpoint
 
 class Triplet:
     @staticmethod
-    def single_run(writer, log_dir, model_name, epochs, lr, decay_lr, margin, anchorswap, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -48,7 +48,7 @@ class Triplet:
         :param writer: Tensorboard SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.
 
-        :param log_dir: string
+        :param current_log_folder: string
             Path to where logs/checkpoints are saved
 
         :param model_name: string
@@ -76,7 +76,7 @@ class Triplet:
 
         # Setting up the dataloaders
         # train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
-        test_loader, train_loader = setup_dataloaders(model_expected_input_size, **kwargs)
+        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size, **kwargs)
 
         # Setting up model, optimizer, criterion
         # TODO this has to be replaced with a custom ting for the triplet most probably
@@ -89,22 +89,22 @@ class Triplet:
         # Set the special criterion for triplets
         criterion = nn.TripletMarginLoss(margin=margin, swap=anchorswap)
 
-        model.apply(Triplet.weights_init)
+        # model.apply(Triplet.weights_init)
 
         # Core routine
         logging.info('Begin training')
         val_value = np.zeros((epochs - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
-        Triplet._validate(test_loader, model, None, writer, -1, **kwargs)
+        Triplet._validate(val_loader, model, None, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
             train_value[epoch] = Triplet._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
             # Validate
-            val_value[epoch] = Triplet._validate(test_loader, model, criterion, writer, epoch, **kwargs)
+            val_value[epoch] = Triplet._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, log_dir)
+            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
         # Test
         logging.info('Training completed')

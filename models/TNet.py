@@ -15,20 +15,25 @@ class TNet(nn.Module):
     TFeat model definition
     """
 
-    def __init__(self, output_channels=128, input_channels=1, **kwargs):
+    def __init__(self, output_channels=128, input_channels=3, **kwargs):
         super(TNet, self).__init__()
 
         self.expected_input_size = (32, 32)
 
-        self.features = nn.Sequential(
+
+        self.conv1 = nn.Sequential(
             nn.Conv2d(input_channels, 32, kernel_size=7),
             nn.Tanh(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+
+        self.conv2 = nn.Sequential(
             nn.Conv2d(32, 64, kernel_size=6),
             nn.Tanh()
         )
 
-        self.classifier = nn.Sequential(
+
+        self.fc = nn.Sequential(
             Flatten(),
             nn.Linear(64 * 8 * 8, output_channels),
             nn.Tanh()
@@ -42,6 +47,7 @@ class TNet(nn.Module):
         :return: torch.Tensor
             Activations of the fully connected layer
         """
-        x = self.features(x)
-        x = self.classifier(x)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.fc(x)
         return x
