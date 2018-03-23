@@ -20,8 +20,11 @@ class LDA_Deep(nn.Module):
     """
 
     # new_size = (width - filter + 2padding) / stride + 1
-    def __init__(self, num_outputs):
+    def __init__(self, output_channels=10, **kwargs):
         super(LDA_Deep, self).__init__()
+
+        self.expected_input_size = (32, 32)
+
         # First layer
         self.conv1 = nn.Sequential(  # in: 32x32x3 out: 32x32x16
             nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1),
@@ -63,7 +66,7 @@ class LDA_Deep(nn.Module):
 
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(in_features=4 * 4 * 128, out_features=10),
+            nn.Linear(in_features=4 * 4 * 128, out_features=output_channels),
         )
 
     def forward(self, x):
@@ -103,7 +106,7 @@ class LDA_CIFAR(nn.Module):
         Final fully connected layer for classification
     """
 
-    def __init__(self, num_classes=10, **kwargs):
+    def __init__(self, output_channels=10, **kwargs):
         super(LDA_CIFAR, self).__init__()
 
         self.expected_input_size = (32, 32)
@@ -153,7 +156,7 @@ class LDA_CIFAR(nn.Module):
 
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(in_features=4 * 4 * 128, out_features=num_classes),
+            nn.Linear(in_features=4 * 4 * 128, out_features=output_channels),
         )
 
     def forward(self, x):
@@ -186,7 +189,7 @@ class LDA_simple(nn.Module):
         Final fully connected layer for classification
     """
 
-    def __init__(self, num_classes=10, **kwargs):
+    def __init__(self, output_channels=10, **kwargs):
         super(LDA_simple, self).__init__()
 
         self.expected_input_size = (32, 32)
@@ -199,7 +202,7 @@ class LDA_simple(nn.Module):
         )
         # Classification layer
         self.cl = nn.Sequential(
-            nn.Linear(in_features=8 * 8 * 16, out_features=num_classes),
+            nn.Linear(in_features=8 * 8 * 16, out_features=output_channels),
         )
 
     def forward(self, x):
