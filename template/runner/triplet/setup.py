@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 # DeepDIVA
 from datasets.image_folder_triplet import load_dataset
 from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
+from template.runner.triplet.transforms import MultiCrop
 
 def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem=False, **kwargs):
     """
@@ -59,42 +60,27 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
 
     # Set up dataset transforms
     logging.debug('Setting up dataset transforms')
-    if inmem:
-        # The InMem implementation of the dataset resizes the image at load time
-        train_ds.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
 
-        val_ds.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+    train_ds.transform = transforms.Compose([
+        transforms.Resize(model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
 
-        test_ds.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
-    else:
-        train_ds.transform = transforms.Compose([
-            transforms.Resize(model_expected_input_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+    val_ds.transform = transforms.Compose([
+        transforms.Resize(model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
 
-        val_ds.transform = transforms.Compose([
-            transforms.Resize(model_expected_input_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
-
-        test_ds.transform = transforms.Compose([
-            transforms.Resize(model_expected_input_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+    test_ds.transform = transforms.Compose([
+        transforms.Resize(model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
 
     test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                        workers)
+
 
     return train_loader, val_loader, train_loader

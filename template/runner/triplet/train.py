@@ -48,7 +48,6 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
-    top1 = AverageMeter()
 
     # Switch to train mode (turn on dropout & stuff)
     model.train()
@@ -57,6 +56,14 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
     end = time.time()
     pbar = tqdm(enumerate(train_loader))
     for batch_idx, (data_a, data_p, data_n) in pbar:
+
+        if len(data_a.size()) == 5:
+
+            bs, ncrops, c, h, w = data_a.size()
+
+            data_a = data_a.view(-1, c, h, w)
+            data_p = data_p.view(-1, c, h, w)
+            data_n = data_n.view(-1, c, h, w)
 
         # Measure data loading time
         data_time.update(time.time() - end)
@@ -71,11 +78,17 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
         # Compute output
         out_a, out_p, out_n = model(data_a), model(data_p), model(data_n)
 
+        if len(data_a.size()) == 5:
+            out_a = out_a.view(bs, ncrops, -1).mean(1)
+            out_p = out_p.view(bs, ncrops, -1).mean(1)
+            out_n = out_n.view(bs, ncrops, -1).mean(1)
+
+
         # Compute and record the loss
         loss = criterion(out_p, out_a, out_n)
 
         # TODO here input would be the normal input in a standard situation. How to conveert it to the triplet?
-        # losses.update(loss.data[0], input.size(0))
+        losses.update(loss.data[0], data_a.size(0))
 
         # Reset gradient
         optimizer.zero_grad()
@@ -91,7 +104,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
                     epoch, batch_idx * len(data_a),
                     len(train_loader.dataset),
                            100. * batch_idx / len(train_loader),
-                    loss.data[0]))
+                    losses.avg))
 
         # Add mb loss to Tensorboard
         if multi_run is None:
