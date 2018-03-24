@@ -140,6 +140,10 @@ def _training_options(parser):
                               action='store_true',
                               default=False,
                               help='use pretrained model. (Not applicable for all models)')
+    parser_train.add_argument('--load-model',
+                              type=str,
+                              default=None,
+                              help='path to latest checkpoint')
     parser_train.add_argument('--resume',
                               type=str,
                               default=None,

@@ -37,7 +37,7 @@ def _get_weights(train_loader):
     return 1.0 / np.array(image_ratio_per_class)
 
 
-def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, start_epoch, train_loader,
+def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch, train_loader,
                  disable_databalancing, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
@@ -64,6 +64,9 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
 
     :param resume: string
         Path to a saved checkpoint
+
+    :param load_model: string
+        Path to a saved model
 
     :param start_epoch
         Epoch from which to resume training. If if not resuming a previous experiment the value is 0
@@ -95,6 +98,23 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
         model = torch.nn.DataParallel(model).cuda()
         criterion = criterion.cuda()
         cudnn.benchmark = True
+
+    # Load saved model
+    if load_model:
+        if os.path.isfile(load_model):
+            model_dict = torch.load(load_model)
+            logging.info('Loading a saved model')
+            try:
+                model.load_state_dict(model_dict['state_dict'])
+            except:
+                logging.info('Loading model in compatibility mode')
+                if not no_cuda:
+                    model.module.load_pretrained_state_dict(model_dict['state_dict'])
+                else:
+                    model.load_pretrained_state_dict(model_dict['state_dict'])
+        else:
+            logging.error("No model dict found at '{}'".format(load_model))
+            sys.exit(-1)
 
     # Resume from checkpoint
     if resume:
