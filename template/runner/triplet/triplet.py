@@ -104,7 +104,7 @@ class Triplet:
             val_value[epoch] = Triplet._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
+            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder, invert_best=True)
 
         # Test
         logging.info('Training completed')

@@ -111,7 +111,7 @@ def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
     logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
 
 
-def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir):
+def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_best=False):
     """
     Checks whether the checkpoint. If the model is better, it saves it to file.
 
@@ -132,14 +132,21 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir):
     :param optimizer:
         The optimizer we used to obtain this model. It is necessary if we were to resume the training from a checkpoint.
 
-    :param log_dir:
+    :param log_dir: str
         Output folder where to put the model.
+
+    :param invert_best: bool
+        Changes the scale such that smaller values are better than bigger values (useful when metric evaluted is error rate)
 
     :return:
         None
     """
-    is_best = new_value > best_value
-    best_value = max(new_value, best_value)
+    if invert_best:
+        is_best = new_value < best_value
+        best_value = min(new_value, best_value)
+    else:
+        is_best = new_value > best_value
+        best_value = max(new_value, best_value)
     filename = os.path.join(log_dir, 'checkpoint.pth.tar')
     torch.save({
         'epoch': epoch + 1,
