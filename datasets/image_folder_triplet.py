@@ -237,7 +237,7 @@ class ImageFolderTriplet(data.Dataset):
             return len(self.matches)
 
 
-class ImageFolderTripletInMem(data.Dataset):
+class ImageFolderTripletInMem(ImageFolderTriplet):
     """
     This class makes use of torchvision.datasets.ImageFolder() to create an online dataset.
     Afterward all images are sequentially stored in memory for faster use when paired with dataloders.
@@ -246,6 +246,7 @@ class ImageFolderTripletInMem(data.Dataset):
 
     def __init__(self, dataset_folder, train=None, num_triplets=None, transform=None, target_transform=None, workers=1,
                  model_expected_input_size=(224, 224)):
+
         self.dataset_folder = os.path.expanduser(dataset_folder)
         self.transform = transform
         self.target_transform = target_transform
@@ -276,61 +277,6 @@ class ImageFolderTripletInMem(data.Dataset):
         else:
             self.matches = self.generate_matches(self.labels, num_triplets)
 
-    def generate_matches(self, labels, num_triplets):
-        """
-        matches has format [anchor, positive/negative, match/not_match]; match = 1, not_match=0
-        """
-        logging.info('Begin generating matches')
-        matches = []
-        end = int(num_triplets / 2)
-        for i in tqdm(range(num_triplets)):
-            if i < end:
-                c1 = np.random.randint(0, np.max(labels))
-                c1_items = np.where(labels == c1)[0]
-                a = random.choice(c1_items)
-                p = random.choice(c1_items)
-                while a == p:
-                    p = random.choice(c1_items)
-                matches.append([a, p, 1])
-            else:
-                c1 = np.random.randint(0, np.max(labels))
-                c2 = np.random.randint(0, np.max(labels))
-                while c1 == c2:
-                    c2 = np.random.randint(0, np.max(labels))
-                c1_items = np.where(labels == c1)[0]
-                c2_items = np.where(labels == c2)[0]
-                a = random.choice(c1_items)
-                n = random.choice(c2_items)
-                matches.append([a, n, 0])
-        assert len(matches) == num_triplets
-        return matches
-
-    def generate_triplets(self, labels, num_triplets):
-        """
-        triplets has format [anchor, positive, negative]
-        """
-        logging.info('Begin generating triplets')
-        triplets = []
-        for i in tqdm(range(num_triplets)):
-            c1 = np.random.randint(0, np.max(labels))
-            c2 = np.random.randint(0, np.max(labels))
-            while c1 == c2:
-                c2 = np.random.randint(0, np.max(labels))
-
-            c1_items = np.where(labels == c1)[0]
-            a = random.choice(c1_items)
-            p = random.choice(c1_items)
-            while a == p:
-                p = random.choice(c1_items)
-
-            c2_items = np.where(labels == c2)[0]
-            n = random.choice(c2_items)
-            triplets.append([a, p, n])
-        return triplets
-
-    def _load_into_mem(self, path):
-        return cv2.imread(path)
-
     def _load_into_mem_and_resize(self, path):
         """
         Load an image, resize it into the expected size for the model and convert to PIL image.
@@ -338,8 +284,6 @@ class ImageFolderTripletInMem(data.Dataset):
         :return:
         """
         img = self._load_into_mem(path)
-        img = cv2.resize(img, self.model_expected_input_size)
-        img = Image.fromarray(img)
         return img
 
     def __getitem__(self, index):
@@ -358,6 +302,8 @@ class ImageFolderTripletInMem(data.Dataset):
             a, pn, l = self.matches[index]
             img_a = self.data[a]
             img_pn = self.data[pn]
+            img_a = Image.fromarray(img_a)
+            img_pn = Image.fromarray(img_pn)
             if self.transform is not None:
                 img_a = self.transform(img_a)
                 img_pn = self.transform(img_pn)
@@ -370,15 +316,13 @@ class ImageFolderTripletInMem(data.Dataset):
         img_p = self.data[p]
         img_n = self.data[n]
 
+        img_a = Image.fromarray(img_a)
+        img_p = Image.fromarray(img_p)
+        img_n = Image.fromarray(img_n)
+
         if self.transform is not None:
             img_a = self.transform(img_a)
             img_p = self.transform(img_p)
             img_n = self.transform(img_n)
 
         return img_a, img_p, img_n
-
-    def __len__(self):
-        if self.train:
-            return len(self.triplets)
-        else:
-            return len(self.matches)
