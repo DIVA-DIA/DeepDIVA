@@ -220,7 +220,7 @@ class RunMe:
 
         # Instantiate the scores tables which will stores the results.
         train_scores = np.zeros((args.multi_run, args.epochs))
-        val_scores = np.zeros((args.multi_run, args.epochs))
+        val_scores = np.zeros((args.multi_run, args.epochs + 1))
         test_scores = np.zeros(args.multi_run)
 
         # As many times as runs
@@ -232,7 +232,7 @@ class RunMe:
                                                                                            **args.__dict__)
 
             # Generate and add to tensorboard the shaded plot for train
-            train_curve = plot_mean_std(train_scores[:i + 1],
+            train_curve = plot_mean_std(arr=train_scores[:i + 1],
                                         suptitle='Multi-Run: Train',
                                         title='Runs: {}'.format(i + 1),
                                         xlabel='Epoch', ylabel='Score',
@@ -240,8 +240,9 @@ class RunMe:
             writer.add_image('train_curve', train_curve, global_step=i)
             logging.info('Generated mean-variance plot for train')
 
-            # Generate and add to tensorboard the shaded plot for val
-            val_curve = plot_mean_std(val_scores[:i + 1],
+            # Generate and add to tensorboard the shaded plot for va
+            val_curve = plot_mean_std(x=(np.arange(args.epochs+1) - 1),
+                                      arr=np.roll(val_scores[:i + 1], axis=1,shift=1),
                                       suptitle='Multi-Run: Val',
                                       title='Runs: {}'.format(i + 1),
                                       xlabel='Epoch', ylabel='Score',
