@@ -177,7 +177,7 @@ class RunMe:
             if args.multi_run is not None:
                 train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, current_log_folder,  args)
             else:
-                train_scores, val_scores, test_scores = runner_class.single_run(writer, current_log_folder=current_log_folder,
+                train_scores, val_scores, test_scores = runner_class.single_run(writer=writer, current_log_folder=current_log_folder,
                                                                                 **args.__dict__)
             end_time = time.time()
             logging.info('Time taken for train/eval/test is: {}'.format(datetime.timedelta(seconds=int(end_time - start_time))))

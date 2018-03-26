@@ -25,6 +25,7 @@ def parse_arguments():
     _general_parameters(parser)
     _data_options(parser)
     _training_options(parser)
+    _apply_options(parser)
     _optimizer_options(parser)
     _system_options(parser)
     _triplet_options(parser)
@@ -52,7 +53,7 @@ def _general_parameters(parser):
     General options
     """
     # List of possible custom runner class. A runner class is defined as a module in template.runner
-    runner_class_options = ["standard", "point_cloud", "triplet"]
+    runner_class_options = ["standard", "point_cloud", "triplet", "apply_model"]
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_general.add_argument('--experiment-name',
@@ -60,9 +61,6 @@ def _general_parameters(parser):
                                 default=None,
                                 help='provide a meaningful and descriptive name to this run')
     parser_general.add_argument('--quiet',
-                                action='store_true',
-                                help='Do not print to stdout (log only).')
-    parser_general.add_argument('--apply',
                                 action='store_true',
                                 help='Do not print to stdout (log only).')
     parser_general.add_argument('--multi-run',
@@ -157,6 +155,22 @@ def _training_options(parser):
                               default=0,
                               help='manual epoch number (useful on restarts)')
 
+
+def _apply_options(parser):
+    """
+       Options specific for applying a model
+       """
+
+    parser_apply = parser.add_argument_group('APPLY', 'Apply Model Options')
+
+    parser_apply.add_argument('--classify',
+                               action='store_true',
+                               default=False,
+                               help='run on generate classification report on the dataset')
+    parser_apply.add_argument('--output-channels',
+                              type=int,
+                              default=None,
+                              help='override the number of output channels for loading specific models')
 
 def _optimizer_options(parser):
     """

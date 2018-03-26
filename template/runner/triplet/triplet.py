@@ -82,7 +82,7 @@ class Triplet:
 
         # Setting up the dataloaders
         # train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
-        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size=model_expected_input_size, apply=apply, **kwargs)
+        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size=model_expected_input_size, **kwargs)
 
         # Setting up model, optimizer, criterion
         # TODO this has to be replaced with a custom ting for the triplet most probably
@@ -96,13 +96,6 @@ class Triplet:
         criterion = nn.TripletMarginLoss(margin=margin, swap=anchorswap)
 
         # model.apply(Triplet.weights_init)
-
-        if apply:
-            logging.info('Apply model to dataset')
-            results = Triplet._apply(val_loader=val_loader, model=model, criterion=None, writer=writer, epoch=-1, **kwargs)
-            with open(os.path.join(current_log_folder, 'results.pkl'), 'wb') as f:
-                pickle.dump(results, f)
-            return None, None, None
 
         # Core routine
         logging.info('Begin training')
