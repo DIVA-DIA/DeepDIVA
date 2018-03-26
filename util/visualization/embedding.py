@@ -73,15 +73,18 @@ def _load_thumbnail(path):
 def _main(args):
     with open(args.results_file, 'rb') as f:
         results = pickle.load(f)
+
+    features, preds, labels, filenames = results
+
     if args.tensorboard:
         writer = SummaryWriter(log_dir=os.path.dirname(args.output_file))
         with Pool(16) as pool:
-            images = pool.map(_load_thumbnail, results[2])
-        writer.add_embedding(torch.from_numpy(results[0]), metadata=torch.from_numpy(results[1]),
+            images = pool.map(_load_thumbnail, filenames)
+        writer.add_embedding(torch.from_numpy(features), metadata=torch.from_numpy(labels),
                              # label_img=torch.from_numpy(np.array(images)).unsqueeze(1))
                              label_img=None)
         return
-    viz_img = _make_embedding(features=results[0], labels=results[1], embedding=args.embedding, three_d=args.three_d)
+    viz_img = _make_embedding(features=features, labels=labels, embedding=args.embedding, three_d=args.three_d)
     cv2.imwrite(args.output_file, viz_img)
     return
 
@@ -99,19 +102,16 @@ if __name__ == "__main__":
     parser.add_argument('--embedding',
                         help='which embedding to use for the features',
                         choices=embedding_options,
-                        required=True,
                         type=str)
     parser.add_argument('--output-file',
                         type=str,
                         default='./output.png',
                         help='path to generate output image')
-
     parser.add_argument('--3d',
                         dest='three_d',
                         action='store_true',
                         default=False,
                         help='enable 3d plots')
-
     parser.add_argument('--tensorboard',
                         action='store_true',
                         default=False,
