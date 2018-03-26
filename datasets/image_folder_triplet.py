@@ -12,13 +12,17 @@ from multiprocessing import Pool
 import cv2
 from tqdm import tqdm
 import numpy as np
+
 # Torch related stuff
 import torch.utils.data as data
 import torchvision
 from PIL import Image
 
+# DeepDIVA related stuff
+from datasets.image_folder_dataset import ImageFolderApply
 
-def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, model_expected_input_size=None, **kwargs):
+
+def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, model_expected_input_size=None, apply=None, **kwargs):
     """
     Parameters
     ----------
@@ -38,6 +42,9 @@ def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, mode
 
     :param model_expected_input_size: tuple
         Specify the height and width that the model expects.
+
+    :param apply: boolean
+        Flag: if True, only the specified folder is loaded as a dataset/dataloader.
 
     :return train_ds, val_da, test_da: data.Dataset
         Return a torch dataset for each split
@@ -74,6 +81,10 @@ def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, mode
         train/cat/asd932_.png
     """
 
+    if apply:
+        apply_ds = ImageFolderApply(dataset_folder)
+        return apply_ds
+
     # Get the splits folders
     train_dir = os.path.join(dataset_folder, 'train')
     val_dir = os.path.join(dataset_folder, 'val')
@@ -106,7 +117,7 @@ def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, mode
         test_ds = ImageFolderTripletInMem(test_dir, train=False, num_triplets=num_triplets, workers=workers,
                                           model_expected_input_size=model_expected_input_size)
         return train_ds, val_ds, test_ds
-
+    return
 
 class ImageFolderTriplet(data.Dataset):
     """

@@ -62,6 +62,9 @@ def _general_parameters(parser):
     parser_general.add_argument('--quiet',
                                 action='store_true',
                                 help='Do not print to stdout (log only).')
+    parser_general.add_argument('--apply',
+                                action='store_true',
+                                help='Do not print to stdout (log only).')
     parser_general.add_argument('--multi-run',
                                 type=int,
                                 default=None,
@@ -106,9 +109,9 @@ def _data_options(parser):
     parser_data.add_argument('--disable-databalancing',
                                 default=False,
                                 action='store_true',
-                                help='Supress data balacing')
-    parser_data.add_argument('--log-dir',
-                             help='where to save logs. Can be used to resume logging of experiment.',
+                                help='Supress data balancing')
+    parser_data.add_argument('--output-folder',
+                             help='where to save all output files.',
                              required=True)
 
 

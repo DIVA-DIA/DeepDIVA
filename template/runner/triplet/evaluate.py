@@ -111,6 +111,18 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
     return fpr95
 
 
+def get_top_one(distances, labels):
+    top_ones = []
+    top_tens = []
+    for i, row in enumerate(distances):
+        sorted_similarity = np.argsort(row)[1:]
+        gt = labels[i]
+        top_one = labels[sorted_similarity[0]]
+        top_ten = [labels[item] for item in sorted_similarity[:10]]
+        top_ones.append([top_one,].count(gt))
+        top_tens.append((top_ten.count(gt)))
+    return np.average(top_ones), np.average(top_tens)
+
 def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, no_cuda, log_interval, **kwargs):
     """
     The evaluation routine
@@ -198,15 +210,81 @@ def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, 
 
     return top1
 
+def apply(data_loader, model, criterion, writer, epoch, no_cuda, log_interval, **kwargs):
+    """
+    The evaluation routine
 
-def get_top_one(distances, labels):
-    top_ones = []
-    top_tens = []
-    for i, row in enumerate(distances):
-        sorted_similarity = np.argsort(row)[1:]
-        gt = labels[i]
-        top_one = labels[sorted_similarity[0]]
-        top_ten = [labels[item] for item in sorted_similarity[:10]]
-        top_ones.append([top_one,].count(gt))
-        top_tens.append((top_ten.count(gt)))
-    return np.average(top_ones), np.average(top_tens)
+    Parameters
+    ----------
+    :param data_loader : torch.utils.data.DataLoader
+        The dataloader of the evaluation set
+
+    :param model : torch.nn.module
+        The network model being used
+
+    :param criterion: torch.nn.loss
+        The loss function used to compute the loss of the model
+
+    :param writer : tensorboardX.writer.SummaryWriter
+        The tensorboard writer object. Used to log values on file for the tensorboard visualization.
+
+    :param epoch : int
+        Number of the epoch (for logging purposes)
+
+    :param logging_label : string
+        Label for logging purposes. Typically 'test' or 'valid'. Its prepended to the logging output path and messages.
+
+    :param no_cuda : boolean
+        Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
+
+    :param log_interval : int
+        Interval limiting the logging of mini-batches. Default value of 10.
+
+    :return:
+        None
+    """
+    logging_label = 'apply'
+    from sklearn.metrics import pairwise_distances
+    multi_run = kwargs['run'] if 'run' in kwargs else None
+
+    # Switch to evaluate mode (turn off dropout & such )
+    model.eval()
+
+    labels, outputs, filenames = [], [], []
+
+    # Iterate over whole evaluation set
+    pbar = tqdm(enumerate(data_loader))
+    for batch_idx, (data, label, filename) in pbar:
+        if len(data.size()) == 5:
+            bs, ncrops, c, h, w = data.size()
+            data = data.view(-1, c, h, w)
+        if not no_cuda:
+            data = data.cuda()
+
+        data_a, label = Variable(data, volatile=True), Variable(label)
+
+        # Compute output
+        out = model(data_a)
+
+        if len(data.size()) == 5:
+            out = out.view(bs, ncrops, -1).mean(1)
+
+
+        # Euclidean distance
+        outputs.append(out.data.cpu().numpy())
+        labels.append(label.data.cpu().numpy())
+        filenames.append(filename)
+
+        # Log progress to console
+        if batch_idx % log_interval == 0:
+            pbar.set_description(logging_label + ' Epoch: {} [{}/{} ({:.0f}%)]'.format(
+                epoch, batch_idx * len(data_a), len(data_loader.dataset),
+                       100. * batch_idx / len(data_loader)))
+
+    # Measure accuracy (FPR95)
+    num_tests = len(data_loader.dataset)
+    labels = np.concatenate(labels, 0).reshape(num_tests)
+    outputs = np.concatenate(outputs, 0)
+    filenames = np.concatenate(filenames, 0)
+
+    return outputs, labels, filenames

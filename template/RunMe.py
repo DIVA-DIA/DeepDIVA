@@ -128,7 +128,7 @@ class RunMe:
         :return:
         """
         # Set up logging
-        # Don't use args.log_dir as that breaks when using SigOpt
+        # Don't use args.output_folder as that breaks when using SigOpt
         current_log_folder = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
 
         # Check Git status

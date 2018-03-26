@@ -18,6 +18,8 @@ and they should be used instead of hard-coding stuff.
 # Utils
 from __future__ import print_function
 
+import os
+import pickle
 import logging
 
 import numpy as np
@@ -39,7 +41,7 @@ from util.misc import adjust_learning_rate, checkpoint
 
 class Triplet:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap, apply, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -66,6 +68,10 @@ class Triplet:
         :param decay_lr: boolean
                 Decay the lr flag
 
+        # TODO add documentation for remaining params
+        :param apply: boolean
+            Flag: if True, only the specified folder is processed using the model and results are stored in the output directory
+
         :return: train_value, val_value, test_value
             Precision values for train and validation splits. Single precision value for the test split.
         """
@@ -76,7 +82,7 @@ class Triplet:
 
         # Setting up the dataloaders
         # train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
-        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size, **kwargs)
+        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size=model_expected_input_size, apply=apply, **kwargs)
 
         # Setting up model, optimizer, criterion
         # TODO this has to be replaced with a custom ting for the triplet most probably
@@ -90,6 +96,13 @@ class Triplet:
         criterion = nn.TripletMarginLoss(margin=margin, swap=anchorswap)
 
         # model.apply(Triplet.weights_init)
+
+        if apply:
+            logging.info('Apply model to dataset')
+            results = Triplet._apply(val_loader=val_loader, model=model, criterion=None, writer=writer, epoch=-1, **kwargs)
+            with open(os.path.join(current_log_folder, 'results.pkl'), 'wb') as f:
+                pickle.dump(results, f)
+            return None, None, None
 
         # Core routine
         logging.info('Begin training')
@@ -135,3 +148,7 @@ class Triplet:
     @classmethod
     def _test(cls, test_loader, model, criterion, writer, epoch, **kwargs):
         return evaluate.test(test_loader, model, criterion, writer, epoch, **kwargs)
+
+    @classmethod
+    def _apply(cls, val_loader, model, criterion, writer, epoch, **kwargs):
+        return evaluate.apply(val_loader, model, criterion, writer, epoch, **kwargs)

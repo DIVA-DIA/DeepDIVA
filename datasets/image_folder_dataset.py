@@ -159,3 +159,52 @@ class ImageFolderInMemory(data.Dataset):
 
     def __len__(self):
         return len(self.data)
+
+class ImageFolderApply(data.Dataset):
+    def __init__(self, dataset_folder, transform=None, target_transform=None):
+        self.dataset_folder = os.path.expanduser(dataset_folder)
+        self.transform = transform
+        self.target_transform = target_transform
+
+        # Get an online dataset
+        dataset = torchvision.datasets.ImageFolder(dataset_folder)
+
+        # Extract the actual file names and labels as entries
+        self.file_names = np.asarray([item[0] for item in dataset.imgs])
+        self.labels = np.asarray([item[1] for item in dataset.imgs])
+
+        # Set expected class attributes
+        self.classes = np.unique(self.labels)
+
+
+    def _load_into_mem(self, path):
+        return cv2.imread(path)
+
+
+    def __getitem__(self, index):
+        """
+        Parameters:
+        -----------
+
+        :param index : int
+            Index of the sample
+
+        :return: tuple:
+            (image, target) where target is index of the target class.
+        """
+
+        img, target, filename = self._load_into_mem(self.file_names[index]), self.labels[index], self.file_names[index]
+
+        # Doing this so that it is consistent with all other datasets to return a PIL Image
+        img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target, filename
+
+    def __len__(self):
+        return len(self.file_names)

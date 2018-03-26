@@ -351,7 +351,7 @@ def _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds, workers):
 
 
 #######################################################################################################################
-def set_up_logging(parser, experiment_name, log_dir, quiet, args_dict, **kwargs):
+def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **kwargs):
     """
     Set up a logger for the experiment
 
@@ -363,7 +363,7 @@ def set_up_logging(parser, experiment_name, log_dir, quiet, args_dict, **kwargs)
     :param experiment_name: string
         Name of the experiment. If not specify, accepted from command line.
 
-    :param log_dir: string
+    :param output_folder: string
         Path to where all experiment logs are stored.
 
     :param quiet: bool
@@ -410,7 +410,7 @@ def set_up_logging(parser, experiment_name, log_dir, quiet, args_dict, **kwargs)
             non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
 
     # Build up final logging folder tree with the non-default training parameters
-    log_folder = os.path.join(*[log_dir, experiment_name, dataset, *non_default_parameters,
+    log_folder = os.path.join(*[output_folder, experiment_name, dataset, *non_default_parameters,
                                 '{}'.format(time.strftime('%d-%m-%y-%Hh-%Mm-%Ss'))])
     if not os.path.exists(log_folder):
         os.makedirs(log_folder)
