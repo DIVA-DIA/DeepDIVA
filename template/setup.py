@@ -400,14 +400,17 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
     """
 
     # Get the TRAIN arguments group, which we know its the number 4
-    group = parser._action_groups[4]
-    assert group.title == 'TRAIN'
+    # group = parser._action_groups[4]
+    # assert group.title == 'TRAIN'
 
     # Fetch all non-default parameters passed
     non_default_parameters = []
-    for action in group._group_actions:
-        if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default):
-            non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
+
+    for group in parser._action_groups[2:]:
+        if group.title not in  ['GENERAL', 'DATA']:
+            for action in group._group_actions:
+                if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default) and action.dest != 'load_model':
+                    non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
 
     # Build up final logging folder tree with the non-default training parameters
     log_folder = os.path.join(*[output_folder, experiment_name, dataset, *non_default_parameters,
