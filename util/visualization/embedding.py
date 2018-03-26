@@ -1,14 +1,18 @@
+import os
 import inspect
 import sys
 import pickle
 import argparse
-
+import torch
+from multiprocessing import Pool
+import numpy as np
 import matplotlib as mpl
 
 mpl.use('Agg')
 
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
+from tensorboardX import SummaryWriter
 
 import cv2
 import numpy as np
@@ -61,10 +65,22 @@ def _make_embedding(features, labels, embedding, three_d=False):
     plt.close()
     return data
 
+def _load_thumbnail(path):
+    img = cv2.imread(path)
+    img = cv2.resize(img, (16,16))
+    return img
 
 def _main(args):
     with open(args.results_file, 'rb') as f:
         results = pickle.load(f)
+    if args.tensorboard:
+        writer = SummaryWriter(log_dir=os.path.dirname(args.output_file))
+        with Pool(16) as pool:
+            images = pool.map(_load_thumbnail, results[2])
+        writer.add_embedding(torch.from_numpy(results[0]), metadata=torch.from_numpy(results[1]),
+                             # label_img=torch.from_numpy(np.array(images)).unsqueeze(1))
+                             label_img=None)
+        return
     viz_img = _make_embedding(features=results[0], labels=results[1], embedding=args.embedding, three_d=args.three_d)
     cv2.imwrite(args.output_file, viz_img)
     return
@@ -85,7 +101,6 @@ if __name__ == "__main__":
                         choices=embedding_options,
                         required=True,
                         type=str)
-
     parser.add_argument('--output-file',
                         type=str,
                         default='./output.png',
@@ -96,6 +111,11 @@ if __name__ == "__main__":
                         action='store_true',
                         default=False,
                         help='enable 3d plots')
+
+    parser.add_argument('--tensorboard',
+                        action='store_true',
+                        default=False,
+                        help='store embeddings to tensorboard')
 
 
 
