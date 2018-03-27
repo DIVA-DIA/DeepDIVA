@@ -109,6 +109,7 @@ def _data_options(parser):
                                 action='store_true',
                                 help='Supress data balancing')
     parser_data.add_argument('--output-folder',
+                             default='./output/',
                              help='where to save all output files.',
                              required=True)
 
