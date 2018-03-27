@@ -13,12 +13,12 @@ from template.runner.triplet.eval_metrics import ErrorRateAt95Recall
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to validate the model."""
-    return _evaluate_fp95r(val_loader, model, criterion, writer, epoch, 'val', no_cuda, log_interval, **kwargs)
+    return _evaluate_topn(val_loader, model, criterion, writer, epoch, 'val', no_cuda, log_interval, **kwargs)
 
 
 def test(test_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to test the model"""
-    return _evaluate_fp95r(test_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
+    return _evaluate_topn(test_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
 
 
 def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label, no_cuda, log_interval, **kwargs):
@@ -61,11 +61,14 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
 
     labels, distances = [], []
 
+
+    multi_crop = False
     # Iterate over whole evaluation set
     pbar = tqdm(enumerate(data_loader))
     for batch_idx, (data_a, data_pn, label) in pbar:
 
         if len(data_a.size()) == 5:
+            multi_crop = True
 
             bs, ncrops, c, h, w = data_a.size()
 
@@ -80,7 +83,7 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
         # Compute output
         out_a, out_pn = model(data_a), model(data_pn)
 
-        if len(data_a.size()) == 5:
+        if multi_crop:
             out_a = out_a.view(bs, ncrops, -1).mean(1)
             out_pn = out_pn.view(bs, ncrops, -1).mean(1)
 
@@ -164,10 +167,13 @@ def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, 
 
     labels, outputs = [], []
 
+    multi_crop = False
+
     # Iterate over whole evaluation set
     pbar = tqdm(enumerate(data_loader))
     for batch_idx, (data, label) in pbar:
         if len(data.size()) == 5:
+            multi_crop = True
             bs, ncrops, c, h, w = data.size()
             data = data.view(-1, c, h, w)
         if not no_cuda:
@@ -178,7 +184,7 @@ def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, 
         # Compute output
         out = model(data_a)
 
-        if len(data.size()) == 5:
+        if multi_crop:
             out = out.view(bs, ncrops, -1).mean(1)
 
 

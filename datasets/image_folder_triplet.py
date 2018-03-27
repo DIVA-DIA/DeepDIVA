@@ -277,7 +277,7 @@ class ImageFolderTripletInMem(ImageFolderTriplet):
         if self.train:
             self.triplets = self.generate_triplets(self.labels, num_triplets)
         else:
-            self.matches = self.generate_matches(self.labels, num_triplets)
+            self.matches = self.generate_matches(self.labels, int(num_triplets/10))
 
     def _load_into_mem_and_resize(self, path):
         """
@@ -286,6 +286,7 @@ class ImageFolderTripletInMem(ImageFolderTriplet):
         :return:
         """
         img = self._load_into_mem(path)
+        # img = cv2.resize(img, None, fx=0.5, fy=0.5)
         return img
 
     def __getitem__(self, index):
@@ -300,16 +301,26 @@ class ImageFolderTripletInMem(ImageFolderTriplet):
             (image, target) where target is index of the target class.
         """
 
+        # if not self.train:
+        #     a, pn, l = self.matches[index]
+        #     img_a = self.data[a]
+        #     img_pn = self.data[pn]
+        #     img_a = Image.fromarray(img_a)
+        #     img_pn = Image.fromarray(img_pn)
+        #     if self.transform is not None:
+        #         img_a = self.transform(img_a)
+        #         img_pn = self.transform(img_pn)
+        #     return img_a, img_pn, l
+
         if not self.train:
-            a, pn, l = self.matches[index]
-            img_a = self.data[a]
-            img_pn = self.data[pn]
+            # a, pn, l = self.matches[index]
+            l = self.labels[index]
+            img_a = self.data[index]
             img_a = Image.fromarray(img_a)
-            img_pn = Image.fromarray(img_pn)
             if self.transform is not None:
                 img_a = self.transform(img_a)
-                img_pn = self.transform(img_pn)
-            return img_a, img_pn, l
+            return img_a, l
+
 
         a, p, n = self.triplets[index]
 
@@ -328,3 +339,9 @@ class ImageFolderTripletInMem(ImageFolderTriplet):
             img_n = self.transform(img_n)
 
         return img_a, img_p, img_n
+
+    def __len__(self):
+        if self.train:
+            return len(self.triplets)
+        else:
+            return len(self.file_names)
