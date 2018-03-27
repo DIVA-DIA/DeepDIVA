@@ -69,13 +69,13 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     ])
 
     val_ds.transform = transforms.Compose([
-        MultiCrop(size=model_expected_input_size, n_crops=10),
+        MultiCrop(size=model_expected_input_size, n_crops=20),
         transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
         transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean=mean, std=std)(crop) for crop in crops])),
     ])
 
     test_ds.transform = transforms.Compose([
-        MultiCrop(size=model_expected_input_size, n_crops=10),
+        MultiCrop(size=model_expected_input_size, n_crops=20),
         transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
         transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean=mean, std=std)(crop) for crop in crops])),
     ])
