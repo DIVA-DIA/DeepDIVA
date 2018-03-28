@@ -14,8 +14,9 @@ import torchvision.transforms as transforms
 import models
 from datasets.image_folder_dataset import ImageFolderApply
 from template.setup import _load_mean_std_from_file
+from template.runner.triplet.transforms import MultiCrop
 
-def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, workers, inmem,  **kwargs):
+def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, workers, inmem,  multi_crop, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -57,12 +58,18 @@ def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, wor
     # Set up dataset transforms
     logging.debug('Setting up dataset transforms')
 
-    apply_ds.transform = transforms.Compose([
-        transforms.Resize(model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
+    if multi_crop == None:
+        apply_ds.transform = transforms.Compose([
+            transforms.Resize(model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+    else:
+        apply_ds.transform = transforms.Compose([
+        MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
+        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+        transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean=mean, std=std)(crop) for crop in crops])),
     ])
-
     apply_loader = torch.utils.data.DataLoader(apply_ds,
                                                shuffle=False,
                                                batch_size=batch_size,

@@ -168,6 +168,10 @@ def _apply_options(parser):
                                action='store_true',
                                default=False,
                                help='run on generate classification report on the dataset')
+    parser_apply.add_argument('--multi-crop',
+                              type=int,
+                              default=None,
+                              help='generate multiple crops out of each input image, apply model and average over all crops of image')
     parser_apply.add_argument('--output-channels',
                               type=int,
                               default=None,

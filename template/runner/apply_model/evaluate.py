@@ -49,10 +49,12 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
 
     labels, features, preds, filenames = [], [], [], []
 
+    multi_crop = False
     # Iterate over whole evaluation set
     pbar = tqdm(enumerate(data_loader))
     for batch_idx, (data, label, filename) in pbar:
         if len(data.size()) == 5:
+            multi_crop = True
             bs, ncrops, c, h, w = data.size()
             data = data.view(-1, c, h, w)
         if not no_cuda:
@@ -63,7 +65,7 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
         # Compute output
         out = model(data_a)
 
-        if len(data.size()) == 5:
+        if multi_crop:
             out = out.view(bs, ncrops, -1).mean(1)
 
         preds.append([np.argmax(item.data.cpu().numpy()) for item in out])
