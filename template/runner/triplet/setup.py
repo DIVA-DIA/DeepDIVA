@@ -63,21 +63,21 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     logging.debug('Setting up dataset transforms')
 
     train_ds.transform = transforms.Compose([
-        transforms.RandomCrop(model_expected_input_size),
+        transforms.CenterCrop(model_expected_input_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
 
     val_ds.transform = transforms.Compose([
-        MultiCrop(size=model_expected_input_size, n_crops=20),
-        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
-        transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean=mean, std=std)(crop) for crop in crops])),
+        transforms.CenterCrop(size=model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
     ])
 
     test_ds.transform = transforms.Compose([
-        MultiCrop(size=model_expected_input_size, n_crops=20),
-        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
-        transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(mean=mean, std=std)(crop) for crop in crops])),
+        transforms.CenterCrop(size=model_expected_input_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
     ])
 
     test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
