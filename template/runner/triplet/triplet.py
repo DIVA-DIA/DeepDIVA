@@ -110,7 +110,9 @@ class Triplet:
 
         # Test
         logging.info('Training completed')
-        test_value = Triplet._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        # Disable test routine as don't have Ground Truth for the test set.
+        # test_value = Triplet._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        test_value = None
 
         return train_value, val_value, test_value
 
