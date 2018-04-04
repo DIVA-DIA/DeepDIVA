@@ -41,7 +41,7 @@ from util.misc import adjust_learning_rate, checkpoint
 
 class Triplet:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap, apply, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -86,8 +86,7 @@ class Triplet:
 
         # Setting up model, optimizer, criterion
         # TODO this has to be replaced with a custom ting for the triplet most probably
-        model, _, optimizer, best_value, start_epoch = set_up_model(output_channels=128,
-                                                                    model_name=model_name,
+        model, _, optimizer, best_value, start_epoch = set_up_model(model_name=model_name,
                                                                     lr=lr,
                                                                     train_loader=train_loader,
                                                                     **kwargs)
