@@ -127,9 +127,6 @@ class RunMe:
         :param args:
         :return:
         """
-        # Set up execution environment
-        # Specify CUDA_VISIBLE_DEVICES and seeds
-        set_up_env(**args.__dict__)
 
         # Set up logging
         # Don't use args.output_folder as that breaks when using SigOpt
@@ -163,6 +160,10 @@ class RunMe:
                     logging.shutdown()
                     print('Finished with errors. (Log files at {} )'.format(current_log_folder))
                     sys.exit(-1)
+
+        # Set up execution environment
+        # Specify CUDA_VISIBLE_DEVICES and seeds
+        set_up_env(**args.__dict__)
 
         # Define Tensorboard SummaryWriter
         logging.info('Initialize Tensorboard SummaryWriter')
