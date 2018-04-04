@@ -130,7 +130,7 @@ class PointCloud(Standard):
 
         # Add model parameters to Tensorboard
         for name, param in model.named_parameters():
-            writer.add_histogram(name, param.clone().cpu().data.numpy(), -1, bins='auto')
+            writer.add_histogram(name + '_-1', param.clone().cpu().data.numpy(), -1, bins='auto')
 
         for epoch in range(start_epoch, epochs):
             # Train
@@ -148,7 +148,7 @@ class PointCloud(Standard):
                                                 **kwargs)
             # Add model parameters to Tensorboard
             for name, param in model.named_parameters():
-                writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch, bins='auto')
+                writer.add_histogram(name + '_{}'.format(epoch), param.clone().cpu().data.numpy(), epoch, bins='auto')
 
         # Test
         test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)
