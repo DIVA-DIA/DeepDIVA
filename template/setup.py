@@ -3,7 +3,6 @@ import inspect
 import json
 import logging
 import os
-import sys
 import random
 import sys
 import time
@@ -22,20 +21,6 @@ import torchvision.transforms as transforms
 import models
 from datasets import image_folder_dataset, point_cloud_dataset
 from util.dataset_analytics import compute_mean_std
-
-def _get_weights(train_loader):
-    classes = [item for item in train_loader.dataset.classes]
-    imgs = np.array([item[1] for item in train_loader.dataset.imgs])
-    total_num_images = len(imgs)
-    image_ratio_per_class = []
-    images_per_class = []
-    for i in range(len(classes)):
-        images_per_class.append(np.where(imgs == i)[0].size)
-        image_ratio_per_class.append(np.where(imgs == i)[0].size/total_num_images)
-    logging.info('The images per class are: {}'.format(images_per_class))
-    logging.info('The image ratio per class is: {}'.format(image_ratio_per_class))
-    return 1.0 / np.array(image_ratio_per_class)
-
 
 def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch, train_loader,
                  disable_databalancing, num_classes=None, **kwargs):
@@ -94,8 +79,8 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
         criterion = nn.CrossEntropyLoss()
     else:
         # TODO: make data balancing agnostic to type of dataset
-        weight = _get_weights(train_loader)
-        criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weight).type(torch.FloatTensor))
+        weights = _get_class_frequencies(train_loader)
+        criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weights).type(torch.FloatTensor))
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -139,6 +124,21 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
         best_value = 0.0
 
     return model, criterion, optimizer, best_value, start_epoch
+
+
+def _get_class_frequencies(train_loader):
+    # TODO improve documentation
+    classes = [item for item in train_loader.dataset.classes]
+    imgs = np.array([item[1] for item in train_loader.dataset.imgs])
+    total_num_images = len(imgs)
+    image_ratio_per_class = []
+    images_per_class = []
+    for i in range(len(classes)):
+        images_per_class.append(np.where(imgs == i)[0].size)
+        image_ratio_per_class.append(np.where(imgs == i)[0].size / total_num_images)
+    logging.info('The images per class are: {}'.format(images_per_class))
+    logging.info('The image ratio per class is: {}'.format(image_ratio_per_class))
+    return 1.0 / np.array(image_ratio_per_class)
 
 
 def _get_optimizer(optimizer_name, model, **kwargs):
@@ -448,7 +448,7 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
     return log_folder
 
 
-def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
+def set_up_env(gpu_id, seed, multi_run, no_cuda, **kwargs):
     """
     Set up the execution environment.
 
@@ -462,9 +462,6 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
 
     :param multi_run: int
         Number of runs over the same code to produce mean-variance graph.
-
-    :param workers: int
-        Number of workers to use for the dataloaders
 
     :param no_cuda: bool
         Specify whether to use the GPU or not
@@ -482,7 +479,7 @@ def set_up_env(gpu_id, seed, multi_run, workers, no_cuda, **kwargs):
         logging.info('Randomly chosen seed is: {}'.format(seed))
     else:
         try:
-            assert multi_run is None
+            assert multi_run == None
         except:
             logging.warning('Arguments for seed AND multi-run should not be active at the same time!')
             raise SystemExit

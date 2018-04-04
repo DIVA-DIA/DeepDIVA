@@ -3,9 +3,10 @@ import logging
 import time
 
 import numpy as np
-from sklearn.metrics import confusion_matrix, classification_report
 # Torch related stuff
 import torch
+from sklearn.metrics import confusion_matrix, classification_report
+from tqdm import tqdm
 
 # DeepDIVA
 from util.misc import AverageMeter, accuracy
@@ -72,7 +73,8 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     preds = []
     targets = []
 
-    for i, (input, target) in enumerate(data_loader):
+    pbar = tqdm(enumerate(data_loader))
+    for batch_idx, (input, target) in pbar:
 
         # Moving data to GPU
         if not no_cuda:
@@ -100,30 +102,29 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
-            writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + i)
-            writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(), epoch * len(data_loader) + i)
+            writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(), epoch * len(data_loader) + batch_idx)
         else:
             writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
-                              epoch * len(data_loader) + i)
+                              epoch * len(data_loader) + batch_idx)
             writer.add_scalar(logging_label + '/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
-                              epoch * len(data_loader) + i)
+                              epoch * len(data_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if i % log_interval == 0:
-            logging.info(logging_label + ' Epoch [{0}][{1}/{2}]\t'
-                                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-                epoch, i, len(data_loader), batch_time=batch_time, loss=losses,
+        if batch_idx % log_interval == 0:
+            pbar.set_description(logging_label + ' Epoch [{0}][{1}/{2}]\t'
+                                                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                                                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                                                 'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
+                epoch, batch_idx, len(data_loader), batch_time=batch_time, loss=losses,
                 top1=top1))
 
     # Make a confusion matrix
     cm = confusion_matrix(y_true=targets, y_pred=preds)
     confusion_matrix_heatmap = make_heatmap(cm, data_loader.dataset.classes)
-
 
     # Logging the epoch-wise accuracy and confusion matrix
     if multi_run is None:

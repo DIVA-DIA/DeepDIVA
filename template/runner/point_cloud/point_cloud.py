@@ -50,7 +50,6 @@ def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resoluti
                              grid_x=grid_x, grid_y=grid_y, point_x=val_coords[:, 0], point_y=val_coords[:, 1],
                              point_class=val_loader.dataset.data[:, 2], num_classes=num_classes,
                              step=epoch, writer=writer, epochs=epochs, **kwargs)
-    return
 
 
 class PointCloud(Standard):
@@ -107,7 +106,9 @@ class PointCloud(Standard):
 
         # Make data for points
         grid_resolution = 100
-        val_coords = np.squeeze(np.array([input.numpy() for input, target in val_loader]))
+        mini_batches = np.array([input_mini_batch.numpy() for input_mini_batch, _ in val_loader])
+        val_coords = np.squeeze(np.array([sample for mini_batch in mini_batches for sample in mini_batch]))
+
         min_x, min_y = np.min(val_coords[:, 0]), np.min(val_coords[:, 1])
         max_x, max_y = np.max(val_coords[:, 0]), np.max(val_coords[:, 1])
         coords = np.array([[x, y]
@@ -126,6 +127,7 @@ class PointCloud(Standard):
                                             **kwargs)
 
         val_value[-1] = PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
+
         # Add model parameters to Tensorboard
         for name, param in model.named_parameters():
             writer.add_histogram(name, param.clone().cpu().data.numpy(), -1, bins='auto')

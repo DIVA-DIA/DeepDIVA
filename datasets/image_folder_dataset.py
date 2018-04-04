@@ -127,7 +127,6 @@ class ImageFolderInMemory(data.Dataset):
         # Set expected class attributes
         self.classes = np.unique(self.labels)
 
-
     def _load_into_mem(self, path):
         return cv2.imread(path)
 

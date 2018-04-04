@@ -1,12 +1,13 @@
 import matplotlib as mpl
+
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
 
-def make_heatmap(confusion_matrix, class_names):
 
+def make_heatmap(confusion_matrix, class_names):
     """
     Adapted from https://gist.github.com/shaypal5/94c53d765083101efc0240d776a23823
     This function prints and plots the confusion matrix.
@@ -18,7 +19,7 @@ def make_heatmap(confusion_matrix, class_names):
     )
 
     plt.style.use(['seaborn-white', 'seaborn-paper'])
-    fig = plt.figure(figsize=(8,8))
+    fig = plt.figure(figsize=(8, 8))
     plt.tight_layout()
     mpl.rc("font", family="Times New Roman")
 

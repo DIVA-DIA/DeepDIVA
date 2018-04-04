@@ -1,9 +1,9 @@
 # Utils
-import logging
 import time
 
 # Torch related stuff
 import torch
+from tqdm import tqdm
 
 # DeepDIVA
 from util.misc import AverageMeter, accuracy
@@ -55,7 +55,8 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
     # Iterate over whole training set
     end = time.time()
-    for i, (input, target) in enumerate(train_loader):
+    pbar = tqdm(enumerate(train_loader))
+    for batch_idx, (input, target) in pbar:
 
         # Measure data loading time
         data_time.update(time.time() - end)
@@ -85,13 +86,13 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
         # Add loss and accuracy to Tensorboard
         if multi_run == None:
-            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + i)
-            writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + i)
+            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + batch_idx)
         else:
             writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
-                              epoch * len(train_loader) + i)
+                              epoch * len(train_loader) + batch_idx)
             writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
-                              epoch * len(train_loader) + i)
+                              epoch * len(train_loader) + batch_idx)
 
         # Reset gradient
         optimizer.zero_grad()
@@ -105,17 +106,17 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         end = time.time()
 
         # Log to console
-        if i % log_interval == 0:
-            logging.info('Epoch [{0}][{1}/{2}]\t'
+        if batch_idx % log_interval == 0:
+            pbar.set_description('Epoch [{0}][{1}/{2}]\t'
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                          'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-                epoch, i, len(train_loader), batch_time=batch_time,
+                epoch, batch_idx, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1))
 
     # Logging the epoch-wise accuracy
-    if multi_run == None:
+    if multi_run is None:
         writer.add_scalar('train/accuracy', top1.avg, epoch)
     else:
         writer.add_scalar('train/accuracy_{}'.format(multi_run), top1.avg, epoch)

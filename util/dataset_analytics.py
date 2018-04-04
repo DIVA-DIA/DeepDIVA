@@ -32,11 +32,11 @@ Example:
 @author: Michele Alberti
 """
 
+import argparse
+import logging
 # Utils
 import os
 import sys
-import logging
-import argparse
 
 import cv2
 import numpy as np
@@ -101,12 +101,13 @@ def _return_mean(image_path):
     mean = np.array([np.mean(img[:, :, 2]), np.mean(img[:, :, 1]), np.mean(img[:, :, 0])]) / 255.0
     return mean
 
+
 # Loads an image with OpenCV and returns the
 def _return_std(image_path, mean):
     # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
     img = cv2.imread(image_path) / 255.0
     m2 = np.square(np.array([img[:, :, 2] - mean[0], img[:, :, 1] - mean[1], img[:, :, 0] - mean[2]]))
-    return np.sum(np.sum(m2, axis=1), 1), m2.size/3.0
+    return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
 
 def cms_online(file_names, workers):

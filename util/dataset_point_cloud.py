@@ -226,6 +226,36 @@ def xor(size):
     return _split_data(samples)
 
 
+def multi_xor(size):
+    """
+    XOR problem but with multi class, each corner a different class
+    4 classes.
+
+    Parameters
+    ----------
+    :param size: int
+        The total number of points in the dataset.
+    :return:
+        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+    samples = np.array([(x, y, _multi_xor(x, y))
+                        for x in np.linspace(0, 1, np.sqrt(size))
+                        for y in np.linspace(0, 1, np.sqrt(size))])
+
+    return _split_data(samples)
+
+
+def _multi_xor(x, y):
+    if (x < 0.5) and (y < 0.5):
+        return 0
+    if (x < 0.5) and (y > 0.5):
+        return 1
+    if (x > 0.5) and (y < 0.5):
+        return 2
+    if (x > 0.5) and (y > 0.5):
+        return 3
+
 ########################################################################################################################
 def _split_data(samples):
     """

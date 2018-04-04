@@ -71,11 +71,11 @@ def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, 
 
     # Plot to tensorboard
     if multi_run is None:
-        if step in overview_epochs or epochs < 10:
+        if step in overview_epochs or epochs <= 10:
             writer.add_image('decision_boundary_overview', data, global_step=step)
         writer.add_image('decision_boundary/{}'.format(step), data, global_step=step)
     else:
-        if step in overview_epochs or epochs < 10:
+        if step in overview_epochs or epochs <= 10:
             writer.add_image('decision_boundary_overview_{}'.format(multi_run), data, global_step=step)
         writer.add_image('decision_boundary_{}/{}'.format(multi_run, step), data, global_step=step)
     plt.clf()

@@ -1,14 +1,14 @@
+import argparse
 import os
 import sys
-import cv2
-import torch
-import models
-import argparse
-from torchvision import transforms
-from torchvision.utils import make_grid, save_image
-from PIL import Image
-import PIL
+
 import numpy as np
+import torch
+from PIL import Image
+from torchvision import transforms
+from torchvision.utils import make_grid
+
+import models
 
 
 def make_grid_own(activations):
@@ -25,6 +25,7 @@ def make_grid_own(activations):
         end_y = (y_level + 1) * activations.shape[2]
         large_fig[beg_x:end_x, beg_y:end_y] = activations[idx]
     return large_fig.astype(np.uint8)
+
 
 def main(args):
     model = models.__dict__[args.model_name](pretrained=args.pretrained)
@@ -60,9 +61,9 @@ def main(args):
         if i + 1 == args.layer:
             break
 
-    img = x.data.permute(1,0,2,3)
+    img = x.data.permute(1, 0, 2, 3)
 
-    img = make_grid(img, scale_each=True, normalize=True).numpy().transpose(1,2,0) * 255
+    img = make_grid(img, scale_each=True, normalize=True).numpy().transpose(1, 2, 0) * 255
     img = img.astype(np.uint8)
 
     img = Image.fromarray(img)

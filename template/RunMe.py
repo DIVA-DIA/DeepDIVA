@@ -176,12 +176,13 @@ class RunMe:
         try:
             start_time = time.time()
             if args.multi_run is not None:
-                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, current_log_folder,  args)
+                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, current_log_folder, args)
             else:
                 train_scores, val_scores, test_scores = runner_class.single_run(writer=writer, current_log_folder=current_log_folder,
                                                                                 **args.__dict__)
             end_time = time.time()
-            logging.info('Time taken for train/eval/test is: {}'.format(datetime.timedelta(seconds=int(end_time - start_time))))
+            logging.info(
+                'Time taken for train/eval/test is: {}'.format(datetime.timedelta(seconds=int(end_time - start_time))))
         except Exception as exp:
             if args.quiet:
                 print('Unhandled error: {}'.format(repr(exp)))
@@ -242,8 +243,8 @@ class RunMe:
             logging.info('Generated mean-variance plot for train')
 
             # Generate and add to tensorboard the shaded plot for va
-            val_curve = plot_mean_std(x=(np.arange(args.epochs+1) - 1),
-                                      arr=np.roll(val_scores[:i + 1], axis=1,shift=1),
+            val_curve = plot_mean_std(x=(np.arange(args.epochs + 1) - 1),
+                                      arr=np.roll(val_scores[:i + 1], axis=1, shift=1),
                                       suptitle='Multi-Run: Val',
                                       title='Runs: {}'.format(i + 1),
                                       xlabel='Epoch', ylabel='Score',

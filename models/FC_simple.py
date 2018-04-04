@@ -16,16 +16,18 @@ class FC_simple(nn.Module):
 
         self.expected_input_size = 2
 
+        hidden = 20
+
         # First layer
         self.fc1 = nn.Sequential(
             Flatten(),
-            nn.Linear(2, 10),
-            nn.LeakyReLU(),
+            nn.Linear(self.expected_input_size, hidden),
+            nn.Tanh(),
         )
 
         # Classification layer
         self.fc2 = nn.Sequential(
-            nn.Linear(10, output_channels)
+            nn.Linear(hidden, output_channels)
         )
 
     def forward(self, x):
