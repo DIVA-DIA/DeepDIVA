@@ -62,13 +62,18 @@ class Triplet:
         :param lr: float
             Value for learning rate
 
-        :param kwargs: dict
-            Any additional arguments.
+        :param margin: float
+            the margin value for the triplet loss function
+
+        :param anchorswap: boolean
+            turns on anchor swap
 
         :param decay_lr: boolean
                 Decay the lr flag
 
-        # TODO add documentation for remaining params
+        :param kwargs: dict
+            Any additional arguments.
+
         :return: train_value, val_value, test_value
             Precision values for train and validation splits. Single precision value for the test split.
         """
@@ -78,11 +83,10 @@ class Triplet:
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
-        # train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
-        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size=model_expected_input_size, **kwargs)
+        train_loader, val_loader, test_loader, _ = setup_dataloaders(model_expected_input_size=model_expected_input_size, **kwargs)
 
         # Setting up model, optimizer, criterion
-        # TODO this has to be replaced with a custom ting for the triplet most probably
+        # TODO this has to be replaced with a custom ting for the triplet most probably. (Vinay: elaborate?)
         model, _, optimizer, best_value, start_epoch = set_up_model(model_name=model_name,
                                                                     lr=lr,
                                                                     train_loader=train_loader,
@@ -91,6 +95,7 @@ class Triplet:
         # Set the special criterion for triplets
         criterion = nn.TripletMarginLoss(margin=margin, swap=anchorswap)
 
+        # TODO: Check if this really necessary?
         # model.apply(Triplet.weights_init)
 
         # Core routine
@@ -110,9 +115,8 @@ class Triplet:
 
         # Test
         logging.info('Training completed')
-        # Disable test routine as don't have Ground Truth for the test set.
-        # test_value = Triplet._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
-        test_value = None
+
+        test_value = Triplet._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
 
         return train_value, val_value, test_value
 

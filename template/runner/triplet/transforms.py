@@ -2,7 +2,6 @@ import torch
 import numbers
 import numpy as np
 
-
 class MultiCrop(object):
     """Crop the given PIL Image into multiple random crops
 
@@ -28,6 +27,7 @@ class MultiCrop(object):
     """
 
     def __init__(self, size, n_crops):
+        # TODO: DOES NOT PLAY WELL WITH SEEDS. Figure out why!
         self.size = size
         self.n_crops = n_crops
         if isinstance(size, numbers.Number):

@@ -10,6 +10,7 @@ from tqdm import tqdm
 # DeepDIVA
 from template.runner.triplet.eval_metrics import ErrorRateAt95Recall
 
+# TODO: Make it parameterized to use top_n or FPR
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to validate the model."""
@@ -113,7 +114,6 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
 
     return fpr95
 
-
 def get_top_one(distances, labels):
     top_ones = []
     top_tens = []
@@ -167,11 +167,14 @@ def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, 
 
     labels, outputs = [], []
 
+    # For use with the multi-crop transform
     multi_crop = False
 
     # Iterate over whole evaluation set
     pbar = tqdm(enumerate(data_loader))
     for batch_idx, (data, label) in pbar:
+
+        # Check if data is provided in multi-crop form and process accordingly
         if len(data.size()) == 5:
             multi_crop = True
             bs, ncrops, c, h, w = data.size()

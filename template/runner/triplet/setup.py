@@ -82,4 +82,4 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
 
     test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                        workers)
-    return train_loader, val_loader, train_loader
+    return train_loader, val_loader, train_loader, None

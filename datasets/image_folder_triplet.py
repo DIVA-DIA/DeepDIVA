@@ -208,15 +208,24 @@ class ImageFolderTriplet(data.Dataset):
         :return: tuple:
             (image, target) where target is index of the target class.
         """
+        # TODO: Make it parameterized to use TOPN or FPR type data returns
+        # if not self.train:
+        #     a, pn, l = self.matches[index]
+        #     img_a = Image.fromarray(self._load_into_mem(self.file_names[a]))
+        #     img_pn = Image.fromarray(self._load_into_mem(self.file_names[pn]))
+        #     if self.transform is not None:
+        #         img_a = self.transform(img_a)
+        #         img_pn = self.transform(img_pn)
+        #     return img_a, img_pn, l
 
         if not self.train:
-            a, pn, l = self.matches[index]
-            img_a = Image.fromarray(self._load_into_mem(self.file_names[a]))
-            img_pn = Image.fromarray(self._load_into_mem(self.file_names[pn]))
+            # a, pn, l = self.matches[index]
+            l = self.labels[index]
+            img_a = self._load_into_mem(self.file_names[index])
+            img_a = Image.fromarray(img_a)
             if self.transform is not None:
                 img_a = self.transform(img_a)
-                img_pn = self.transform(img_pn)
-            return img_a, img_pn, l
+            return img_a, l
 
         a, p, n = self.triplets[index]
 
@@ -301,6 +310,7 @@ class ImageFolderTripletInMem(ImageFolderTriplet):
             (image, target) where target is index of the target class.
         """
 
+        # TODO: Make it parameterized to use TOPN or FPR type data returns
         # if not self.train:
         #     a, pn, l = self.matches[index]
         #     img_a = self.data[a]
