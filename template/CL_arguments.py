@@ -245,18 +245,6 @@ def _triplet_options(parser):
     These parameters are used by the runner class template.runner.triplet
     """
     parser_triplet = parser.add_argument_group('TRIPLET', 'Triplet Options')
-    parser_triplet.add_argument('--dataroot',
-                                type=str,
-                                default='/tmp/phototour_dataset',
-                                help='path to dataset')
-    parser_triplet.add_argument('--imageSize',
-                                type=int,
-                                default=32,
-                                help='the height / width of the input image to network')
-    parser_triplet.add_argument('--test-batch-size',
-                                type=int,
-                                default=1000,
-                                help='input batch size for testing (default: 1000)')
     parser_triplet.add_argument('--n-triplets',
                                 type=int,
                                 default=1280000, metavar='N',
@@ -265,14 +253,6 @@ def _triplet_options(parser):
                                 type=float,
                                 default=2.0,
                                 help='the margin value for the triplet loss function')
-    parser_triplet.add_argument('--lr-decay',
-                                default=1e-6,
-                                type=float,
-                                help='learning rate decay ratio (default: 1e-6')
-    parser_triplet.add_argument('--wd',
-                                default=1e-4,
-                                type=float,
-                                help='weight decay (default: 1e-4)')
     parser_triplet.add_argument('--anchorswap',
                                 type=bool,
                                 default=False,
