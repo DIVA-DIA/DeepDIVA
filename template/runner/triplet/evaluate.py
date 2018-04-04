@@ -10,6 +10,7 @@ from tqdm import tqdm
 # DeepDIVA
 from template.runner.triplet.eval_metrics import ErrorRateAt95Recall
 
+
 # TODO: Make it parameterized to use top_n or FPR
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
@@ -62,7 +63,6 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
 
     labels, distances = [], []
 
-
     multi_crop = False
     # Iterate over whole evaluation set
     pbar = tqdm(enumerate(data_loader))
@@ -104,7 +104,7 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
     labels = np.concatenate(labels, 0).reshape(num_tests)
     distances = np.concatenate(distances, 0).reshape(num_tests)
     fpr95 = ErrorRateAt95Recall(labels, distances)
-    logging.info('\33[91m ' + logging_label +' set: ErrorRate(FPR95): {:.8f}\n\33[0m'.format(fpr95))
+    logging.info('\33[91m ' + logging_label + ' set: ErrorRate(FPR95): {:.8f}\n\33[0m'.format(fpr95))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
@@ -114,6 +114,7 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
 
     return fpr95
 
+
 def get_top_one(distances, labels):
     top_ones = []
     top_tens = []
@@ -122,9 +123,10 @@ def get_top_one(distances, labels):
         gt = labels[i]
         top_one = labels[sorted_similarity[0]]
         top_ten = [labels[item] for item in sorted_similarity[:10]]
-        top_ones.append([top_one,].count(gt))
+        top_ones.append([top_one, ].count(gt))
         top_tens.append((top_ten.count(gt)))
     return np.average(top_ones), np.average(top_tens)
+
 
 def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, no_cuda, log_interval, **kwargs):
     """
@@ -190,7 +192,6 @@ def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, 
         if multi_crop:
             out = out.view(bs, ncrops, -1).mean(1)
 
-
         # Euclidean distance
         outputs.append(out.data.cpu().numpy())
         labels.append(label.data.cpu().numpy())
@@ -207,7 +208,7 @@ def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, 
     outputs = np.concatenate(outputs, 0)
     distances = pairwise_distances(outputs, metric='cosine', n_jobs=16)
     top1, top10 = get_top_one(distances, labels)
-    logging.info('\33[91m ' + logging_label +' set: Top1: {}  Top10: {}\n\33[0m'.format(top1, top10))
+    logging.info('\33[91m ' + logging_label + ' set: Top1: {}  Top10: {}\n\33[0m'.format(top1, top10))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:

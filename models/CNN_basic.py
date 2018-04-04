@@ -10,6 +10,7 @@ class Flatten(nn.Module):
         x = x.view(x.size()[0], -1)
         return x
 
+
 class CNN_basic(nn.Module):
     """
     :var conv1   : torch.nn.Conv2d

@@ -30,7 +30,7 @@ def check_integrity(fpath, md5):
     return True
 
 
-#TODO comment this
+# TODO comment this
 def download_url(url, root, filename, md5):
     from six.moves import urllib
 
@@ -52,8 +52,10 @@ def download_url(url, root, filename, md5):
         print('Downloading ' + url + ' to ' + fpath)
         urllib.request.urlretrieve(url, fpath)
 
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 

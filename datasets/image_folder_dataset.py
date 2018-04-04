@@ -130,7 +130,6 @@ class ImageFolderInMemory(data.Dataset):
     def _load_into_mem(self, path):
         return cv2.imread(path)
 
-
     def __getitem__(self, index):
         """
         Parameters:
@@ -159,6 +158,7 @@ class ImageFolderInMemory(data.Dataset):
     def __len__(self):
         return len(self.data)
 
+
 class ImageFolderApply(data.Dataset):
     def __init__(self, dataset_folder, transform=None, target_transform=None):
         self.dataset_folder = os.path.expanduser(dataset_folder)
@@ -175,10 +175,8 @@ class ImageFolderApply(data.Dataset):
         # Set expected class attributes
         self.classes = np.unique(self.labels)
 
-
     def _load_into_mem(self, path):
         return cv2.imread(path)
-
 
     def __getitem__(self, index):
         """

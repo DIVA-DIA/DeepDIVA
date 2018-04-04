@@ -108,10 +108,10 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         # Log to console
         if batch_idx % log_interval == 0:
             pbar.set_description('Epoch [{0}][{1}/{2}]\t'
-                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                         'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                         'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                         'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
+                                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                                 'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                                 'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
                 epoch, batch_idx, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1))
 

@@ -6,6 +6,7 @@ class Flatten(nn.Module):
         x = x.view(x.size()[0], -1)
         return x
 
+
 class FC_medium(nn.Module):
     def __init__(self, output_channels=10, **kwargs):
         """

@@ -101,13 +101,13 @@ def _data_options(parser):
                              help='location of the dataset on the machine e.g root/data',
                              required=True)
     parser_data.add_argument('--inmem',
-                                default=False,
-                                action='store_true',
-                                help='Attempt to load the entire image dataset in memory')
+                             default=False,
+                             action='store_true',
+                             help='Attempt to load the entire image dataset in memory')
     parser_data.add_argument('--disable-databalancing',
-                                default=False,
-                                action='store_true',
-                                help='Supress data balancing')
+                             default=False,
+                             action='store_true',
+                             help='Supress data balancing')
     parser_data.add_argument('--output-folder',
                              default='./output/',
                              help='where to save all output files.',
@@ -165,9 +165,9 @@ def _apply_options(parser):
     parser_apply = parser.add_argument_group('APPLY', 'Apply Model Options')
 
     parser_apply.add_argument('--classify',
-                               action='store_true',
-                               default=False,
-                               help='run on generate classification report on the dataset')
+                              action='store_true',
+                              default=False,
+                              help='run on generate classification report on the dataset')
     parser_apply.add_argument('--multi-crop',
                               type=int,
                               default=None,
@@ -176,6 +176,7 @@ def _apply_options(parser):
                               type=int,
                               default=None,
                               help='override the number of output channels for loading specific models')
+
 
 def _optimizer_options(parser):
     """

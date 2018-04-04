@@ -20,7 +20,6 @@ class TNet(nn.Module):
 
         self.expected_input_size = (32, 32)
 
-
         self.conv1 = nn.Sequential(
             nn.Conv2d(input_channels, 32, kernel_size=7),
             nn.Tanh(),
@@ -31,7 +30,6 @@ class TNet(nn.Module):
             nn.Conv2d(32, 64, kernel_size=6),
             nn.Tanh()
         )
-
 
         self.fc = nn.Sequential(
             Flatten(),

@@ -1,4 +1,5 @@
 import matplotlib as mpl
+
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -7,7 +8,7 @@ import numpy as np
 
 def plot_mean_std(x=None, arr=None, suptitle='', title='', xlabel='X', ylabel='Y', xlim=None, ylim=None):
     fig = plt.figure(1)
-    arr_mean =  np.mean(arr, 0)
+    arr_mean = np.mean(arr, 0)
     arr_std = np.std(arr, 0)
     arr_min = np.min(arr, 0)
     arr_max = np.max(arr, 0)

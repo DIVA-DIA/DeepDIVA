@@ -41,7 +41,7 @@ from util.misc import adjust_learning_rate, checkpoint
 
 class Triplet:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap,  **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -119,7 +119,6 @@ class Triplet:
         test_value = Triplet._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
 
         return train_value, val_value, test_value
-
 
     def weights_init(m):
         if isinstance(m, torch.nn.Conv2d):

@@ -110,6 +110,7 @@ def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, mode
         return train_ds, val_ds, test_ds
     return
 
+
 class ImageFolderTriplet(data.Dataset):
     """
     This class makes use of torchvision.datasets.ImageFolder() to create an online dataset.
@@ -286,7 +287,7 @@ class ImageFolderTripletInMem(ImageFolderTriplet):
         if self.train:
             self.triplets = self.generate_triplets(self.labels, num_triplets)
         else:
-            self.matches = self.generate_matches(self.labels, int(num_triplets/10))
+            self.matches = self.generate_matches(self.labels, int(num_triplets / 10))
 
     def _load_into_mem_and_resize(self, path):
         """
@@ -330,7 +331,6 @@ class ImageFolderTripletInMem(ImageFolderTriplet):
             if self.transform is not None:
                 img_a = self.transform(img_a)
             return img_a, l
-
 
         a, p, n = self.triplets[index]
 

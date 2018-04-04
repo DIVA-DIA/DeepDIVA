@@ -97,8 +97,8 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
 
         # Generate a classification report for each epoch
         logging.info('Classification Report for epoch {}\n'.format(epoch))
-        logging.info('\n'+classification_report(y_true=labels,
-                                           y_pred=preds,
-                                           target_names=[str(item) for item in data_loader.dataset.classes]))
+        logging.info('\n' + classification_report(y_true=labels,
+                                                  y_pred=preds,
+                                                  target_names=[str(item) for item in data_loader.dataset.classes]))
 
     return features, preds, labels, filenames

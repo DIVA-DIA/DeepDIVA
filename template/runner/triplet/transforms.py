@@ -2,6 +2,7 @@ import torch
 import numbers
 import numpy as np
 
+
 class MultiCrop(object):
     """Crop the given PIL Image into multiple random crops
 

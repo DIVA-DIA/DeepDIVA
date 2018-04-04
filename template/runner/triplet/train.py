@@ -58,7 +58,6 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
     for batch_idx, (data_a, data_p, data_n) in pbar:
 
         if len(data_a.size()) == 5:
-
             bs, ncrops, c, h, w = data_a.size()
 
             data_a = data_a.view(-1, c, h, w)
@@ -82,7 +81,6 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
             out_a = out_a.view(bs, ncrops, -1).mean(1)
             out_p = out_p.view(bs, ncrops, -1).mean(1)
             out_n = out_n.view(bs, ncrops, -1).mean(1)
-
 
         # Compute and record the loss
         loss = criterion(out_p, out_a, out_n)

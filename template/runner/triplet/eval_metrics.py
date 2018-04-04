@@ -6,6 +6,7 @@ https://github.com/hanxf/matchnet/blob/master/eval_metrics.py
 """
 import operator
 
+
 def ErrorRateAt95Recall(labels, scores):
     recall_point = 0.95
     # Sort label-score tuples by the score in descending order.

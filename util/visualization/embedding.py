@@ -20,6 +20,7 @@ import numpy as np
 from sklearn.manifold import TSNE, Isomap, MDS
 from sklearn.decomposition import PCA
 
+
 ########################################################################################################################
 def tsne(features, n_components=2):
     return TSNE(n_components=n_components).fit_transform(features)
@@ -32,8 +33,10 @@ def isomap(features, n_components=2):
 def mds(features, n_components=2):
     return MDS(n_components=n_components, n_jobs=-1).fit_transform(features)
 
+
 def pca(features, n_components=2):
     return PCA(n_components=n_components).fit_transform(features)
+
 
 ########################################################################################################################
 def _make_embedding(features, labels, embedding, three_d=False):
@@ -65,10 +68,12 @@ def _make_embedding(features, labels, embedding, three_d=False):
     plt.close()
     return data
 
+
 def _load_thumbnail(path):
     img = cv2.imread(path)
-    img = cv2.resize(img, (16,16))
+    img = cv2.resize(img, (16, 16))
     return img
+
 
 def _main(args):
     with open(args.results_file, 'rb') as f:
@@ -116,8 +121,6 @@ if __name__ == "__main__":
                         action='store_true',
                         default=False,
                         help='store embeddings to tensorboard')
-
-
 
     args = parser.parse_args()
 

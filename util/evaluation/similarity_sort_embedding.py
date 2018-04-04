@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.metrics import pairwise_distances
 from pandas import DataFrame
 
+
 def _main(args):
     with open(args.results_file, 'rb') as f:
         results = pickle.load(f)
@@ -17,11 +18,11 @@ def _main(args):
         sorted_similarity = np.argsort(row)[1:]
         gt = labels[i]
         top_one = labels[sorted_similarity[0]]
-        avg_top_one.append([[top_one,].count(gt)])
+        avg_top_one.append([[top_one, ].count(gt)])
 
         tmp = []
         tmp.append(filenames[i])
-        query_results= filenames[sorted_similarity[:args.num_results]]
+        query_results = filenames[sorted_similarity[:args.num_results]]
         _ = [tmp.append(item) for item in query_results]
         results.append(tmp)
 
@@ -37,7 +38,6 @@ def _main(args):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--results-file',

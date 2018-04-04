@@ -22,6 +22,7 @@ import models
 from datasets import image_folder_dataset, point_cloud_dataset
 from util.dataset_analytics import compute_mean_std
 
+
 def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch, train_loader,
                  disable_databalancing, num_classes=None, **kwargs):
     """
@@ -412,7 +413,7 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
     non_default_parameters = []
 
     for group in parser._action_groups[2:]:
-        if group.title not in  ['GENERAL', 'DATA']:
+        if group.title not in ['GENERAL', 'DATA']:
             for action in group._group_actions:
                 if (kwargs[action.dest] is not None) and (kwargs[action.dest] != action.default) and action.dest != 'load_model':
                     non_default_parameters.append(str(action.dest) + "=" + str(kwargs[action.dest]))
@@ -503,5 +504,3 @@ def set_up_env(gpu_id, seed, multi_run, no_cuda, **kwargs):
         torch.cuda.manual_seed_all(seed)
 
     return
-
-

@@ -143,8 +143,6 @@ def cms_online(file_names, workers):
     logging.info('Finished computing the mean')
     logging.info('Begin computing the std')
 
-
-
     # Online standard deviation
     results = pool.starmap(_return_std, [[item, mean] for item in file_names])
     std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
