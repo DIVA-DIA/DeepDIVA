@@ -137,8 +137,8 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
     # Generate a classification report for each epoch
     logging.info('Classification Report for epoch {}\n'.format(epoch))
-    logging.info(classification_report(y_true=targets,
-                                       y_pred=preds,
-                                       target_names=[str(item) for item in data_loader.dataset.classes]))
+    logging.info('\n' + classification_report(y_true=targets,
+                                              y_pred=preds,
+                                              target_names=[str(item) for item in data_loader.dataset.classes]))
 
     return top1.avg
