@@ -26,7 +26,7 @@ from util.misc import checkpoint, adjust_learning_rate
 #######################################################################################################################
 class ApplyModel:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, output_channels, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, output_channels, classify, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -54,7 +54,10 @@ class ApplyModel:
                 Decay the lr flag
 
         :param output_channels: int
-            Number of classes for the model
+            Specify shape of final layer of network.
+
+        :param classify : boolean
+            Specifies whether to generate a classification report for the data or not.
 
         :return: train_value, val_value, test_value
             Precision values for train and validation splits. Single precision value for the test split.
@@ -68,7 +71,8 @@ class ApplyModel:
         data_loader, num_classes = set_up_dataloader(model_expected_input_size, **kwargs)
 
         # Setting up model, optimizer, criterion
-        output_channels = num_classes if output_channels == None else output_channels
+        output_channels = num_classes if classify else output_channels
+
         model, _, _, _, _ = set_up_model(output_channels=output_channels,
                                          model_name=model_name,
                                          lr=lr,

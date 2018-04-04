@@ -38,14 +38,14 @@ def _get_weights(train_loader):
 
 
 def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch, train_loader,
-                 disable_databalancing, **kwargs):
+                 disable_databalancing, num_classes=None, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
     Parameters
     ----------
     :param output_channels: int
-        Number of classes for the model
+        Specify shape of final layer of network. Only used if num_classes is not specified.
 
     :param model_name: string
         Name of the model
@@ -71,6 +71,9 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
     :param start_epoch
         Epoch from which to resume training. If if not resuming a previous experiment the value is 0
 
+    :param num_classes: int
+        Number of classes for the model
+
     :param kwargs: dict
         Any additional arguments.
 
@@ -79,6 +82,8 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
 
     # Initialize the model
     logging.info('Setting up model {}'.format(model_name))
+
+    output_channels = output_channels if num_classes == None else num_classes
     model = models.__dict__[model_name](output_channels=output_channels, pretrained=pretrained)
 
     # Get the optimizer created with the specified parameters in kwargs (such as lr, momentum, ... )
