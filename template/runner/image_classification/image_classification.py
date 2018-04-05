@@ -15,13 +15,13 @@ import numpy as np
 # DeepDIVA
 import models
 # Delegated
-from template.runner.standard import evaluate, train
+from template.runner.image_classification import evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 
 
 #######################################################################################################################
-class Standard:
+class ImageClassification:
     @staticmethod
     def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval, **kwargs):
         """
@@ -76,20 +76,20 @@ class Standard:
         val_value = np.zeros((epochs + 1 - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
-        val_value[0] = Standard._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[0] = ImageClassification._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = Standard._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = ImageClassification._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
 
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = Standard._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+                val_value[epoch] = ImageClassification._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, decay_lr)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
         # Test
-        test_value = Standard._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        test_value = ImageClassification._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
         logging.info('Training completed')
 
         return train_value, val_value, test_value

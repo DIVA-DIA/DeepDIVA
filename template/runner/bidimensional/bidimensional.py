@@ -18,7 +18,7 @@ from torch import nn
 # DeepDIVA
 import models
 # Delegated
-from template.runner.standard import Standard, evaluate, train
+from template.runner.image_classification import ImageClassification, evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 from util.visualization.decision_boundaries import plot_decision_boundaries
@@ -52,7 +52,7 @@ def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resoluti
                              step=epoch, writer=writer, epochs=epochs, **kwargs)
 
 
-class Bidimensional(Standard):
+class Bidimensional(ImageClassification):
     @staticmethod
     def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval, **kwargs):
         """
@@ -162,7 +162,7 @@ class Bidimensional(Standard):
 
     ####################################################################################################################
     """
-    These methods delegate their function to other classes in Standard package. 
+    These methods delegate their function to other classes in image_classification package. 
     It is useful because sub-classes can selectively change the logic of certain parts only.
     """
 

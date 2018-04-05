@@ -37,7 +37,7 @@ def parse_arguments():
     dataset = os.path.basename(os.path.normpath(args.dataset_folder))
 
     # If contains 'bd' override the runner class to bidimensional
-    if 'pc_' in dataset and args.runner_class == 'standard':
+    if 'bd_' in dataset and args.runner_class == 'image_classification':
         args.runner_class = 'bidimensional'
 
     # If experiment name is not set, ask for one
@@ -52,7 +52,7 @@ def _general_parameters(parser):
     General options
     """
     # List of possible custom runner class. A runner class is defined as a module in template.runner
-    runner_class_options = ["standard", "point_cloud", "triplet", "apply_model"]
+    runner_class_options = ["image_classification", "point_cloud", "triplet", "apply_model"]
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_general.add_argument('--experiment-name',
@@ -81,7 +81,7 @@ def _general_parameters(parser):
                                 help='number of updates of SigOpt required')
     parser_general.add_argument('--runner-class',
                                 choices=runner_class_options,
-                                default="standard",
+                                default="image_classification",
                                 help='which runner class to use.')
     parser_general.add_argument('--ignoregit',
                                 action='store_true',
@@ -118,8 +118,6 @@ def _training_options(parser):
     # List of possible custom models already implemented
     # NOTE: If a model is missing and you get a argument parser error: check in the init file of models if its there!
     model_options = [name for name in models.__dict__ if callable(models.__dict__[name])]
-    # List of possible optimizers already implemented in PyTorch
-    optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
 
     parser_train = parser.add_argument_group('TRAIN', 'Training Options')
     parser_train.add_argument('--model-name',
@@ -183,6 +181,7 @@ def _optimizer_options(parser):
     """
     Options specific for optimizers
     """
+    # List of possible optimizers already implemented in PyTorch
     optimizer_options = [name for name in torch.optim.__dict__ if callable(torch.optim.__dict__[name])]
 
     parser_optimizer = parser.add_argument_group('OPTIMIZER', 'Optimizer Options')

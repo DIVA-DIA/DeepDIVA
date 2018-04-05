@@ -4,14 +4,14 @@ This file is the entry point of DeepDIVA.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
+import datetime
 import json
-import time
 import logging
 # Utils
 import os
-import datetime
 import subprocess
 import sys
+import time
 import traceback
 
 import numpy as np
@@ -169,7 +169,7 @@ class RunMe:
         logging.info('Initialize Tensorboard SummaryWriter')
         writer = tensorboardX.SummaryWriter(log_dir=current_log_folder)
 
-        # Select with introspection which runner class should be used. Default is runner.standard.Standard
+        # Select with introspection which runner class should be used. Default is runner.image_classification.image_classification
         runner_class = getattr(sys.modules["template.runner." + args.runner_class],
                                args.runner_class).__dict__[to_capital_camel_case(args.runner_class)]
 
@@ -208,7 +208,7 @@ class RunMe:
         Parameters:
         -----------
         :param runner_class: class
-            This is necessary to know on which class should we run the experiments.  Default is runner.standard.Standard
+            This is necessary to know on which class should we run the experiments.  Default is runner.image_classification.image_classification
 
         :param writer: Tensorboard SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.

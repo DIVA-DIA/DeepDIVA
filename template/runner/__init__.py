@@ -1,6 +1,6 @@
 from .apply_model import ApplyModel
 from .bidimensional import Bidimensional
-from .standard import Standard
+from .image_classification import ImageClassification
 from .triplet import Triplet
 
-__all__ = ['Standard', 'Bidimensional', 'Triplet', 'ApplyModel']
+__all__ = ['ImageClassification', 'Bidimensional', 'Triplet', 'ApplyModel']

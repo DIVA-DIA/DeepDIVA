@@ -85,7 +85,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
         # Compute and record the loss
         loss = criterion(out_p, out_a, out_n)
 
-        # TODO here input would be the normal input in a standard situation. How to conveert it to the triplet?
+        # TODO here input would be the normal input in a image_classification situation. How to conveert it to the triplet?
         losses.update(loss.data[0], data_a.size(0))
 
         # Reset gradient

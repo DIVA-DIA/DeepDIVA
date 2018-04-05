@@ -112,7 +112,7 @@ def _return_std(image_path, mean):
 
 def cms_online(file_names, workers):
     """
-    Computes mean and standard deviation in an online fashion. This is useful when the dataset is too big to
+    Computes mean and image_classification deviation in an online fashion. This is useful when the dataset is too big to
     be allocated in memory. 
 
     Parameters
@@ -143,7 +143,7 @@ def cms_online(file_names, workers):
     logging.info('Finished computing the mean')
     logging.info('Begin computing the std')
 
-    # Online standard deviation
+    # Online image_classification deviation
     results = pool.starmap(_return_std, [[item, mean] for item in file_names])
     std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
     total_pixel_count = np.sum(np.array([item[1] for item in results]))
@@ -158,7 +158,7 @@ def cms_online(file_names, workers):
 
 def cms_offline(file_names):
     """
-    Computes mean and standard deviation in an offline fashion. This is possible only when the dataset can
+    Computes mean and image_classification deviation in an offline fashion. This is possible only when the dataset can
     be allocated in memory.
 
     Parameters
