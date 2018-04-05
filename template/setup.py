@@ -441,7 +441,7 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, deb
         formatter = colorlog.ColoredFormatter(cformat, date_format,
                                               log_colors={
                                                   'DEBUG': 'cyan',
-                                                  'INFO': 'green',
+                                                  'INFO': 'white',
                                                   'WARNING': 'yellow',
                                                   'ERROR': 'red',
                                                   'CRITICAL': 'red,bg_white',
