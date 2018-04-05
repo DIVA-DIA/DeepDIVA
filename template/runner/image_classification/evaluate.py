@@ -135,10 +135,20 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         writer.add_image(logging_label + '/confusion_matrix_{}'.format(multi_run), confusion_matrix_heatmap, epoch)
     logging.info(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
+    classification_report_string = _prettyprint_classification_string(data_loader, preds, targets)
+
     # Generate a classification report for each epoch
-    logging.info('Classification Report for epoch {}\n'.format(epoch))
-    logging.info('\n' + classification_report(y_true=targets,
-                                              y_pred=preds,
-                                              target_names=[str(item) for item in data_loader.dataset.classes]))
+    writer.add_text('Classification Report for epoch {}\n'.format(epoch), '\n' + classification_report_string, epoch)
 
     return top1.avg
+
+
+def _prettyprint_classification_string(data_loader, preds, targets):
+    # Fix for TB writer. Its an ugly workaround to have it printed nicely in the TEXT section of TB.
+    classification_report_string = str(classification_report(y_true=targets,
+                                                             y_pred=preds,
+                                                             target_names=[str(item) for item in data_loader.dataset.classes]))
+    classification_report_string = classification_report_string.replace('\n ', '\n\n       ')
+    classification_report_string = classification_report_string.replace('precision', '      precision', 1)
+    classification_report_string = classification_report_string.replace('avg', '      avg', 1)
+    return classification_report_string

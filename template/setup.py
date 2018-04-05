@@ -18,6 +18,7 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
+from tensorboardX import SummaryWriter
 
 # DeepDIVA
 import models
@@ -449,7 +450,14 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
     with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
         f.write(json.dumps(args_dict))
 
-    return log_folder
+    # Define Tensorboard SummaryWriter
+    logging.info('Initialize Tensorboard SummaryWriter')
+
+    # Add all parameters to Tensorboard
+    writer = SummaryWriter(log_dir=log_folder)
+    writer.add_text('Args', json.dumps(args_dict))
+
+    return log_folder, writer
 
 
 def copy_code(output_folder):

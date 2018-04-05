@@ -16,7 +16,6 @@ import traceback
 
 import numpy as np
 # Tensor board
-import tensorboardX
 # SigOpt
 from sigopt import Connection
 # Python
@@ -128,9 +127,10 @@ class RunMe:
         :return:
         """
 
+
         # Set up logging
         # Don't use args.output_folder as that breaks when using SigOpt
-        current_log_folder = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
+        current_log_folder, writer = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
 
         # Check Git status
         if args.ignoregit:
@@ -166,10 +166,6 @@ class RunMe:
         # Set up execution environment
         # Specify CUDA_VISIBLE_DEVICES and seeds
         set_up_env(**args.__dict__)
-
-        # Define Tensorboard SummaryWriter
-        logging.info('Initialize Tensorboard SummaryWriter')
-        writer = tensorboardX.SummaryWriter(log_dir=current_log_folder)
 
         # Select with introspection which runner class should be used. Default is runner.image_classification.image_classification
         runner_class = getattr(sys.modules["template.runner." + args.runner_class],
