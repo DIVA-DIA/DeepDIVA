@@ -65,7 +65,7 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
 
     multi_crop = False
     # Iterate over whole evaluation set
-    pbar = tqdm(enumerate(data_loader))
+    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=200)
     for batch_idx, (data_a, data_pn, label) in pbar:
 
         if len(data_a.size()) == 5:
@@ -173,7 +173,7 @@ def _evaluate_topn(data_loader, model, criterion, writer, epoch, logging_label, 
     multi_crop = False
 
     # Iterate over whole evaluation set
-    pbar = tqdm(enumerate(data_loader))
+    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=200)
     for batch_idx, (data, label) in pbar:
 
         # Check if data is provided in multi-crop form and process accordingly

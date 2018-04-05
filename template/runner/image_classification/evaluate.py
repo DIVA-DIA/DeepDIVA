@@ -73,7 +73,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     preds = []
     targets = []
 
-    pbar = tqdm(enumerate(data_loader))
+    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=200)
     for batch_idx, (input, target) in pbar:
 
         # Moving data to GPU

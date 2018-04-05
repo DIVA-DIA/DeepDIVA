@@ -51,7 +51,7 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
 
     multi_crop = False
     # Iterate over whole evaluation set
-    pbar = tqdm(enumerate(data_loader))
+    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=200)
     for batch_idx, (data, label, filename) in pbar:
         if len(data.size()) == 5:
             multi_crop = True
