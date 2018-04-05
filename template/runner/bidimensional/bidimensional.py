@@ -52,7 +52,7 @@ def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resoluti
                              step=epoch, writer=writer, epochs=epochs, **kwargs)
 
 
-class PointCloud(Standard):
+class Bidimensional(Standard):
     @staticmethod
     def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval, **kwargs):
         """
@@ -129,7 +129,7 @@ class PointCloud(Standard):
                                             num_classes=num_classes, writer=writer, epoch=-1, epochs=epochs,
                                             **kwargs)
 
-        val_value[-1] = PointCloud._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[-1] = Bidimensional._validate(val_loader, model, criterion, writer, -1, **kwargs)
 
         # Add model parameters to Tensorboard
         for name, param in model.named_parameters():
@@ -137,10 +137,10 @@ class PointCloud(Standard):
 
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = PointCloud._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = Bidimensional._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = PointCloud._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+                val_value[epoch] = Bidimensional._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, decay_lr)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
@@ -155,7 +155,7 @@ class PointCloud(Standard):
                 writer.add_histogram(name + '_{}'.format(epoch), param.clone().cpu().data.numpy(), epoch, bins='auto')
 
         # Test
-        test_value = PointCloud._test(test_loader, model, criterion, writer, epochs, **kwargs)
+        test_value = Bidimensional._test(test_loader, model, criterion, writer, epochs, **kwargs)
         logging.info('Training completed')
 
         return train_value, val_value, test_value

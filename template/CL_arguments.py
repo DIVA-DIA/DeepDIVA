@@ -36,9 +36,9 @@ def parse_arguments():
     # Recover dataset name
     dataset = os.path.basename(os.path.normpath(args.dataset_folder))
 
-    # If contains 'pc' override the runner class to point cloud
+    # If contains 'bd' override the runner class to bidimensional
     if 'pc_' in dataset and args.runner_class == 'standard':
-        args.runner_class = 'point_cloud'
+        args.runner_class = 'bidimensional'
 
     # If experiment name is not set, ask for one
     if args.experiment_name is None:

@@ -1,5 +1,5 @@
 """
-This script allows for creation of a point cloud (2D) dataset.
+This script allows for creation of a bidimensional(2D) dataset.
 
 Structure of the dataset:
 
@@ -226,7 +226,7 @@ def xor(size):
     return _split_data(samples)
 
 
-def multi_xor(size):
+def flag(size):
     """
     XOR problem but with multi class, each corner a different class
     4 classes.
@@ -239,14 +239,14 @@ def multi_xor(size):
         train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
     """
 
-    samples = np.array([(x, y, _multi_xor(x, y))
+    samples = np.array([(x, y, _multi_quadrant(x, y))
                         for x in np.linspace(0, 1, np.sqrt(size))
                         for y in np.linspace(0, 1, np.sqrt(size))])
 
     return _split_data(samples)
 
 
-def _multi_xor(x, y):
+def _multi_quadrant(x, y):
     if (x < 0.5) and (y < 0.5):
         return 0
     if (x < 0.5) and (y > 0.5):
@@ -347,7 +347,7 @@ if __name__ == "__main__":
 
     # Creating the folder for the dataset
     logging.info('Creating the folder for the dataset')
-    dataset_dir = os.path.join(args.dataset_folder, 'pc_' + args.distribution)
+    dataset_dir = os.path.join(args.dataset_folder, 'bd_' + args.distribution)
     if os.path.exists(dataset_dir):
         shutil.rmtree(dataset_dir)
     os.makedirs(dataset_dir)

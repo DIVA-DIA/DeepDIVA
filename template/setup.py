@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 
 # DeepDIVA
 import models
-from datasets import image_folder_dataset, point_cloud_dataset
+from datasets import image_folder_dataset, bidimensional_dataset
 from util.dataset_analytics import compute_mean_std
 
 
@@ -238,13 +238,13 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         logging.info("No images found in dataset folder provided")
 
     ###############################################################################################
-    # Load the dataset splits as point cloud
+    # Load the dataset splits as bidimensional
     try:
-        logging.info("Try to load dataset as point cloud")
-        train_ds, val_ds, test_ds = point_cloud_dataset.load_dataset(dataset_folder)
+        logging.info("Try to load dataset as bidimensional")
+        train_ds, val_ds, test_ds = bidimensional_dataset.load_dataset(dataset_folder)
 
         # Loads the analytics csv and extract mean and std
-        # TODO: update point cloud to work with new load_mean_std functions
+        # TODO: update bidimensional to work with new load_mean_std functions
         mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
 
         # Bring mean and std into range [0:1] from original domain
@@ -273,7 +273,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
-        logging.info("No point cloud found in dataset folder provided")
+        logging.info("No bidimensional found in dataset folder provided")
 
     ###############################################################################################
     # Verify that eventually a dataset has been correctly loaded

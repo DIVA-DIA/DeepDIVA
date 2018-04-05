@@ -1,5 +1,5 @@
 """
-Point cloud dataset
+Bidimensional dataset
 """
 
 # Utils
@@ -59,13 +59,13 @@ def load_dataset(dataset_folder):
         sys.exit(-1)
 
     # Get the datasets
-    train_ds = PointCloud(train_dir)
-    val_ds = PointCloud(val_dir)
-    test_ds = PointCloud(test_dir)
+    train_ds = Bidimensional(train_dir)
+    val_ds = Bidimensional(val_dir)
+    test_ds = Bidimensional(test_dir)
     return train_ds, val_ds, test_ds
 
 
-class PointCloud(data.Dataset):
+class Bidimensional(data.Dataset):
     """
     This class loads the data.csv file and stores it as a dataset.
     """
