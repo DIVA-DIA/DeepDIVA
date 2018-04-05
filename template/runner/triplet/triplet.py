@@ -18,8 +18,6 @@ and they should be used instead of hard-coding stuff.
 # Utils
 from __future__ import print_function
 
-import os
-import pickle
 import logging
 
 import numpy as np
@@ -41,7 +39,8 @@ from util.misc import adjust_learning_rate, checkpoint
 
 class Triplet:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap,
+                   validation_interval, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -70,6 +69,9 @@ class Triplet:
 
         :param decay_lr: boolean
                 Decay the lr flag
+
+        :param validation_interval: int
+            Run evaluation on validation set every N epochs
 
         :param kwargs: dict
             Any additional arguments.
@@ -108,7 +110,8 @@ class Triplet:
             # Train
             train_value[epoch] = Triplet._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
             # Validate
-            val_value[epoch] = Triplet._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+            if epoch % validation_interval == 0:
+                val_value[epoch] = Triplet._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder, invert_best=True)

@@ -6,7 +6,6 @@ import os
 import torch
 
 # DeepDIVA
-import datasets
 import models
 
 
@@ -94,8 +93,6 @@ def _data_options(parser):
     Defines all parameters relative to the data.
     """
     # List of possible custom dataset already implemented
-    dataset_options = [name for name in datasets.__dict__ if callable(datasets.__dict__[name])]
-
     parser_data = parser.add_argument_group('DATA', 'Dataset Options')
     parser_data.add_argument('--dataset-folder',
                              help='location of the dataset on the machine e.g root/data',
@@ -155,6 +152,10 @@ def _training_options(parser):
                               metavar='N',
                               default=0,
                               help='manual epoch number (useful on restarts)')
+    parser_train.add_argument('--validation-interval',
+                              type=int,
+                              default=1,
+                              help='Run evaluation on validation set every N epochs')
 
 
 def _apply_options(parser):
