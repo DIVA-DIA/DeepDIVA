@@ -62,6 +62,10 @@ def _general_parameters(parser):
     parser_general.add_argument('--quiet',
                                 action='store_true',
                                 help='Do not print to stdout (log only).')
+    parser_general.add_argument('--debug',
+                                default=False,
+                                action='store_true',
+                                help='log debug level messages')
     parser_general.add_argument('--multi-run',
                                 type=int,
                                 default=None,
