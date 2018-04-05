@@ -1,11 +1,13 @@
 # Utils
 import inspect
 import json
-import logging
 import os
 import random
 import sys
 import time
+
+import logging
+import colorlog
 
 import numpy as np
 import pandas as pd
@@ -357,7 +359,7 @@ def _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds, workers):
 
 
 #######################################################################################################################
-def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **kwargs):
+def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, debug, **kwargs):
     """
     Set up a logger for the experiment
 
@@ -374,6 +376,9 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
 
     :param quiet: bool
         Specify whether to print log to console or only to text file
+
+    :param debug: bool
+        Specify the logging level
 
     :param args_dict: dict
         Contains the entire argument dictionary specified via command line.
@@ -405,11 +410,7 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
     
     """
 
-    # Get the TRAIN arguments group, which we know its the number 4
-    # group = parser._action_groups[4]
-    # assert group.title == 'TRAIN'
-
-    # Fetch all non-default parameters passed
+    # Fetch all non-default parameters
     non_default_parameters = []
 
     for group in parser._action_groups[2:]:
@@ -425,19 +426,33 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
         os.makedirs(log_folder)
 
     # Setup logging
-    logging.basicConfig(
-        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
-        filename=os.path.join(log_folder, LOG_FILE),
-        level=logging.INFO)
+    root = logging.getLogger()
+    log_level = logging.DEBUG if debug else logging.INFO
+    root.setLevel(log_level)
+    format = "[%(asctime)s] [%(levelname)8s] --- %(message)s (%(filename)s:%(lineno)s)"
+    date_format = '%Y-%m-%d %H:%M:%S'
 
-    # Setup logging to console
+    if os.isatty(2):
+        cformat = '%(log_color)s' + format
+        formatter = colorlog.ColoredFormatter(cformat, date_format,
+                                              log_colors={
+                                                  'DEBUG': 'cyan',
+                                                  'INFO': 'green',
+                                                  'WARNING': 'yellow',
+                                                  'ERROR': 'red',
+                                                  'CRITICAL': 'red,bg_white',
+                                              })
+    else:
+        formatter = logging.Formatter(format, date_format)
+
     if not quiet:
-        fmtr = logging.Formatter(fmt='%(funcName)s %(levelname)s: %(message)s')
-        stderr_handler = logging.StreamHandler()
-        stderr_handler.formatter = fmtr
-        logging.getLogger().setLevel(logging.INFO)
-        logging.getLogger().addHandler(stderr_handler)
-        logging.info('Printing activity to the console')
+        ch = logging.StreamHandler()
+        ch.setFormatter(formatter)
+        root.addHandler(ch)
+
+    fh = logging.FileHandler(os.path.join(log_folder, LOG_FILE))
+    fh.setFormatter(logging.Formatter(format, date_format))
+    root.addHandler(fh)
 
     logging.info('Setup logging. Log file: {}'.format(os.path.join(log_folder, LOG_FILE)))
 
