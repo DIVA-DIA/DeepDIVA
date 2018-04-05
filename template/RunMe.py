@@ -25,7 +25,7 @@ from sklearn.model_selection import ParameterGrid
 # DeepDIVA
 import template.CL_arguments
 import template.runner
-from template.setup import set_up_env, set_up_logging
+from template.setup import set_up_env, set_up_logging, copy_code
 from util.misc import to_capital_camel_case
 from util.visualization.mean_std_plot import plot_mean_std
 
@@ -135,6 +135,8 @@ class RunMe:
         # Check Git status
         if args.ignoregit:
             logging.warning('Git status is ignored!')
+            # Copy the code into the output folder
+            copy_code(output_folder=current_log_folder)
         else:
             try:
                 local_changes = False

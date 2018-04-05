@@ -1,9 +1,11 @@
 # Utils
+import glob
 import inspect
 import json
 import logging
 import os
 import random
+import shutil
 import sys
 import time
 
@@ -163,7 +165,8 @@ def _get_optimizer(optimizer_name, model, **kwargs):
     # For all arguments declared in the constructor signature of the selected optimizer
     for p in inspect.getfullargspec(torch.optim.__dict__[optimizer_name].__init__).args:
         # Add it to a dictionary in case it exists a corresponding value in kwargs
-        if p in kwargs: params.update({p: kwargs[p]})
+        if p in kwargs:
+            params.update({p: kwargs[p]})
     # Create an return the optimizer with the correct list of parameters
     return torch.optim.__dict__[optimizer_name](model.parameters(), **params)
 
@@ -447,6 +450,17 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, **k
         f.write(json.dumps(args_dict))
 
     return log_folder
+
+
+def copy_code(output_folder):
+    cwd = os.getcwd()
+    cwd = cwd[:cwd.find('template')] + "**/*.py"
+    for file in glob.glob(cwd):
+        print(file)
+        destination_folder = output_folder + file[file.find('DeepDIVA') - 1:file.rfind('/')]
+        if not os.path.exists(destination_folder):
+            os.makedirs(destination_folder)
+        shutil.copy(file, destination_folder)
 
 
 def set_up_env(gpu_id, seed, multi_run, no_cuda, **kwargs):
