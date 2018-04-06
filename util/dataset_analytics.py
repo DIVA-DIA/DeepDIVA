@@ -42,6 +42,7 @@ import cv2
 import numpy as np
 import pandas as pd
 # Torch related stuff
+import torch
 import torchvision.datasets as datasets
 
 
@@ -79,18 +80,21 @@ def compute_mean_std(dataset_folder, inmem, workers):
     file_names = np.asarray([item[0] for item in train_ds.imgs])
 
     # Compute mean and std
-    if not inmem:
-        mean, std = cms_online(file_names, workers)
+    if inmem:
+        mean, std = cms_inmem(file_names)
     else:
-        mean, std = cms_offline(file_names)
+        mean, std = cms_online(file_names, workers)
 
-    # Display the results on console
-    print("Mean: [{}, {}, {}]".format(mean[0], mean[1], mean[2]))
-    print("Std: [{}, {}, {}]".format(std[0], std[1], std[2]))
+    # Compute class frequencies weights
+    train_loader = torch.utils.data.DataLoader(train_ds,
+                                               batch_size=64,
+                                               num_workers=workers,
+                                               pin_memory=True)
+    class_frequencies_weights = _get_class_frequencies_weights(train_loader)
 
     # Save results as CSV file in the dataset folder
-    df = pd.DataFrame([mean, std])
-    df.index = ['mean[RGB]', 'std[RGB]']
+    df = pd.DataFrame([mean, std, class_frequencies_weights])
+    df.index = ['mean[RGB]', 'std[RGB]', 'class_frequencies_weights[num_classes]']
     df.to_csv(os.path.join(dataset_folder, 'analytics.csv'), header=False)
 
 
@@ -147,8 +151,8 @@ def cms_online(file_names, workers):
     results = pool.starmap(_return_std, [[item, mean] for item in file_names])
     std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
     total_pixel_count = np.sum(np.array([item[1] for item in results]))
-
     std = np.sqrt(std_sum / total_pixel_count)
+    logging.info('Finished computing the std')
 
     # Shut down the pool
     pool.close()
@@ -156,7 +160,7 @@ def cms_online(file_names, workers):
     return mean, std
 
 
-def cms_offline(file_names):
+def cms_inmem(file_names):
     """
     Computes mean and image_classification deviation in an offline fashion. This is possible only when the dataset can
     be allocated in memory.
@@ -179,6 +183,31 @@ def cms_offline(file_names):
     std = np.array([np.std(img[:, :, :, 2]), np.std(img[:, :, :, 1]), np.std(img[:, :, :, 0])]) / 255.0
 
     return mean, std
+
+
+def _get_class_frequencies_weights(train_loader):
+    """
+    Get the weights proportional to the inverse of their class frequencies.
+    The vector sums up to 1
+
+    Parameters
+    ----------
+    :param train_loader: torch.utils.data.dataloader.DataLoader
+        Dataloader for the training se
+    :return:
+        The weights vector as a 1D array
+    """
+    logging.info('Begin computing class frequencies weights')
+    mini_batches = np.array([target_mini_batch.numpy() for _, target_mini_batch in train_loader])
+    all_labels = np.squeeze(np.array([sample for mini_batch in mini_batches for sample in mini_batch]))
+    total_num_samples = len(all_labels)
+    num_samples_per_class = np.array(list(np.collections.Counter(all_labels).values()))
+    class_frequencies = (num_samples_per_class / total_num_samples)
+    logging.info('Finished computing class frequencies weights')
+    logging.info('Class frequencies (rounded): {class_frequencies}'
+                 .format(class_frequencies=np.around(class_frequencies * 100, decimals=2)))
+    # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
+    return (1 / num_samples_per_class) / ((1 / num_samples_per_class).sum())
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 # Utils
-import collections
 import inspect
 import json
 import logging
@@ -31,7 +30,7 @@ from util.misc import get_all_files_in_folders_subfolders
 
 
 def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch,
-                 train_loader, disable_databalancing, num_classes=None, **kwargs):
+                 train_loader, disable_databalancing, dataset_folder, inmem, workers, num_classes=None, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
@@ -86,7 +85,7 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
     if disable_databalancing:
         criterion = nn.CrossEntropyLoss()
     else:
-        weights = _get_class_frequencies_weights(train_loader)
+        weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers)
         criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weights).type(torch.FloatTensor))
 
     # Transfer model to GPU (if desired)
@@ -133,27 +132,27 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
     return model, criterion, optimizer, best_value, start_epoch
 
 
-def _get_class_frequencies_weights(train_loader):
+def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers):
     """
-    Get the weights proportional to the inverse of their class frequencies.
-    The vector sums up to 1
+    This function simply recovers class_frequencies_weights from the analytics.csv file
 
-    Parameters
-    ----------
-    :param train_loader: torch.utils.data.dataloader.DataLoader
-        Dataloader for the training se
-    :return:
-        The weights vector as a 1D array
+    Parameters:
+    -----------
+    :param dataset_folder: string
+        Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
+
+    :param inmem: boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+        on demand. This is slower than storing everything in memory.
+
+    :param workers: int
+        Number of workers to use for the mean/std computation
+
+    :return: double[], double[]
+        Mean and Std of the selected dataset, contained in the analytics.csv file. These are double arrays.
     """
-    mini_batches = np.array([target_mini_batch.numpy() for _, target_mini_batch in train_loader])
-    all_labels = np.squeeze(np.array([sample for mini_batch in mini_batches for sample in mini_batch]))
-    total_num_samples = len(all_labels)
-    num_samples_per_class = np.array(list(collections.Counter(all_labels).values()))
-    class_frequencies = (num_samples_per_class / total_num_samples)
-    logging.info('Class frequencies (rounded): {class_frequencies}'
-                 .format(class_frequencies=np.around(class_frequencies * 100, decimals=2)))
-    # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
-    return (1 / num_samples_per_class) / ((1 / num_samples_per_class).sum())
+    csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
+    return np.asarray(csv_file.ix[2, :])
 
 
 def _get_optimizer(optimizer_name, model, **kwargs):
@@ -223,7 +222,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem, workers)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
+        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
@@ -261,7 +260,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
 
         # Loads the analytics csv and extract mean and std
         # TODO: update bidimensional to work with new load_mean_std functions
-        mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
+        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
 
         # Bring mean and std into range [0:1] from original domain
         mean = np.divide((mean - train_ds.min_coords), np.subtract(train_ds.max_coords, train_ds.min_coords))
@@ -298,15 +297,12 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     sys.exit(-1)
 
 
-def _load_mean_std_from_file(dataset, dataset_folder, inmem, workers):
+def _load_mean_std_from_file(dataset_folder, inmem, workers):
     """
     This function simply recovers mean and std from the analytics.csv file
 
     Parameters:
     -----------
-    :param dataset: string
-        dataset name
-
     :param dataset_folder: string
         Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
 
@@ -320,22 +316,44 @@ def _load_mean_std_from_file(dataset, dataset_folder, inmem, workers):
     :return: double[], double[]
         Mean and Std of the selected dataset, contained in the analytics.csv file. These are double arrays.
     """
+    # Loads the analytics csv and extract mean and std
+    csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
+    mean = np.asarray(csv_file.ix[0, 1:3])
+    std = np.asarray(csv_file.ix[1, 1:3])
+    return mean, std
+
+
+def _load_analytics_csv(dataset_folder, inmem, workers):
+    """
+        This function simply loads the analytics.csv file and attempts creating it if it misses
+
+        Parameters:
+        -----------
+        :param dataset_folder: string
+            Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
+
+        :param inmem: boolean
+            Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+            on demand. This is slower than storing everything in memory.
+
+        :param workers: int
+            Number of workers to use for the mean/std computation
+
+        :return:
+            The csv file
+        """
     # If analytics.csv file not present, run the analytics on the dataset
     if not os.path.exists(os.path.join(dataset_folder, "analytics.csv")):
-        logging.info('Missing analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
+        logging.warning('Missing analytics.csv file for dataset located at {}'.format(dataset_folder))
         try:
-            logging.info(
-                'Attempt creating analytics.csv file for dataset {} located at {}'.format(dataset, dataset_folder))
+            logging.warning('Attempt creating analytics.csv file for dataset located at {}'.format(dataset_folder))
             compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
         except:
             logging.error('Creation of analytics.csv failed.')
             sys.exit(-1)
-
-    # Loads the analytics csv and extract mean and std
-    df1 = pd.read_csv(os.path.join(dataset_folder, "analytics.csv"), header=None)
-    mean = np.asarray(df1.ix[0, 1:3])
-    std = np.asarray(df1.ix[1, 1:3])
-    return mean, std
+    logging.warning('Created analytics.csv file for dataset located at {} '.format(dataset_folder))
+    # Loads the analytics csv
+    return pd.read_csv(os.path.join(dataset_folder, "analytics.csv"), header=None)
 
 
 def _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds, workers):
