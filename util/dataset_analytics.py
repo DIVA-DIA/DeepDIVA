@@ -44,6 +44,7 @@ import pandas as pd
 # Torch related stuff
 import torch
 import torchvision.datasets as datasets
+import torchvision.transforms as transforms
 
 
 def compute_mean_std(dataset_folder, inmem, workers):
@@ -74,7 +75,8 @@ def compute_mean_std(dataset_folder, inmem, workers):
         sys.exit(-1)
 
     # Load the dataset file names
-    train_ds = datasets.ImageFolder(traindir)
+    train_ds = datasets.ImageFolder(traindir,
+                                    transform=transforms.Compose([transforms.ToTensor()]))
 
     # Extract the actual file names and labels as entries
     file_names = np.asarray([item[0] for item in train_ds.imgs])
@@ -86,11 +88,7 @@ def compute_mean_std(dataset_folder, inmem, workers):
         mean, std = cms_online(file_names, workers)
 
     # Compute class frequencies weights
-    train_loader = torch.utils.data.DataLoader(train_ds,
-                                               batch_size=64,
-                                               num_workers=workers,
-                                               pin_memory=True)
-    class_frequencies_weights = _get_class_frequencies_weights(train_loader)
+    class_frequencies_weights = _get_class_frequencies_weights(train_ds, workers)
 
     # Save results as CSV file in the dataset folder
     df = pd.DataFrame([mean, std, class_frequencies_weights])
@@ -185,7 +183,7 @@ def cms_inmem(file_names):
     return mean, std
 
 
-def _get_class_frequencies_weights(train_loader):
+def _get_class_frequencies_weights(dataset, workers):
     """
     Get the weights proportional to the inverse of their class frequencies.
     The vector sums up to 1
@@ -194,14 +192,33 @@ def _get_class_frequencies_weights(train_loader):
     ----------
     :param train_loader: torch.utils.data.dataloader.DataLoader
         Dataloader for the training se
+
+
+    :param workers: int
+        Number of workers to use for the mean/std computation
+
     :return:
         The weights vector as a 1D array
     """
     logging.info('Begin computing class frequencies weights')
-    mini_batches = np.array([target_mini_batch.numpy() for _, target_mini_batch in train_loader])
-    all_labels = np.squeeze(np.array([sample for mini_batch in mini_batches for sample in mini_batch]))
+    # mini_batches = np.array([target_mini_batch.numpy() for _, target_mini_batch in train_loader])
+    # all_labels = np.squeeze(np.array([sample for mini_batch in mini_batches for sample in mini_batch]))
+    all_labels = None
+    try:
+        all_labels = [item[1] for item in dataset.imgs]
+    except:
+        all_labels = [item for item in dataset.labels]
+    finally:
+        if all_labels == None:
+            data_loader = torch.utils.data.DataLoader(dataset, batch_size=64, num_workers=workers)
+            all_labels = []
+            for target, label in data_loader:
+                all_labels.append(label)
+            all_labels = np.concatenate(all_labels).reshape(len(dataset))
+
     total_num_samples = len(all_labels)
-    num_samples_per_class = np.array(list(np.collections.Counter(all_labels).values()))
+    # num_samples_per_class = np.array(list(np.collections.Counter(all_labels).values()))
+    num_samples_per_class = np.unique(all_labels, return_counts=True)[1]
     class_frequencies = (num_samples_per_class / total_num_samples)
     logging.info('Finished computing class frequencies weights')
     logging.info('Class frequencies (rounded): {class_frequencies}'

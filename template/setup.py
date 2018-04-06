@@ -152,7 +152,7 @@ def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers):
         Mean and Std of the selected dataset, contained in the analytics.csv file. These are double arrays.
     """
     csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
-    return np.asarray(csv_file.ix[2, :])
+    return csv_file.ix[2, 1:].as_matrix().astype(float)
 
 
 def _get_optimizer(optimizer_name, model, **kwargs):
