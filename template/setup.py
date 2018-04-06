@@ -1,4 +1,5 @@
 # Utils
+import collections
 import inspect
 import json
 import logging
@@ -29,8 +30,8 @@ from util.dataset_analytics import compute_mean_std
 from util.misc import get_all_files_in_folders_subfolders
 
 
-def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch, train_loader,
-                 disable_databalancing, num_classes=None, **kwargs):
+def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch,
+                 train_loader, disable_databalancing, num_classes=None, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
@@ -85,8 +86,7 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
     if disable_databalancing:
         criterion = nn.CrossEntropyLoss()
     else:
-        # TODO: make data balancing agnostic to type of dataset
-        weights = _get_class_frequencies(train_loader)
+        weights = _get_class_frequencies_weights(train_loader)
         criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weights).type(torch.FloatTensor))
 
     # Transfer model to GPU (if desired)
@@ -133,19 +133,27 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
     return model, criterion, optimizer, best_value, start_epoch
 
 
-def _get_class_frequencies(train_loader):
-    # TODO improve documentation
-    classes = [item for item in train_loader.dataset.classes]
-    imgs = np.array([item[1] for item in train_loader.dataset.imgs])
-    total_num_images = len(imgs)
-    image_ratio_per_class = []
-    images_per_class = []
-    for i in range(len(classes)):
-        images_per_class.append(np.where(imgs == i)[0].size)
-        image_ratio_per_class.append(np.where(imgs == i)[0].size / total_num_images)
-    logging.info('The images per class are: {}'.format(images_per_class))
-    logging.info('The image ratio per class is: {}'.format(image_ratio_per_class))
-    return 1.0 / np.array(image_ratio_per_class)
+def _get_class_frequencies_weights(train_loader):
+    """
+    Get the weights proportional to the inverse of their class frequencies.
+    The vector sums up to 1
+
+    Parameters
+    ----------
+    :param train_loader: torch.utils.data.dataloader.DataLoader
+        Dataloader for the training se
+    :return:
+        The weights vector as a 1D array
+    """
+    mini_batches = np.array([target_mini_batch.numpy() for _, target_mini_batch in train_loader])
+    all_labels = np.squeeze(np.array([sample for mini_batch in mini_batches for sample in mini_batch]))
+    total_num_samples = len(all_labels)
+    num_samples_per_class = np.array(list(collections.Counter(all_labels).values()))
+    class_frequencies = (num_samples_per_class / total_num_samples)
+    logging.info('Class frequencies (rounded): {class_frequencies}'
+                 .format(class_frequencies=np.around(class_frequencies * 100, decimals=2)))
+    # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
+    return (1 / num_samples_per_class) / ((1 / num_samples_per_class).sum())
 
 
 def _get_optimizer(optimizer_name, model, **kwargs):
@@ -243,7 +251,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
-        logging.info("No images found in dataset folder provided")
+        logging.debug("No images found in dataset folder provided")
 
     ###############################################################################################
     # Load the dataset splits as bidimensional
@@ -282,7 +290,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
-        logging.info("No bidimensional found in dataset folder provided")
+        logging.debug("No bidimensional found in dataset folder provided")
 
     ###############################################################################################
     # Verify that eventually a dataset has been correctly loaded
