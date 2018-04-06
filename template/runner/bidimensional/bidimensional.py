@@ -158,7 +158,7 @@ class Bidimensional(ImageClassification):
 
         grid_x, grid_y = np.meshgrid(grid_x, grid_y)
 
-        sm = nn.Softmax()
+        sm = nn.Softmax(dim=0)
 
         if not no_cuda:
             outputs = model(coords)
