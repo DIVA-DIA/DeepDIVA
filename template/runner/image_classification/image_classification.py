@@ -12,12 +12,14 @@ import logging
 # Utils
 import numpy as np
 
-# DeepDIVA
 import models
 # Delegated
 from template.runner.image_classification import evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
+
+
+# DeepDIVA
 
 
 #######################################################################################################################

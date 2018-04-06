@@ -9,7 +9,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
 # DeepDIVA
-from util.misc import AverageMeter, accuracy
+from util.misc import AverageMeter, accuracy, _prettyprint_logging_label
 from util.visualization.confusion_matrix_heatmap import make_heatmap
 
 
@@ -62,6 +62,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
+    data_time = AverageMeter()
 
     # Switch to evaluate mode (turn off dropout & such )
     model.eval()
@@ -73,8 +74,11 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     preds = []
     targets = []
 
-    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=200)
+    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
+
+        # Measure data loading time
+        data_time.update(time.time() - end)
 
         # Moving data to GPU
         if not no_cuda:
@@ -115,12 +119,13 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         end = time.time()
 
         if batch_idx % log_interval == 0:
-            pbar.set_description(logging_label + ' Epoch [{0}][{1}/{2}]\t'
-                                                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                                                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                                                 'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-                epoch, batch_idx, len(data_loader), batch_time=batch_time, loss=losses,
-                top1=top1))
+            pbar.set_description(logging_label +
+                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
+
+            pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
+                             Loss='{loss.avg:.4f}\t'.format(loss=losses),
+                             Acc1='{top1.avg:.3f}\t'.format(top1=top1),
+                             Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Make a confusion matrix
     cm = confusion_matrix(y_true=targets, y_pred=preds)
@@ -133,22 +138,27 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     else:
         writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
         writer.add_image(logging_label + '/confusion_matrix_{}'.format(multi_run), confusion_matrix_heatmap, epoch)
-    logging.info(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
-    classification_report_string = _prettyprint_classification_string(data_loader, preds, targets)
+    logging.info(_prettyprint_logging_label(logging_label) +
+                 ' epoch[{}]: '
+                 'Acc@1={top1.avg:.3f}\t'
+                 'Loss={loss.avg:.4f}\t'
+                 'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
+                 .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
 
     # Generate a classification report for each epoch
-    writer.add_text('Classification Report for epoch {}\n'.format(epoch), '\n' + classification_report_string, epoch)
+    _log_classification_report(data_loader, epoch, preds, targets, writer)
 
     return top1.avg
 
 
-def _prettyprint_classification_string(data_loader, preds, targets):
-    # Fix for TB writer. Its an ugly workaround to have it printed nicely in the TEXT section of TB.
+def _log_classification_report(data_loader, epoch, preds, targets, writer):
     classification_report_string = str(classification_report(y_true=targets,
                                                              y_pred=preds,
                                                              target_names=[str(item) for item in data_loader.dataset.classes]))
+    # Fix for TB writer. Its an ugly workaround to have it printed nicely in the TEXT section of TB.
     classification_report_string = classification_report_string.replace('\n ', '\n\n       ')
     classification_report_string = classification_report_string.replace('precision', '      precision', 1)
     classification_report_string = classification_report_string.replace('avg', '      avg', 1)
-    return classification_report_string
+
+    writer.add_text('Classification Report for epoch {}\n'.format(epoch), '\n' + classification_report_string, epoch)

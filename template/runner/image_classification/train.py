@@ -1,4 +1,5 @@
 # Utils
+import logging
 import time
 
 # Torch related stuff
@@ -46,16 +47,16 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
     # Instantiate the counters
     batch_time = AverageMeter()
-    data_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
+    data_time = AverageMeter()
 
     # Switch to train mode (turn on dropout & stuff)
     model.train()
 
     # Iterate over whole training set
     end = time.time()
-    pbar = tqdm(enumerate(train_loader), total=len(train_loader), unit='batch', ncols=200)
+    pbar = tqdm(enumerate(train_loader), total=len(train_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
 
         # Measure data loading time
@@ -107,18 +108,23 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
         # Log to console
         if batch_idx % log_interval == 0:
-            pbar.set_description('Epoch [{0}][{1}/{2}]\t'
-                                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                                 'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                                 'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-                epoch, batch_idx, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1))
+            pbar.set_description('train epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(train_loader)))
+
+            pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
+                             Loss='{loss.avg:.4f}\t'.format(loss=losses),
+                             Acc1='{top1.avg:.3f}\t'.format(top1=top1),
+                             Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
         writer.add_scalar('train/accuracy', top1.avg, epoch)
     else:
         writer.add_scalar('train/accuracy_{}'.format(multi_run), top1.avg, epoch)
+
+    logging.debug('Train epoch[{}]: '
+                  'Acc@1={top1.avg:.3f}\t'
+                  'Loss={loss.avg:.4f}\t'
+                  'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
+                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
 
     return top1.avg

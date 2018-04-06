@@ -53,6 +53,13 @@ def download_url(url, root, filename, md5):
         urllib.request.urlretrieve(url, fpath)
 
 
+def _prettyprint_logging_label(logging_label):
+    if len(logging_label) < 5:
+        for i in range(5 - len(logging_label)):
+            logging_label = logging_label + ' '
+    return logging_label
+
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
