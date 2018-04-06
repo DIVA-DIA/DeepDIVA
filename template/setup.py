@@ -243,7 +243,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
-        logging.info("No images found in dataset folder provided")
+        logging.debug("No images found in dataset folder provided")
 
     ###############################################################################################
     # Load the dataset splits as bidimensional
@@ -282,7 +282,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
-        logging.info("No bidimensional found in dataset folder provided")
+        logging.debug("No bidimensional found in dataset folder provided")
 
     ###############################################################################################
     # Verify that eventually a dataset has been correctly loaded
