@@ -15,12 +15,12 @@ from template.runner.triplet.eval_metrics import ErrorRateAt95Recall
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to validate the model."""
-    return _evaluate_topn(val_loader, model, criterion, writer, epoch, 'val', no_cuda, log_interval, **kwargs)
+    return _evaluate_fp95r(val_loader, model, criterion, writer, epoch, 'val', no_cuda, log_interval, **kwargs)
 
 
 def test(test_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to test the model"""
-    return _evaluate_topn(test_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
+    return _evaluate_fp95r(test_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
 
 
 def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label, no_cuda, log_interval, **kwargs):
