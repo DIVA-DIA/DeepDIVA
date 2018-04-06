@@ -9,8 +9,12 @@ import logging
 import os
 import os.path
 import shutil
-# Torch
 import string
+import cv2
+
+import numpy as np
+
+# Torch
 
 import torch
 
@@ -194,3 +198,37 @@ def get_all_files_in_folders_subfolders(root_dir):
         for name in files:
             paths.append(os.path.join(path, name))
     return paths
+
+
+def save_image_and_log_to_tensorboard(writer=None, tag=None, image_tensor=None, global_step=None):
+    """
+    utility function to save image in the output folder and also log it to tensorboard
+    :param writer: Tensorboard Summarywriter
+
+    :param tag: str
+        Name of the image
+    :param image_tensor: ndarray
+        Image to be saved
+    :param global_step: int
+        Global step value to record
+    :return: None
+    """
+
+    # Log image to tensorboard
+    writer.add_image(tag=tag, img_tensor=image_tensor, global_step=global_step)
+
+    # Get output folder using the FileHandler from the logger. (Assumes only two handlers are attached to the logger)
+    output_folder = os.path.dirname(logging.getLogger().handlers[1].baseFilename)
+
+    if global_step is not None:
+        dest_filename = os.path.join(output_folder, 'images', tag + '_{}.png'.format(global_step))
+    else:
+        dest_filename = os.path.join(output_folder, 'images', tag + '.png')
+
+    if not os.path.exists(os.path.dirname(dest_filename)):
+        os.makedirs(os.path.dirname(dest_filename))
+
+    # Write image to output folder
+    cv2.imwrite(dest_filename, np.roll(image_tensor, 1, axis=-1))
+
+    return

@@ -10,7 +10,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
 # DeepDIVA
-from util.misc import AverageMeter, accuracy, _prettyprint_logging_label
+from util.misc import AverageMeter, accuracy, _prettyprint_logging_label, save_image_and_log_to_tensorboard
 from util.visualization.confusion_matrix_heatmap import make_heatmap
 
 
@@ -135,10 +135,12 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     # Logging the epoch-wise accuracy and confusion matrix
     if multi_run is None:
         writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
-        writer.add_image(logging_label + '/confusion_matrix', confusion_matrix_heatmap, epoch)
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
+                                          image_tensor=confusion_matrix_heatmap, global_step=epoch)
     else:
         writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
-        writer.add_image(logging_label + '/confusion_matrix_{}'.format(multi_run), confusion_matrix_heatmap, epoch)
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
+                                          image_tensor=confusion_matrix_heatmap, global_step=epoch)
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '

@@ -10,6 +10,7 @@ from torch.autograd import Variable
 
 # DeepDIVA
 from util.visualization.confusion_matrix_heatmap import make_heatmap
+from util.misc import save_image_and_log_to_tensorboard
 
 
 def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, classify, **kwargs):
@@ -91,7 +92,8 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
         try:
             cm = confusion_matrix(y_true=labels, y_pred=preds)
             confusion_matrix_heatmap = make_heatmap(cm, data_loader.dataset.classes)
-            writer.add_image(logging_label + '/confusion_matrix', confusion_matrix_heatmap, epoch)
+            save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
+                                              image_tensor=confusion_matrix_heatmap, global_step=epoch)
         except ValueError:
             logging.warning('Confusion matrix received weird values')
 
