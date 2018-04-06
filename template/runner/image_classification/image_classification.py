@@ -8,6 +8,7 @@ and they should be used instead of hard-coding stuff.
 """
 
 import logging
+import sys
 
 # Utils
 import numpy as np
@@ -61,6 +62,7 @@ class ImageClassification:
 
         # Get the selected model input size
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
+        ImageClassification._validate_model_input_size(model_expected_input_size, model_name)
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
@@ -95,6 +97,16 @@ class ImageClassification:
         logging.info('Training completed')
 
         return train_value, val_value, test_value
+
+    ####################################################################################################################
+    @staticmethod
+    def _validate_model_input_size(model_expected_input_size, model_name):
+        if type(model_expected_input_size) is not tuple or len(model_expected_input_size) != 2:
+            logging.error('Model {model_name} expected input size is not a tuple. '
+                          'Received: {model_expected_input_size}'
+                          .format(model_name=model_name,
+                                  model_expected_input_size=model_expected_input_size))
+            sys.exit(-1)
 
     ####################################################################################################################
     """

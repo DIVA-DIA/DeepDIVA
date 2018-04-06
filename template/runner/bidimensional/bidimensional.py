@@ -8,10 +8,12 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
+# Utils
 import logging
+# Torch
+import sys
 
 import numpy as np
-# Torch
 import torch
 from torch import nn
 
@@ -25,33 +27,6 @@ from util.visualization.decision_boundaries import plot_decision_boundaries
 
 
 #######################################################################################################################
-def evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes, writer,
-                                        epoch, no_cuda, epochs, **kwargs):
-    min_x, min_y = np.min(val_coords[:, 0]), np.min(val_coords[:, 1])
-    max_x, max_y = np.max(val_coords[:, 0]), np.max(val_coords[:, 1])
-
-    grid_x = np.linspace(min_x, max_x, grid_resolution)
-    grid_y = np.linspace(min_y, max_y, grid_resolution)
-
-    grid_x, grid_y = np.meshgrid(grid_x, grid_y)
-
-    sm = nn.Softmax()
-
-    if not no_cuda:
-        outputs = model(coords)
-        outputs = sm(outputs)
-        outputs = outputs.data.cpu().numpy()
-    else:
-        outputs = sm(model(coords)).data.numpy()
-    output_winners = np.array([np.argmax(item) for item in outputs])
-    outputs_confidence = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
-
-    plot_decision_boundaries(output_winners=output_winners, output_confidence=outputs_confidence,
-                             grid_x=grid_x, grid_y=grid_y, point_x=val_coords[:, 0], point_y=val_coords[:, 1],
-                             point_class=val_loader.dataset.data[:, 2], num_classes=num_classes,
-                             step=epoch, writer=writer, epochs=epochs, **kwargs)
-
-
 class Bidimensional(ImageClassification):
     @staticmethod
     def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval, **kwargs):
@@ -90,6 +65,7 @@ class Bidimensional(ImageClassification):
 
         # Get the selected model
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
+        Bidimensional._validate_model_input_size(model_expected_input_size, model_name)
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
@@ -124,10 +100,10 @@ class Bidimensional(ImageClassification):
             coords = coords.cuda(async=True)
 
         # PLOT: decision boundary routine
-        evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
-                                            grid_resolution=grid_resolution, val_loader=val_loader,
-                                            num_classes=num_classes, writer=writer, epoch=-1, epochs=epochs,
-                                            **kwargs)
+        Bidimensional._evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
+                                                           grid_resolution=grid_resolution, val_loader=val_loader,
+                                                           num_classes=num_classes, writer=writer, epoch=-1, epochs=epochs,
+                                                           **kwargs)
 
         val_value[-1] = Bidimensional._validate(val_loader, model, criterion, writer, -1, **kwargs)
 
@@ -146,10 +122,10 @@ class Bidimensional(ImageClassification):
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
             # PLOT: decision boundary routine
-            evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
-                                                grid_resolution=grid_resolution, val_loader=val_loader,
-                                                num_classes=num_classes, writer=writer, epoch=epoch, epochs=epochs,
-                                                **kwargs)
+            Bidimensional._evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
+                                                               grid_resolution=grid_resolution, val_loader=val_loader,
+                                                               num_classes=num_classes, writer=writer, epoch=epoch, epochs=epochs,
+                                                               **kwargs)
             # Add model parameters to Tensorboard
             for name, param in model.named_parameters():
                 writer.add_histogram(name + '_{}'.format(epoch), param.clone().cpu().data.numpy(), epoch, bins='auto')
@@ -159,6 +135,44 @@ class Bidimensional(ImageClassification):
         logging.info('Training completed')
 
         return train_value, val_value, test_value
+
+    ####################################################################################################################
+    @staticmethod
+    def _validate_model_input_size(model_expected_input_size, model_name):
+        if type(model_expected_input_size) is not int or model_expected_input_size is not 2:
+            logging.error('Model {model_name} expected input size is not bidimensional (2). '
+                          'Received: {model_expected_input_size}'
+                          .format(model_name=model_name,
+                                  model_expected_input_size=model_expected_input_size))
+            sys.exit(-1)
+
+    @staticmethod
+    def _evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes,
+                                             writer,
+                                             epoch, no_cuda, epochs, **kwargs):
+        min_x, min_y = np.min(val_coords[:, 0]), np.min(val_coords[:, 1])
+        max_x, max_y = np.max(val_coords[:, 0]), np.max(val_coords[:, 1])
+
+        grid_x = np.linspace(min_x, max_x, grid_resolution)
+        grid_y = np.linspace(min_y, max_y, grid_resolution)
+
+        grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+
+        sm = nn.Softmax()
+
+        if not no_cuda:
+            outputs = model(coords)
+            outputs = sm(outputs)
+            outputs = outputs.data.cpu().numpy()
+        else:
+            outputs = sm(model(coords)).data.numpy()
+        output_winners = np.array([np.argmax(item) for item in outputs])
+        outputs_confidence = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
+
+        plot_decision_boundaries(output_winners=output_winners, output_confidence=outputs_confidence,
+                                 grid_x=grid_x, grid_y=grid_y, point_x=val_coords[:, 0], point_y=val_coords[:, 1],
+                                 point_class=val_loader.dataset.data[:, 2], num_classes=num_classes,
+                                 step=epoch, writer=writer, epochs=epochs, **kwargs)
 
     ####################################################################################################################
     """
