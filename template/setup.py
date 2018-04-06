@@ -1,17 +1,16 @@
 # Utils
 import inspect
 import json
+import logging
 import os
 import random
 import shutil
 import sys
-import time
-import tempfile
 import tarfile
+import tempfile
+import time
 
-import logging
 import colorlog
-
 import numpy as np
 import pandas as pd
 # Torch related stuff
@@ -212,7 +211,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     ###############################################################################################
     # Load the dataset splits as images
     try:
-        logging.info("Try to load dataset as images")
+        logging.debug("Try to load dataset as images")
         train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem, workers)
 
         # Loads the analytics csv and extract mean and std
@@ -240,6 +239,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
 
         test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
+        logging.info("Dataset loaded as images")
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
@@ -248,7 +248,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     ###############################################################################################
     # Load the dataset splits as bidimensional
     try:
-        logging.info("Try to load dataset as bidimensional")
+        logging.debug("Try to load dataset as bidimensional")
         train_ds, val_ds, test_ds = bidimensional_dataset.load_dataset(dataset_folder)
 
         # Loads the analytics csv and extract mean and std
@@ -278,6 +278,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
 
         test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
+        logging.info("Dataset loaded as bidimensional data")
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
