@@ -32,6 +32,8 @@ else
   pip install tensorboardX
   pip install tqdm
   pip install sigopt
+  pip install colorlog
+
 fi
 # Congratulate user on success
 echo "You're the best! Everything worked!"
