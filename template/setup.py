@@ -1,5 +1,4 @@
 # Utils
-import glob
 import inspect
 import json
 import os
@@ -7,6 +6,8 @@ import random
 import shutil
 import sys
 import time
+import tempfile
+import tarfile
 
 import logging
 import colorlog
@@ -26,6 +27,7 @@ from tensorboardX import SummaryWriter
 import models
 from datasets import image_folder_dataset, bidimensional_dataset
 from util.dataset_analytics import compute_mean_std
+from util.misc import get_all_files_in_folders_subfolders
 
 
 def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch, train_loader,
@@ -476,14 +478,45 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, deb
 
 
 def copy_code(output_folder):
+    """
+    Makes a tar file with DeepDIVA that exists during runtime.
+
+    :param output_folder: str
+        Path to output directory
+    :return: None
+    """
+    # All file extensions to be saved by copy-code.
+    FILE_TYPES = ['.sh', '.py']
+
+    # Get DeepDIVA root
     cwd = os.getcwd()
-    cwd = cwd[:cwd.find('template')] + "**/*.py"
-    for file in glob.glob(cwd):
-        print(file)
-        destination_folder = output_folder + file[file.find('DeepDIVA') - 1:file.rfind('/')]
-        if not os.path.exists(destination_folder):
-            os.makedirs(destination_folder)
-        shutil.copy(file, destination_folder)
+    dd_root = os.path.join(cwd.split('DeepDIVA')[0], 'DeepDIVA')
+
+    files = get_all_files_in_folders_subfolders(dd_root)
+
+    # Get all files types in DeepDIVA as specified in FILE_TYPES
+    code_files = [item for item in files if item.endswith(tuple(FILE_TYPES))]
+
+    tmp_dir = tempfile.mkdtemp()
+
+    for item in code_files:
+        dest = os.path.join(tmp_dir, 'DeepDIVA', item.split('DeepDIVA')[1][1:])
+        if not os.path.exists(os.path.dirname(dest)):
+            os.makedirs(os.path.dirname(dest))
+        shutil.copy(item, dest)
+
+    # TODO: make it save a zipfile instead of a tarfile.
+    with tarfile.open(os.path.join(output_folder, 'DeepDIVA.tar.gz'), 'w:gz') as tar:
+        tar.add(tmp_dir, arcname='DeepDIVA')
+
+    # Clean up all temporary files
+    shutil.rmtree(tmp_dir)
+
+    return
+
+
+
+
 
 
 def set_up_env(gpu_id, seed, multi_run, no_cuda, **kwargs):

@@ -186,3 +186,11 @@ def adjust_learning_rate(optimizer, lr, lr_decay=1e-6):
         group['step'] += 1
 
         group['lr'] = lr / (1 + group['step'] * lr_decay)
+
+
+def get_all_files_in_folders_subfolders(root_dir):
+    paths = []
+    for path, subdirs, files in os.walk(root_dir):
+        for name in files:
+            paths.append(os.path.join(path, name))
+    return paths
