@@ -12,12 +12,14 @@ import logging
 # Utils
 import numpy as np
 
-# DeepDIVA
 import models
 # Delegated
 from template.runner.image_classification import evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
+
+
+# DeepDIVA
 
 
 #######################################################################################################################
@@ -76,7 +78,7 @@ class ImageClassification:
         val_value = np.zeros((epochs + 1 - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
-        val_value[0] = ImageClassification._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[-1] = ImageClassification._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
             train_value[epoch] = ImageClassification._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
