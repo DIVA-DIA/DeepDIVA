@@ -1,6 +1,7 @@
 # Utils
 import logging
 import time
+import warnings
 
 import numpy as np
 # Torch related stuff
@@ -152,6 +153,14 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     return top1.avg
 
 
+def _prettyprint_classification_string(data_loader, preds, targets):
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        classification_report_string = str(classification_report(y_true=targets,
+                                                                 y_pred=preds,
+                                                                 target_names=[str(item) for item in data_loader.dataset.classes]))
+
+    # Fix for TB writer. Its an ugly workaround to have it printed nicely in the TEXT section of TB.
 def _log_classification_report(data_loader, epoch, preds, targets, writer):
     classification_report_string = str(classification_report(y_true=targets,
                                                              y_pred=preds,

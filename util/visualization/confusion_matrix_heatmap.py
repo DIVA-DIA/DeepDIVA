@@ -21,7 +21,6 @@ def make_heatmap(confusion_matrix, class_names):
     plt.style.use(['seaborn-white', 'seaborn-paper'])
     fig = plt.figure(figsize=(8, 8))
     plt.tight_layout()
-    mpl.rc("font", family="Times New Roman")
 
     try:
         heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cmap=plt.get_cmap('Blues'), annot_kws={"size": 14})
