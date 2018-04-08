@@ -118,10 +118,13 @@ def accuracy(output, target, topk=(1,)):
 
 def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
     """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
+    import copy
+    original_lr = copy.deepcopy(lr)
     lr = lr * (0.1 ** (epoch // decay_lr_epochs))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
-    logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
+    if original_lr != lr:
+        logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
 
 
 def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_best=False):
@@ -176,20 +179,6 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_b
 
 def to_capital_camel_case(s):
     return s[0].capitalize() + string.capwords(s, sep='_').replace('_', '')[1:] if s else s
-
-
-def adjust_learning_rate(optimizer, lr, lr_decay=1e-6):
-    """
-    Updates the learning rate given the learning rate decay.
-    The routine has been implemented according to the original Lua SGD optimizer
-    Original implementation from: https://github.com/vbalnt/tfeat
-    """
-    for group in optimizer.param_groups:
-        if 'step' not in group:
-            group['step'] = 0
-        group['step'] += 1
-
-        group['lr'] = lr / (1 + group['step'] * lr_decay)
 
 
 def get_all_files_in_folders_subfolders(root_dir):

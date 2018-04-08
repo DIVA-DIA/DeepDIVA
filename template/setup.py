@@ -348,10 +348,10 @@ def _load_analytics_csv(dataset_folder, inmem, workers):
         try:
             logging.warning('Attempt creating analytics.csv file for dataset located at {}'.format(dataset_folder))
             compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
+            logging.warning('Created analytics.csv file for dataset located at {} '.format(dataset_folder))
         except:
             logging.error('Creation of analytics.csv failed.')
             sys.exit(-1)
-    logging.warning('Created analytics.csv file for dataset located at {} '.format(dataset_folder))
     # Loads the analytics csv
     return pd.read_csv(os.path.join(dataset_folder, "analytics.csv"), header=None)
 

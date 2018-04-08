@@ -89,7 +89,7 @@ class ImageClassification:
             if epoch % validation_interval == 0:
                 val_value[epoch] = ImageClassification._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
-                adjust_learning_rate(lr, optimizer, epoch, decay_lr)
+                adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
         # Test
