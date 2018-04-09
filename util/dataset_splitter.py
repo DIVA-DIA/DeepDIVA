@@ -115,13 +115,24 @@ def split_dataset(dataset_folder, split):
 
     # Copying the splits into their folders
     for X, y in zip(X_train, y_train):
-        path = os.path.join(split_train_dir, train_ds.classes[y])
-        shutil.copy(X, path)
+        src = X
+        file_name = os.path.basename(src)
+        dest = os.path.join(split_train_dir, train_ds.classes[y], file_name)
+        if args.symbolic:
+            os.symlink(src, dest)
+        else:
+            shutil.copy(X, path)
 
     for X, y in zip(X_val, y_val):
-        path = os.path.join(split_val_dir, train_ds.classes[y])
-        shutil.copy(X, path)
+        src = X
+        file_name = os.path.basename(src)
+        dest = os.path.join(split_val_dir, train_ds.classes[y], file_name)
+        if args.symbolic:
+            os.symlink(src, dest)
+        else:
+            shutil.copy(X, path)
 
+    return
 
 if __name__ == "__main__":
     ###############################################################################
@@ -142,6 +153,11 @@ if __name__ == "__main__":
                              'Example: if 0.2 the training set will be 80% and val 20%.',
                         type=float,
                         default=0.2)
+
+    parser.add_argument('--symbolic',
+                        help='Make symbolic links instead of copies',
+                        default=False,
+                        action='store_true')
 
     args = parser.parse_args()
 
