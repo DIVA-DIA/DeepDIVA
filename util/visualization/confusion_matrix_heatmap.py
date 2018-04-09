@@ -22,8 +22,9 @@ def make_heatmap(confusion_matrix, class_names):
     fig = plt.figure(figsize=(8, 8))
     plt.tight_layout()
 
+    annot = False if confusion_matrix.size > 10000 else True
     try:
-        heatmap = sns.heatmap(df_cm, annot=True, fmt="d", cmap=plt.get_cmap('Blues'), annot_kws={"size": 14})
+        heatmap = sns.heatmap(df_cm, annot=annot, fmt="d", cmap=plt.get_cmap('Blues'), annot_kws={"size": 14})
     except ValueError:
         raise ValueError("Confusion matrix values must be integers.")
     heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=14)
