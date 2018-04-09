@@ -80,7 +80,7 @@ def split_dataset(dataset_folder, split):
     labels = np.asarray([item[1] for item in train_ds.imgs])
 
     # Split the data into two sets
-    X_train, X_val, y_train, y_val = train_test_split(fileNames, labels, test_size=split, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(fileNames, labels, test_size=split, random_state=42, stratify=labels)
 
     # Print number of elements for teach class
     for c in train_ds.classes:

@@ -129,8 +129,13 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Make a confusion matrix
-    cm = confusion_matrix(y_true=targets, y_pred=preds)
-    confusion_matrix_heatmap = make_heatmap(cm, data_loader.dataset.classes)
+    try:
+        cm = confusion_matrix(y_true=targets, y_pred=preds)
+        confusion_matrix_heatmap = make_heatmap(cm, data_loader.dataset.classes)
+    except ValueError:
+        logging.warning('Confusion Matrix did not work as expected')
+
+        confusion_matrix_heatmap = np.zeros((10, 10, 3))
 
     # Logging the epoch-wise accuracy and confusion matrix
     if multi_run is None:
