@@ -57,7 +57,7 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     train_ds, val_ds, test_ds = load_dataset(dataset_folder, inmem, workers, n_triplets, model_expected_input_size)
 
     # Loads the analytics csv and extract mean and std
-    mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
+    mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
 
     # Set up dataset transforms
     logging.debug('Setting up dataset transforms')
