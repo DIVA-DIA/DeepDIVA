@@ -9,9 +9,8 @@ from tqdm import tqdm
 
 # DeepDIVA
 from template.runner.triplet.eval_metrics import ErrorRateAt95Recall
+from util.misc import _prettyprint_logging_label
 
-
-# TODO: Make it parameterized to use top_n or FPR
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to validate the model."""
@@ -104,7 +103,10 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
     labels = np.concatenate(labels, 0).reshape(num_tests)
     distances = np.concatenate(distances, 0).reshape(num_tests)
     fpr95 = ErrorRateAt95Recall(labels, distances)
-    logging.info(logging_label + ' FPR95={:.4f}'.format(fpr95))
+    logging.info(_prettyprint_logging_label(logging_label) +
+                 ' epoch[{}]: '
+                 'FPR95={:.4f}'.format(epoch, fpr95))
+
 
     # Logging the epoch-wise accuracy
     if multi_run is None:

@@ -91,41 +91,44 @@ def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, mode
         logging.error("Test folder not found in the args.dataset_folder=" + dataset_folder)
         sys.exit(-1)
 
-    # If its requested online, delegate to torchvision.datasets.ImageFolder()
-    if not inmem:
-        # Get an online dataset for each split
+    if inmem:
+        logging.info('Loading the datasets into memory')
+        train_ds = ImageFolderTripletInMem(train_dir,
+                                           train=True,
+                                           num_triplets=num_triplets,
+                                           workers=workers,
+                                           model_expected_input_size=model_expected_input_size)
+        val_ds = ImageFolderTripletInMem(val_dir,
+                                         train=False,
+                                         num_triplets=num_triplets,
+                                         workers=workers,
+                                         model_expected_input_size=model_expected_input_size)
+        test_ds = ImageFolderTripletInMem(test_dir,
+                                          train=False,
+                                          num_triplets=num_triplets,
+                                          workers=workers,
+                                          model_expected_input_size=model_expected_input_size)
+        return train_ds, val_ds, test_ds
+    else:
         train_ds = ImageFolderTriplet(train_dir, train=True, num_triplets=num_triplets)
         val_ds = ImageFolderTriplet(val_dir, train=False, num_triplets=num_triplets)
         test_ds = ImageFolderTriplet(test_dir, train=False, num_triplets=num_triplets)
         return train_ds, val_ds, test_ds
-    else:
-        logging.info('Loading the datasets into memory')
-        train_ds = ImageFolderTripletInMem(train_dir, train=True, num_triplets=num_triplets, workers=workers,
-                                           model_expected_input_size=model_expected_input_size)
-        val_ds = ImageFolderTripletInMem(val_dir, train=False, num_triplets=num_triplets, workers=workers,
-                                         model_expected_input_size=model_expected_input_size)
-        test_ds = ImageFolderTripletInMem(test_dir, train=False, num_triplets=num_triplets, workers=workers,
-                                          model_expected_input_size=model_expected_input_size)
-        return train_ds, val_ds, test_ds
+
     return
 
 
 class ImageFolderTriplet(data.Dataset):
-    """
-    This class makes use of torchvision.datasets.ImageFolder() to create an online dataset.
-    Afterward all images are sequentially stored in memory for faster use when paired with dataloders.
-    It is responsibility of the user ensuring the dataset actually fits in memory.
-    """
 
     def __init__(self, dataset_folder, train=None, num_triplets=None, transform=None, target_transform=None):
         self.dataset_folder = os.path.expanduser(dataset_folder)
+        self.train = train
         self.transform = transform
         self.target_transform = target_transform
 
-        # Get an online dataset
         dataset = torchvision.datasets.ImageFolder(dataset_folder)
 
-        # Shuffle the data once (otherwise you get clusters of samples of same class in each minibatch for val and test)
+        # Shuffle the data once (otherwise you get clusters of samples of same class in each batch for val and test)
         np.random.shuffle(dataset.imgs)
 
         # Extract the actual file names and labels as entries
@@ -134,8 +137,6 @@ class ImageFolderTriplet(data.Dataset):
 
         # Set expected class attributes
         self.classes = np.unique(self.labels)
-
-        self.train = train
 
         if self.train:
             self.triplets = self.generate_triplets(self.labels, num_triplets)

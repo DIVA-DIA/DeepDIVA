@@ -19,6 +19,7 @@ and they should be used instead of hard-coding stuff.
 from __future__ import print_function
 
 import logging
+import sys
 
 import numpy as np
 import torch
@@ -82,13 +83,14 @@ class Triplet:
 
         # Get the selected model input size
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
+        Triplet._validate_model_input_size(model_expected_input_size, model_name)
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
-        train_loader, val_loader, test_loader, _ = setup_dataloaders(model_expected_input_size=model_expected_input_size, **kwargs)
+        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size=model_expected_input_size,
+                                                                  **kwargs)
 
         # Setting up model, optimizer, criterion
-        # TODO this has to be replaced with a custom ting for the triplet most probably. (Vinay: elaborate?)
         model, _, optimizer, best_value, start_epoch = set_up_model(model_name=model_name,
                                                                     lr=lr,
                                                                     train_loader=train_loader,
@@ -96,9 +98,6 @@ class Triplet:
 
         # Set the special criterion for triplets
         criterion = nn.TripletMarginLoss(margin=margin, swap=anchorswap)
-
-        # TODO: Check if this really necessary?
-        # model.apply(Triplet.weights_init)
 
         # Core routine
         logging.info('Begin training')
@@ -127,6 +126,17 @@ class Triplet:
         if isinstance(m, torch.nn.Conv2d):
             init.xavier_uniform(m.weight.data, gain=np.math.sqrt(2.0))
             init.constant(m.bias.data, 0.1)
+
+    ####################################################################################################################
+
+    @staticmethod
+    def _validate_model_input_size(model_expected_input_size, model_name):
+        if type(model_expected_input_size) is not tuple or len(model_expected_input_size) != 2:
+            logging.error('Model {model_name} expected input size is not a tuple. '
+                          'Received: {model_expected_input_size}'
+                          .format(model_name=model_name,
+                                  model_expected_input_size=model_expected_input_size))
+            sys.exit(-1)
 
     ####################################################################################################################
 

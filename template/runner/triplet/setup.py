@@ -1,19 +1,15 @@
 # Utils
 from __future__ import print_function
 
-import os
 import logging
+import os
 
-import cv2
 # Torch
-import torch
-import torch.nn.init
 import torchvision.transforms as transforms
 
 # DeepDIVA
 from datasets.image_folder_triplet import load_dataset
 from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
-from template.runner.triplet.transforms import MultiCrop
 
 
 def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, **kwargs):
@@ -82,4 +78,4 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
 
     test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                        workers)
-    return train_loader, val_loader, train_loader, None
+    return train_loader, val_loader, test_loader
