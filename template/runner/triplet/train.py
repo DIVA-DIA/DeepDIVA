@@ -54,7 +54,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
 
     # Iterate over whole training set
     end = time.time()
-    pbar = tqdm(enumerate(train_loader), total=len(train_loader), unit='batch', ncols=200)
+    pbar = tqdm(enumerate(train_loader), total=len(train_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (data_a, data_p, data_n) in pbar:
 
         if len(data_a.size()) == 5:

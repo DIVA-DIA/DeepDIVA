@@ -5,18 +5,17 @@ This file allows to load a dataset of images by specifying the folder where its 
 # Utils
 import logging
 import os
-import sys
 import random
+import sys
 from multiprocessing import Pool
 
 import cv2
-from tqdm import tqdm
 import numpy as np
-
 # Torch related stuff
 import torch.utils.data as data
 import torchvision
 from PIL import Image
+from tqdm import trange
 
 
 def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, model_expected_input_size=None, **kwargs):
@@ -150,7 +149,7 @@ class ImageFolderTriplet(data.Dataset):
         logging.info('Begin generating matches')
         matches = []
         end = int(num_triplets / 2)
-        for i in tqdm(range(num_triplets)):
+        for i in trange(num_triplets):
             if i < end:
                 c1 = np.random.randint(0, np.max(labels))
                 c1_items = np.where(labels == c1)[0]
@@ -178,7 +177,7 @@ class ImageFolderTriplet(data.Dataset):
         """
         logging.info('Begin generating triplets')
         triplets = []
-        for i in tqdm(range(num_triplets)):
+        for i in trange(num_triplets):
             c1 = np.random.randint(0, np.max(labels))
             c2 = np.random.randint(0, np.max(labels))
             while c1 == c2:

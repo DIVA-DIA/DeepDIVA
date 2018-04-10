@@ -65,7 +65,7 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
 
     multi_crop = False
     # Iterate over whole evaluation set
-    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=200)
+    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (data_a, data_pn, label) in pbar:
 
         if len(data_a.size()) == 5:
@@ -104,7 +104,7 @@ def _evaluate_fp95r(data_loader, model, criterion, writer, epoch, logging_label,
     labels = np.concatenate(labels, 0).reshape(num_tests)
     distances = np.concatenate(distances, 0).reshape(num_tests)
     fpr95 = ErrorRateAt95Recall(labels, distances)
-    logging.info('\33[91m ' + logging_label + ' set: ErrorRate(FPR95): {:.8f}\n\33[0m'.format(fpr95))
+    logging.info(logging_label + ' FPR95={:.4f}'.format(fpr95))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
