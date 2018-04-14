@@ -120,7 +120,7 @@ class ImageFolderTriplet(data.Dataset):
         self.classes = np.unique(self.labels)
 
         if self.train:
-            self.triplets = self.generate_triplets(self.labels, num_triplets)
+            self.triplets = self.generate_triplets()
 
         if self.inmem:
             # Load all samples

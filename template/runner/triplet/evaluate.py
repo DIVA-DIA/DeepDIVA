@@ -99,7 +99,10 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     labels = np.concatenate(labels, 0).reshape(num_tests)
     outputs = np.concatenate(outputs, 0)
     distances = pairwise_distances(outputs, metric='cosine', n_jobs=16)
-    map = compute_mapk(distances, labels, k='full')
+    logging.debug('Computed pairwise distances')
+    logging.debug('Distance matrix shape: {}'.format(distances.shape))
+    map = compute_mapk(distances, labels, k='auto')
+
 
     logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(map))
 
