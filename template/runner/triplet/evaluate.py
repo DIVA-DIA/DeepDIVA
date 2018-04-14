@@ -1,5 +1,7 @@
 # Utils
 import logging
+import time
+import datetime
 
 import numpy as np
 # Torch related stuff
@@ -101,8 +103,9 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     distances = pairwise_distances(outputs, metric='cosine', n_jobs=16)
     logging.debug('Computed pairwise distances')
     logging.debug('Distance matrix shape: {}'.format(distances.shape))
-    map = compute_mapk(distances, labels, k='auto')
-
+    t = time.time()
+    map = compute_mapk(distances, labels, k='full')
+    logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(map))
 
