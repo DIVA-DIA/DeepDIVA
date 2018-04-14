@@ -45,17 +45,31 @@ def _apk(query, predicted, k='full'):
     if num_relevant == 0:
         return np.nan
 
-    score = 0.0
-    hit = 0
+    # Non-vectorized version.
+    # score = 0.0
+    # hit = 0
+    # for i in range(min(k, len(predicted))):
+    #     prec = predicted[:i + 1].count(query) / (i + 1)
+    #     relv = 1 if predicted[i] == query else 0
+    #     score += prec * relv
+    #
+    #     hit += relv
+    #     if hit >= num_relevant:
+    #         break
 
-    for i in range(min(k, len(predicted))):
-        prec = predicted[:i + 1].count(query) / (i + 1)
-        relv = 1 if predicted[i] == query else 0
-        score += prec * relv
+    # Vectorized form
+    predicted = np.array(predicted[:min(k, len(predicted))])
 
-        hit += relv
-        if hit >= num_relevant:
-            break
+    relv = np.zeros(len(predicted))
+    locs = np.where(predicted == query)[0]
+
+    hit = 1
+    for loc in locs:
+        relv[loc] = hit
+        hit += 1
+
+    score = np.sum(np.divide(relv, np.arange(1, relv.shape[0] + 1)))
+
 
     average_prec = score / num_relevant
 

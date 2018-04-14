@@ -14,3 +14,4 @@ def test_apk():
     np.testing.assert_almost_equal(_apk(1, [0, 0, 1, 1], 'full'), 0.41666666)
     assert _apk(1, [0, 0, 1, 0, 0, 1], 'full') == 1.0 / 3
     np.testing.assert_almost_equal(_apk(1, [1, 0, 1, 0, 0, 1, 0, 0, 1, 1], 'full'), 0.62222222222)
+    assert _apk(1, [1] * 100000, 'full') == 1.0
