@@ -10,12 +10,12 @@ import sys
 from multiprocessing import Pool
 
 import cv2
-import numpy as np
-# Torch related stuff
-import torch.utils.data as data
-import torchvision
-from PIL import Image
 from tqdm import trange
+import numpy as np
+from PIL import Image
+# Torch related stuff
+import torchvision
+import torch.utils.data as data
 
 
 def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, model_expected_input_size=None, **kwargs):
@@ -135,7 +135,7 @@ class ImageFolderTriplet(data.Dataset):
         num_triplets = self.num_triplets
         logging.info('Begin generating triplets')
         triplets = []
-        for i in trange(num_triplets):
+        for i in trange(num_triplets, leave=False):
             c1 = np.random.randint(0, np.max(labels))
             c2 = np.random.randint(0, np.max(labels))
             while c1 == c2:
@@ -150,6 +150,7 @@ class ImageFolderTriplet(data.Dataset):
             c2_items = np.where(labels == c2)[0]
             n = random.choice(c2_items)
             triplets.append([a, p, n])
+        logging.info('Finished generating {} triplets'.format(num_triplets))
         return triplets
 
     def _load_into_mem(self, path):
