@@ -182,7 +182,7 @@ class ImageFolderTriplet(data.Dataset):
                 img_a = self.data[index]
             else:
                 img_a = self._load_into_mem(self.file_names[index])
-                img_a = Image.fromarray(img_a)
+            img_a = Image.fromarray(img_a)
             if self.transform is not None:
                 img_a = self.transform(img_a)
             return img_a, l
