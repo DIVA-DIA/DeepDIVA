@@ -61,15 +61,15 @@ def _apk(query, predicted, k='full'):
     predicted = np.array(predicted[:min(k, len(predicted))])
 
     relv = np.zeros(len(predicted))
-    locs = np.where(predicted == query)[0]
 
-    hit = 1
-    for loc in locs:
-        relv[loc] = hit
-        hit += 1
+    hit_locs = np.where(predicted == query)[0]
+    non_hit_locs = np.where(predicted != query)[0]
+
+    relv[hit_locs] = 1
+    relv = np.cumsum(relv)
+    relv[non_hit_locs] = 0
 
     score = np.sum(np.divide(relv, np.arange(1, relv.shape[0] + 1)))
-
 
     average_prec = score / num_relevant
 
