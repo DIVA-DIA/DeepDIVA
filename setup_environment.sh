@@ -30,6 +30,7 @@ else
 
   # Install missing packages from pip
   pip install tensorboardX
+  pip install tensorboard
   pip install tqdm
   pip install sigopt
   pip install colorlog
