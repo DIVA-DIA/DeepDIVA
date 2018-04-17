@@ -240,7 +240,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
             transforms.Normalize(mean=mean, std=std)
         ])
 
-        test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
+        train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
         logging.info("Dataset loaded as images")
         return train_loader, val_loader, test_loader, len(train_ds.classes)
@@ -279,7 +279,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
             transforms.Normalize(mean=mean, std=std)
         ])
 
-        test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
+        train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
         logging.info("Dataset loaded as bidimensional data")
         return train_loader, val_loader, test_loader, len(train_ds.classes)
@@ -364,7 +364,7 @@ def _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds, workers):
         The datasets split loaded, ready to be fed to a dataloader
 
     :param workers:
-        Number of workers to use to load the data. If full reproducibility is desired select 1 (slower)
+        Number of workers to use to load the data.
 
     :return: torch.utils.data.DataLoader[]
         The dataloaders for each split passed
@@ -384,7 +384,7 @@ def _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds, workers):
                                               batch_size=batch_size,
                                               num_workers=workers,
                                               pin_memory=True)
-    return test_loader, train_loader, val_loader
+    return train_loader, val_loader, test_loader
 
 
 #######################################################################################################################
