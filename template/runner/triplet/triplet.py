@@ -40,8 +40,8 @@ from util.misc import adjust_learning_rate, checkpoint
 
 class Triplet:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchorswap,
-                   validation_interval, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchor_swap,
+                   validation_interval, regenerate_every, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -65,7 +65,7 @@ class Triplet:
         :param margin: float
             the margin value for the triplet loss function
 
-        :param anchorswap: boolean
+        :param anchor_swap: boolean
             turns on anchor swap
 
         :param decay_lr: boolean
@@ -73,6 +73,9 @@ class Triplet:
 
         :param validation_interval: int
             Run evaluation on validation set every N epochs
+
+        :param regenerate_every: int
+            Re-generate triplets every N epochs
 
         :param kwargs: dict
             Any additional arguments.
@@ -97,7 +100,7 @@ class Triplet:
                                                                     **kwargs)
 
         # Set the special criterion for triplets
-        criterion = nn.TripletMarginLoss(margin=margin, swap=anchorswap)
+        criterion = nn.TripletMarginLoss(margin=margin, swap=anchor_swap)
 
         # Core routine
         logging.info('Begin training')
@@ -107,21 +110,44 @@ class Triplet:
         Triplet._validate(val_loader, model, None, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = Triplet._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = Triplet._train(train_loader=train_loader,
+                                                model=model,
+                                                criterion=criterion,
+                                                optimizer=optimizer,
+                                                writer=writer,
+                                                epoch=epoch,
+                                                **kwargs)
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = Triplet._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+                val_value[epoch] = Triplet._validate(val_loader=val_loader,
+                                                     model=model,
+                                                     criterion=criterion,
+                                                     writer=writer,
+                                                     epoch=epoch,
+                                                     **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder, invert_best=True)
+            best_value = checkpoint(epoch=epoch,
+                                    new_value=val_value[epoch],
+                                    best_value=best_value,
+                                    model=model,
+                                    optimizer=optimizer,
+                                    log_dir=current_log_folder,
+                                    invert_best=True)
 
-            # Generate new triplets
-            train_loader.dataset.generate_triplets()
+            # Generate new triplets every N epochs
+            if epoch % regenerate_every == 0:
+                train_loader.dataset.generate_triplets()
 
         # Test
         logging.info('Training completed')
 
-        test_value = Triplet._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        test_value = Triplet._test(test_loader=test_loader,
+                                   model=model,
+                                   criterion=criterion,
+                                   writer=writer,
+                                   epoch=(epochs - 1),
+                                   **kwargs)
 
         return train_value, val_value, test_value
 

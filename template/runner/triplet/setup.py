@@ -55,32 +55,33 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
 
     ###############################################################################################
     # Load the dataset splits as images
-    train_ds, val_ds, test_ds = load_dataset(dataset_folder, inmem, workers, n_triplets, model_expected_input_size)
+    train_ds, val_ds, test_ds = load_dataset(dataset_folder=dataset_folder,
+                                             inmem=inmem,
+                                             workers=workers,
+                                             num_triplets=n_triplets,
+                                             model_expected_input_size=model_expected_input_size)
 
     # Loads the analytics csv and extract mean and std
-    mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
+    mean, std = _load_mean_std_from_file(dataset_folder=dataset_folder,
+                                         inmem=inmem,
+                                         workers=workers)
 
     # Set up dataset transforms
     logging.debug('Setting up dataset transforms')
 
-    train_ds.transform = transforms.Compose([
-        transforms.RandomCrop(size=model_expected_input_size),
+    standard_transform = transforms.Compose([
+        transforms.Resize(size=model_expected_input_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
 
-    val_ds.transform = transforms.Compose([
-        MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
-        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
-        transforms.Lambda(lambda items: torch.stack([transforms.Normalize(mean=mean, std=std)(item) for item in items]))
-    ])
+    train_ds.transform = standard_transform
+    val_ds.transform = standard_transform
+    test_ds.transform = standard_transform
 
-    test_ds.transform = transforms.Compose([
-        MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
-        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
-        transforms.Lambda(lambda items: torch.stack([transforms.Normalize(mean=mean, std=std)(item) for item in items]))
-    ])
-
-    test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
-                                                                       workers)
+    train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size=batch_size,
+                                                                       train_ds=train_ds,
+                                                                       val_ds=val_ds,
+                                                                       test_ds=test_ds,
+                                                                       workers=workers)
     return train_loader, val_loader, test_loader

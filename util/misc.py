@@ -1,63 +1,35 @@
 """
-General purpose utility code from https://raw.githubusercontent.com/pytorch/vision/master/torchvision/datasets/utils.py
+General purpose utility functions.
 """
 
 # Utils
-import errno
-import hashlib
 import logging
 import os
-import os.path
 import shutil
 import string
+
 import cv2
-
 import numpy as np
-
-# Torch
-
+import os.path
 import torch
 
 
-# TODO comment this
-def check_integrity(fpath, md5):
-    if not os.path.isfile(fpath):
-        return False
-    md5o = hashlib.md5()
-    with open(fpath, 'rb') as f:
-        # read in 1MB chunks
-        for chunk in iter(lambda: f.read(1024 * 1024), b''):
-            md5o.update(chunk)
-    md5c = md5o.hexdigest()
-    if md5c != md5:
-        return False
-    return True
-
-
-# TODO comment this
-def download_url(url, root, filename, md5):
-    from six.moves import urllib
-
-    root = os.path.expanduser(root)
-    fpath = os.path.join(root, filename)
-
-    try:
-        os.makedirs(root)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise
-
-    # downloads file
-    if os.path.isfile(fpath) and check_integrity(fpath, md5):
-        print('Using downloaded and verified file: ' + fpath)
-    else:
-        print('Downloading ' + url + ' to ' + fpath)
-        urllib.request.urlretrieve(url, fpath)
 
 
 def _prettyprint_logging_label(logging_label):
+    """Format the logging label in a pretty manner.
+
+    Parameters
+    ----------
+    logging_label : str
+        The label used in logging
+
+    Returns
+    -------
+    logging_label : str
+        Correctly formatted logging label.
+
+    """
     if len(logging_label) < 5:
         for i in range(5 - len(logging_label)):
             logging_label = logging_label + ' '
@@ -65,7 +37,10 @@ def _prettyprint_logging_label(logging_label):
 
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    """Computes and stores the average and current value
+
+    From https://github.com/pytorch/examples/blob/master/imagenet/main.py
+    """
 
     def __init__(self):
         self.reset()
@@ -82,10 +57,10 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-
-def accuracy(output, target, topk=(1,)):
     """
-    Computes the accuracy@k for the specified values of k
+    Computes the accuracy@K for the specified values of K
+
+    From https://github.com/pytorch/examples/blob/master/imagenet/main.py
 
     Parameters
     ----------
@@ -102,22 +77,64 @@ def accuracy(output, target, topk=(1,)):
         Top@k accuracy
     """
 
+
+def accuracy(predicted, target, topk=(1,)):
+    """Computes the accuracy@K for the specified values of K
+
+    From https://github.com/pytorch/examples/blob/master/imagenet/main.py
+
+    Parameters
+    ----------
+    predicted : torch.FloatTensor
+        The predicted output values of the model.
+    target : torch.LongTensor
+        The ground truth for the corresponding output.
+    topk : tuple
+        Multiple values for K can be specified in a tuple, and the
+        different accuracies@K will be computed.
+
+    Returns
+    -------
+    res : list
+        List of accuracies computed at the different K's specified in `topk`
+
+    """
+
     maxk = max(topk)
     batch_size = target.size(0)
 
-    _, pred = output.topk(maxk, 1, True, True)
+    _, pred = predicted.topk(maxk, 1, True, True)
     pred = pred.t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 
     res = []
     for k in topk:
-        correct_k = correct[:k].view(-1).float().sum(0)
+        correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
 
 def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
-    """Sets the learning rate to the initial LR decayed by 10 every N epochs"""
+    """Sets the learning rate to the initial LR decayed by 10 every N epochs.
+
+    Adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
+
+    Parameters
+    ----------
+    lr : float
+        Learning rate.
+    optimizer : torch.optim object
+        The optimizer used for training the network.
+    epoch : int
+        Current training epoch.
+    decay_lr_epochs : int
+        Change the learning rate every N epochs.
+
+    Returns
+    -------
+    None
+
+    """
     import copy
     original_lr = copy.deepcopy(lr)
     lr = lr * (0.1 ** (epoch // decay_lr_epochs))
@@ -125,37 +142,38 @@ def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
         param_group['lr'] = lr
     if original_lr != lr:
         logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
+    return
 
 
 def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_best=False):
-    """
-    Checks whether the checkpoint. If the model is better, it saves it to file.
+    """Saves the current training checkpoint and the best valued checkpoint to file.
 
     Parameters
     ----------
-    :param epoch : int
-        Current epoch, for logging purpose only
-
-    :param new_value : float
-        Current value achieved by the model at this epoch. To be compared with 'best_value'.
-
-    :param best_value : float
-        Best value every obtained (so the last checkpointed model). To be compared with 'new_value'.
-
-    :param model:
-        The model we are checkpointing. To be saved on file if necessary.
-
-    :param optimizer:
-        The optimizer we used to obtain this model. It is necessary if we were to resume the training from a checkpoint.
-
-    :param log_dir: str
+    epoch : int
+        Current epoch, for logging purpose only.
+    new_value : float
+        Current value achieved by the model at this epoch.
+        To be compared with 'best_value'.
+    best_value : float
+        Best value ever obtained (so the last checkpointed model).
+        To be compared with 'new_value'.
+    model : torch.nn.module object
+        The model we are checkpointing, this can be saved on file if necessary.
+    optimizer :
+        The optimizer that is being used to train this model.
+        It is necessary if we were to resume the training from a checkpoint.
+    log_dir : str
         Output folder where to put the model.
+    invert_best : bool
+        Changes the scale such that smaller values are better than bigger values
+        (useful when metric evaluted is error rate)
 
-    :param invert_best: bool
-        Changes the scale such that smaller values are better than bigger values (useful when metric evaluted is error rate)
+    Returns
+    -------
+    best_value : float
+        Best value ever obtained (so the last checkpointed model).
 
-    :return:
-        None
     """
     if invert_best:
         is_best = new_value < best_value
@@ -173,15 +191,39 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_b
     }, filename)
     if is_best:
         shutil.copyfile(filename, os.path.join(os.path.split(filename)[0], 'model_best.pth.tar'))
-
     return best_value
 
 
 def to_capital_camel_case(s):
+    """Converts a string to camel case.
+
+    Parameters
+    ----------
+    s : str
+        Input string.
+
+    Returns
+    -------
+    str
+        Input string `s` converted to camel case.
+
+    """
     return s[0].capitalize() + string.capwords(s, sep='_').replace('_', '')[1:] if s else s
 
 
-def get_all_files_in_folders_subfolders(root_dir):
+def get_all_files_in_folders_and_subfolders(root_dir=None):
+    """Get all the files in a folder and sub-folders.
+
+    Parameters
+    ----------
+    root_dir : str
+        All files in this directory and it's sub-folders will be returned by this method.
+
+    Returns
+    -------
+    paths : list of str
+        List of paths to all files in this folder and it's subfolders.
+    """
     paths = []
     for path, subdirs, files in os.walk(root_dir):
         for name in files:
@@ -190,23 +232,30 @@ def get_all_files_in_folders_subfolders(root_dir):
 
 
 def save_image_and_log_to_tensorboard(writer=None, tag=None, image_tensor=None, global_step=None):
-    """
-    utility function to save image in the output folder and also log it to tensorboard
-    :param writer: Tensorboard Summarywriter
+    """Utility function to save image in the output folder and also log it to Tensorboard.
 
-    :param tag: str
-        Name of the image
-    :param image_tensor: ndarray
-        Image to be saved
-    :param global_step: int
-        Global step value to record
-    :return: None
+    Parameters
+    ----------
+    writer : tensorboardX.writer.SummaryWriter object
+        The writer object for Tensorboard
+    tag : str
+        Name of the image.
+    image_tensor : ndarray [H x W x C]
+        Image to be saved and logged to Tensorboard.
+    global_step : int
+        Epoch/Mini-batch counter.
+
+    Returns
+    -------
+    None
+
     """
 
-    # Log image to tensorboard
+    # Log image to Tensorboard
     writer.add_image(tag=tag, img_tensor=image_tensor, global_step=global_step)
 
-    # Get output folder using the FileHandler from the logger. (Assumes only two handlers are attached to the logger)
+    # Get output folder using the FileHandler from the logger.
+    # (Assumes only two handlers are attached to the logger)
     output_folder = os.path.dirname(logging.getLogger().handlers[1].baseFilename)
 
     if global_step is not None:

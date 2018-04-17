@@ -16,6 +16,11 @@ class MultiCrop(object):
             instead of sequence like (h, w), a square crop of size (size, size) is made.
 
     Example:
+        MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
+        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+        transforms.Lambda(lambda items: torch.stack([transforms.Normalize(mean=mean, std=std)(item) for item in items]))
+
+    Example:
          >>> transform = Compose([
          >>>    FiveCrop(size), # this is a list of PIL Images
          >>>    Lambda(lambda crops: torch.stack([ToTensor()(crop) for crop in crops])) # returns a 4D tensor

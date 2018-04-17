@@ -22,7 +22,7 @@ def test(test_loader, model, criterion, writer, epoch, no_cuda=False, log_interv
     return _evaluate_map(test_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
 
 
-def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, no_cuda, log_interval, **kwargs):
+def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, no_cuda, log_interval, map, **kwargs):
     """
     The evaluation routine
 
@@ -51,6 +51,9 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
 
     :param log_interval : int
         Interval limiting the logging of mini-batches. Default value of 10.
+
+    :param map : str
+        Specify value for mAP computation. Possible values are ("auto", "full" or specify K for AP@K)
 
     :return:
         None
@@ -104,15 +107,15 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     logging.debug('Computed pairwise distances')
     logging.debug('Distance matrix shape: {}'.format(distances.shape))
     t = time.time()
-    map = compute_mapk(distances, labels, k='full')
+    mAP_score = compute_mapk(distances, labels, k=map)
     logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
-    logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(map))
+    logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(mAP_score))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
-        writer.add_scalar(logging_label + '/mAP', map, epoch)
+        writer.add_scalar(logging_label + '/mAP', mAP_score, epoch)
     else:
-        writer.add_scalar(logging_label + '/mAP{}'.format(multi_run), map, epoch)
+        writer.add_scalar(logging_label + '/mAP{}'.format(multi_run), mAP_score, epoch)
 
-    return map
+    return mAP_score
