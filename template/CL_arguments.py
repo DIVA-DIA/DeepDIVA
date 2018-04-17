@@ -262,3 +262,7 @@ def _triplet_options(parser):
                                 type=bool,
                                 default=False,
                                 help='turns on anchor swap')
+    parser_triplet.add_argument('--map',
+                                type=str,
+                                default='full',
+                                help='switch between "auto", "full" or specify K for AP@K')

@@ -104,15 +104,18 @@ def compute_mapk(distances, labels, k, workers=None):
     score   :   double
                 The mean average precision at K over the input lists
     """
+    k = k if k == 'auto' or k == 'full' else int(k)
+
     t = time.time()
     sorted_predictions = [list(labels[np.argsort(dist_row)][1:]) for dist_row in distances]
-    # logging.info('Finished sorting distance matrix in {} seconds'.format(datetime.timedelta(seconds=int(time.time() - t))))
+    logging.debug(
+        'Finished sorting distance matrix in {} seconds'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     queries = labels
 
     t = time.time()
     map = _mapk(queries, sorted_predictions, k, workers)
-    # logging.info('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
+    logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     if workers == None:
         workers = 16 if k == 'auto' or k == 'full' else 1
