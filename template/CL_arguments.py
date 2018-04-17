@@ -253,12 +253,12 @@ def _triplet_options(parser):
     parser_triplet.add_argument('--n-triplets',
                                 type=int,
                                 default=1280000, metavar='N',
-                                help='how many triplets will generate from the dataset')
+                                help='how many triplets to generate from the dataset')
     parser_triplet.add_argument('--margin',
                                 type=float,
                                 default=2.0,
                                 help='the margin value for the triplet loss function')
-    parser_triplet.add_argument('--anchorswap',
+    parser_triplet.add_argument('--anchor-swap',
                                 type=bool,
                                 default=False,
                                 help='turns on anchor swap')
@@ -266,3 +266,7 @@ def _triplet_options(parser):
                                 type=str,
                                 default='full',
                                 help='switch between "auto", "full" or specify K for AP@K')
+    parser_triplet.add_argument('--regenerate-every',
+                                type=int,
+                                default=5, metavar='N',
+                                help='re-generate triplets every N epochs')
