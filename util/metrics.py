@@ -22,11 +22,11 @@ def _apk(query, predicted, k='full'):
         If str, 'full' means cutoff is til the end of predicted
                 'auto' means cutoff is set to number of relevant queries.
                 For e.g.,
-                    q = 0
-                    predicted = [0,0,1,1]
-                    if k == 'full', then k is set to 4
-                    if k == 'auto', then k is set to num of predicted values
-                        that equal query, i.e., k will be 2
+                    query = 0
+                    predicted = [0, 0, 1, 1, 0]
+                    if k == 'full', then k is set to 5
+                    if k == 'auto', then k is set to num of 'query' values in 'predicted',
+                    i.e., k=3 as there as 3 of them in 'predicted'
 
     Returns
     -------

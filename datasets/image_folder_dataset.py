@@ -1,5 +1,5 @@
 """
-This file allows to load a dataset of images by specifying the folder where its located.
+Load a dataset of images by specifying the folder where its located.
 """
 
 # Utils
@@ -16,46 +16,28 @@ import torchvision
 from PIL import Image
 
 
-def load_dataset(dataset_folder, inmem=False, workers=1):
+def load_dataset(dataset_folder, in_memory=False, workers=1):
     """
-    Parameters
-    ----------
+    Loads the dataset from file system and provides the dataset splits for train validation and test
 
-    :param dataset_folder: string (path)
-        Specifies where the dataset is located on the file System
+    The dataset is expected to be in the following structure, where 'dataset_folder' has to point to
+    the root of the three folder train/val/test.
 
-    :param inmem: boolean
-        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
-        on demand. This is slower than storing everything in memory.
+    Example:
 
-    :param workers: int
-        Number of workers to use for the dataloaders
+        dataset_folder = "~/../../data/cifar"
 
-    :return train_ds, val_da, test_da: data.Dataset
-        Return a torch dataset for each split
+    which contains the splits sub-folders as follow:
 
-    Structure of the dataset expected
-    ---------------------------------
+        'dataset_folder'/train
+        'dataset_folder'/val
+        'dataset_folder'/test
 
-    Split folders:
+    In each of the three splits (train, val, test) should have different classes in a separate folder
+    with the class name. The file name can be arbitrary i.e. it does not have to be 0-* for classes 0
+    of MNIST.
 
-        'args.dataset_folder' has to point to the three folder train/val/test.
-        Example:
-
-        ~/../../data/svhn
-
-        where the dataset_folder contains the splits sub-folders as follow:
-
-        args.dataset_folder/train
-        args.dataset_folder/val
-        args.dataset_folder/test
-
-    Classes folders
-
-        In each of the three splits (train,val,test) should have different classes in a separate folder with the class
-        name. The file name can be arbitrary (e.g does not have to be 0-* for classes 0 of MNIST).
-
-        Example:
+    Example:
 
         train/dog/whatever.png
         train/dog/you.png
@@ -64,8 +46,26 @@ def load_dataset(dataset_folder, inmem=False, workers=1):
         train/cat/123.png
         train/cat/nsdf3.png
         train/cat/asd932_.png
-    """
 
+        train/"class_name"/*.png
+
+    Parameters
+    ----------
+    dataset_folder : string
+        Path to the dataset on the file System
+    in_memory : boolean
+        Load the whole dataset in memory. If False, only file names are stored and images are loaded
+        on demand. This is slower than storing everything in memory.
+    workers: int
+        Number of workers to use for the dataloaders
+
+    Returns
+    -------
+    train_ds : data.Dataset
+    val_ds : data.Dataset
+    test_ds : data.Dataset
+        Train, validation and test splits
+    """
     # Get the splits folders
     train_dir = os.path.join(dataset_folder, 'train')
     val_dir = os.path.join(dataset_folder, 'val')
@@ -73,17 +73,17 @@ def load_dataset(dataset_folder, inmem=False, workers=1):
 
     # Sanity check on the splits folders
     if not os.path.isdir(train_dir):
-        logging.error("Train folder not found in the args.dataset_folder=" + dataset_folder)
+        logging.error("Train folder not found in the dataset_folder=" + dataset_folder)
         sys.exit(-1)
     if not os.path.isdir(val_dir):
-        logging.error("Val folder not found in the args.dataset_folder=" + dataset_folder)
+        logging.error("Val folder not found in the dataset_folder=" + dataset_folder)
         sys.exit(-1)
     if not os.path.isdir(test_dir):
-        logging.error("Test folder not found in the args.dataset_folder=" + dataset_folder)
+        logging.error("Test folder not found in the dataset_folder=" + dataset_folder)
         sys.exit(-1)
 
     # If its requested online, delegate to torchvision.datasets.ImageFolder()
-    if not inmem:
+    if not in_memory:
         # Get an online dataset for each split
         train_ds = torchvision.datasets.ImageFolder(train_dir)
         val_ds = torchvision.datasets.ImageFolder(val_dir)
@@ -99,18 +99,34 @@ def load_dataset(dataset_folder, inmem=False, workers=1):
 
 class ImageFolderInMemory(data.Dataset):
     """
-    This class makes use of torchvision.datasets.ImageFolder() to create an online dataset.
-    Afterward all images are sequentially stored in memory for faster use when paired with dataloders.
-    It is responsibility of the user ensuring the dataset actually fits in memory.
+    This class loads the data provided and stores it entirely in memory as a dataset.
+
+    It makes use of torchvision.datasets.ImageFolder() to create a dataset. Afterward all images are
+    sequentially stored in memory for faster use when paired with dataloders. It is responsibility of
+    the user ensuring that the dataset actually fits in memory.
     """
 
-    def __init__(self, dataset_folder, transform=None, target_transform=None, workers=1):
-        self.dataset_folder = os.path.expanduser(dataset_folder)
+    def __init__(self, path, transform=None, target_transform=None, workers=1):
+        """
+        Load the data in memory and prepares it as a dataset.
+
+        Parameters
+        ----------
+        path : string
+            Path to the dataset on the file System
+        transform : torchvision.transforms
+            Transformation to apply on the data
+        target_transform : torchvision.transforms
+            Transformation to apply on the labels
+        workers: int
+            Number of workers to use for the dataloaders
+        """
+        self.dataset_folder = os.path.expanduser(path)
         self.transform = transform
         self.target_transform = target_transform
 
         # Get an online dataset
-        dataset = torchvision.datasets.ImageFolder(dataset_folder)
+        dataset = torchvision.datasets.ImageFolder(path)
 
         # Shuffle the data once (otherwise you get clusters of samples of same class in each minibatch for val and test)
         np.random.shuffle(dataset.imgs)
@@ -121,25 +137,25 @@ class ImageFolderInMemory(data.Dataset):
 
         # Load all samples
         pool = Pool(workers)
-        self.data = pool.map(self._load_into_mem, file_names)
+        self.data = pool.map(cv2.imread, file_names)
         pool.close()
 
         # Set expected class attributes
         self.classes = np.unique(self.labels)
 
-    def _load_into_mem(self, path):
-        return cv2.imread(path)
-
     def __getitem__(self, index):
         """
-        Parameters:
-        -----------
+        Retrieve a sample by index
 
-        :param index : int
-            Index of the sample
+        Parameters
+        ----------
+        index : int
 
-        :return: tuple:
-            (image, target) where target is index of the target class.
+        Returns
+        -------
+        img : FloatTensor
+        target : int
+            label of the image
         """
 
         img, target = self.data[index], self.labels[index]
@@ -149,7 +165,6 @@ class ImageFolderInMemory(data.Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
-
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -160,13 +175,29 @@ class ImageFolderInMemory(data.Dataset):
 
 
 class ImageFolderApply(data.Dataset):
-    def __init__(self, dataset_folder, transform=None, target_transform=None):
-        self.dataset_folder = os.path.expanduser(dataset_folder)
+    """
+    TODO fill me
+    """
+
+    def __init__(self, path, transform=None, target_transform=None):
+        """
+        TODO fill me
+
+        Parameters
+        ----------
+        path : string
+            Path to the dataset on the file System
+        transform : torchvision.transforms
+            Transformation to apply on the data
+        target_transform : torchvision.transforms
+            Transformation to apply on the labels
+        """
+        self.dataset_folder = os.path.expanduser(path)
         self.transform = transform
         self.target_transform = target_transform
 
         # Get an online dataset
-        dataset = torchvision.datasets.ImageFolder(dataset_folder)
+        dataset = torchvision.datasets.ImageFolder(path)
 
         # Extract the actual file names and labels as entries
         self.file_names = np.asarray([item[0] for item in dataset.imgs])
@@ -175,22 +206,22 @@ class ImageFolderApply(data.Dataset):
         # Set expected class attributes
         self.classes = np.unique(self.labels)
 
-    def _load_into_mem(self, path):
-        return cv2.imread(path)
-
     def __getitem__(self, index):
         """
-        Parameters:
-        -----------
+        Retrieve a sample by index and provides its filename as well
 
-        :param index : int
-            Index of the sample
+        Parameters
+        ----------
+        index : int
 
-        :return: tuple:
-            (image, target) where target is index of the target class.
+        Returns
+        -------
+        img : FloatTensor
+        target : int
+            label of the image
+        filename : string
         """
-
-        img, target, filename = self._load_into_mem(self.file_names[index]), self.labels[index], self.file_names[index]
+        img, target, filename = cv2.imread(self.file_names[index]), self.labels[index], self.file_names[index]
 
         # Doing this so that it is consistent with all other datasets to return a PIL Image
         img = Image.fromarray(img)
