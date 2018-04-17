@@ -28,8 +28,10 @@ conda create --file requirements.txt --name deepdiva
 
 # Activate the environment
 source activate deepdiva
+
 # Install missing packages from pip
 pip install tensorboardX
+pip install tensorboard
 pip install tqdm
 pip install sigopt
 pip install colorlog

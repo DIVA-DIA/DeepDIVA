@@ -1,7 +1,3 @@
-"""
-Bidimensional dataset
-"""
-
 # Utils
 import logging
 import os
@@ -16,32 +12,31 @@ import torch.utils.data as data
 
 def load_dataset(dataset_folder):
     """
+    Loads the dataset from file system and provides the dataset splits for train validation and test
+
+    The dataset is expected to be in the following structure, where 'dataset_folder' has to point to
+    the root of the three folder train/val/test.
+
+    Example:
+
+        dataset_folder = "~/../../data/bd_xor"
+
+    which contains the splits sub-folders as follow:
+
+        'dataset_folder'/train
+        'dataset_folder'/val
+        'dataset_folder'/test
+
     Parameters
     ----------
+    dataset_folder : string
+        Path to the dataset on the file System
 
-    :param dataset_folder: string (path)
-        Specifies where the dataset is located on the file System
-
-    :return train_ds, val_da, test_da: data.Dataset
-        Return a torch dataset for each split
-
-    Structure of the dataset expected
-    ---------------------------------
-
-    Split folders:
-
-        'args.dataset_folder' has to point to the three folder train/val/test.
-        Example:
-
-        ~/../../data/pc_diagonal
-
-        where the dataset_folder contains the splits sub-folders as follow:
-
-        args.dataset_folder/train
-        args.dataset_folder/val
-        args.dataset_folder/test
-        """
-
+    Returns
+    -------
+    data.Dataset
+        Train, validation and test splits
+    """
     # Get the splits folders
     train_dir = os.path.join(dataset_folder, 'train', 'data.csv')
     val_dir = os.path.join(dataset_folder, 'val', 'data.csv')
@@ -49,13 +44,13 @@ def load_dataset(dataset_folder):
 
     # Sanity check on the splits folders
     if not os.path.exists(train_dir):
-        logging.error("Train data.csv not found in the args.dataset_folder=" + dataset_folder)
+        logging.error("Train data.csv not found in the dataset_folder=" + dataset_folder)
         sys.exit(-1)
     if not os.path.exists(val_dir):
-        logging.error("Val data.csv not found in the args.dataset_folder=" + dataset_folder)
+        logging.error("Val data.csv not found in the dataset_folder=" + dataset_folder)
         sys.exit(-1)
     if not os.path.exists(test_dir):
-        logging.error("Test data.csv not found in the args.dataset_folder=" + dataset_folder)
+        logging.error("Test data.csv not found in the dataset_folder=" + dataset_folder)
         sys.exit(-1)
 
     # Get the datasets
@@ -67,10 +62,22 @@ def load_dataset(dataset_folder):
 
 class Bidimensional(data.Dataset):
     """
-    This class loads the data.csv file and stores it as a dataset.
+    This class loads the data.csv file and prepares it as a dataset.
     """
 
     def __init__(self, path, transform=None, target_transform=None):
+        """
+l       Load the data.csv file and prepare it as a dataset.
+
+        Parameters
+        ----------
+        path : string
+            Path to the dataset on the file System
+        transform : torchvision.transforms
+            Transformation to apply on the data
+        target_transform : torchvision.transforms
+            Transformation to apply on the labels
+        """
         self.path = os.path.expanduser(path)
         self.transform = transform
         self.target_transform = target_transform
@@ -90,27 +97,28 @@ class Bidimensional(data.Dataset):
 
     def __getitem__(self, index):
         """
-        Parameters:
-        -----------
+        Retrieve a sample by index
 
-        :param index : int
-            Index of the sample
+        Parameters
+        ----------
+        index : int
 
-        :return: tuple:
-            (point, target) where target is index of the target class.
+        Returns
+        -------
+        point : FloatTensor
+        target : int
+            label of the point
         """
-
         x, y, target = self.data[index]
 
         point = np.array([x, y])
         target = target.astype(np.int64)
 
         if self.transform is not None:
-            """    
-            The reshape and scaling are  is absolutely necessary as torch.transform.ToTensor() converts a PIL.Image(RGB)
-            or numpy.ndarray (H x W x C) in the range [0, 255] to a torch.FloatTensor of shape (C x H x W) in the range 
-            [0.0, 1.0].
-            """
+            # The reshape and scaling are  is absolutely necessary as torch.transform.ToTensor()
+            # converts a PIL.Image(RGB) or numpy.ndarray (H x W x C) in the range [0, 255] to a
+            # torch.FloatTensor of shape (C x H x W) in the range [0.0, 1.0].
+
             # Bring from domain range into [0;255]
             point = np.divide((point - self.min_coords), np.subtract(self.max_coords, self.min_coords)) * 255
             # Reshape into (H x W x C)

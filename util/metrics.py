@@ -1,11 +1,9 @@
 import argparse
 import pickle
 import time
-import numpy as np
-import datetime
-import logging
-from itertools import repeat
 from multiprocessing import Pool
+
+import numpy as np
 
 
 def _apk(query, predicted, k='full'):

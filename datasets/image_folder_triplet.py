@@ -10,12 +10,12 @@ import sys
 from multiprocessing import Pool
 
 import cv2
-from tqdm import trange
 import numpy as np
-from PIL import Image
+import torch.utils.data as data
 # Torch related stuff
 import torchvision
-import torch.utils.data as data
+from PIL import Image
+from tqdm import trange
 
 
 def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, model_expected_input_size=None, **kwargs):
@@ -99,7 +99,14 @@ def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, mode
 
 class ImageFolderTriplet(data.Dataset):
 
-    def __init__(self, dataset_folder, train=None, num_triplets=None, transform=None, target_transform=None, inmem=None, workers=None):
+    def __init__(self,
+                 dataset_folder,
+                 train=None,
+                 num_triplets=None,
+                 transform=None,
+                 target_transform=None,
+                 inmem=None,
+                 workers=None):
         self.dataset_folder = os.path.expanduser(dataset_folder)
         self.train = train
         self.transform = transform

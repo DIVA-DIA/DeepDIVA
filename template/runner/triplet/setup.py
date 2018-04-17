@@ -10,8 +10,8 @@ import torchvision.transforms as transforms
 
 # DeepDIVA
 from datasets.image_folder_triplet import load_dataset
-from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
 from template.runner.triplet.transforms import MultiCrop
+from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
 
 
 def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, multi_crop, **kwargs):
