@@ -1,6 +1,8 @@
-import argparse
-import pickle
 import time
+import pickle
+import logging
+import argparse
+import datetime
 from multiprocessing import Pool
 
 import numpy as np
@@ -104,28 +106,21 @@ def compute_mapk(distances, labels, k, workers=None):
     """
     k = k if k == 'auto' or k == 'full' else int(k)
 
+    if workers == None:
+        workers = 16 if k == 'auto' or k == 'full' else 1
+
     t = time.time()
     sorted_predictions = [list(labels[np.argsort(dist_row)][1:]) for dist_row in distances]
-    logging.debug(
-        'Finished sorting distance matrix in {} seconds'.format(datetime.timedelta(seconds=int(time.time() - t))))
+    logging.debug('Finished sorting distance matrix in {} seconds'
+                  .format(datetime.timedelta(seconds=int(time.time() - t))))
 
     queries = labels
 
     t = time.time()
-    map = _mapk(queries, sorted_predictions, k, workers)
+    map_score = _mapk(queries, sorted_predictions, k, workers)
     logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
-    if workers == None:
-        workers = 16 if k == 'auto' or k == 'full' else 1
-
-    return _mapk(queries, sorted_predictions, k, workers)
-
-
-# dist = np.array([[0, 0.1, 0.3, 0.5],
-#                 [0.1, 0, 0.1, 0.9],
-#                 [0.3, 0.1, 0, 0.05],
-#                 [0.5, 0.9, 0.05, 0]])
-# labels = np.array([0, 0, 1, 1])
+    return map_score
 
 
 def main(args):
