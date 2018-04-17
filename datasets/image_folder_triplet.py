@@ -99,7 +99,14 @@ def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, mode
 
 class ImageFolderTriplet(data.Dataset):
 
-    def __init__(self, dataset_folder, train=None, num_triplets=None, transform=None, target_transform=None, inmem=None, workers=None):
+    def __init__(self,
+                 dataset_folder,
+                 train=None,
+                 num_triplets=None,
+                 transform=None,
+                 target_transform=None,
+                 inmem=None,
+                 workers=None):
         self.dataset_folder = os.path.expanduser(dataset_folder)
         self.train = train
         self.transform = transform
