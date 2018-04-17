@@ -13,7 +13,6 @@ class Flatten(nn.Module):
         return x
 
 
-
 class FC_simple(nn.Module):
     """
     Simple feed forward neural network
