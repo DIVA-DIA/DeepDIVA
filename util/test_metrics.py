@@ -1,6 +1,8 @@
 import math
+
 import numpy as np
-from util.metrics import _apk, _mapk, compute_mapk
+
+from util.metrics import _apk
 
 
 def test_apk():

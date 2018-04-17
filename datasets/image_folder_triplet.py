@@ -10,12 +10,12 @@ import sys
 from multiprocessing import Pool
 
 import cv2
-from tqdm import trange
 import numpy as np
-from PIL import Image
+import torch.utils.data as data
 # Torch related stuff
 import torchvision
-import torch.utils.data as data
+from PIL import Image
+from tqdm import trange
 
 
 def load_dataset(dataset_folder, inmem=False, workers=1, num_triplets=None, model_expected_input_size=None, **kwargs):
