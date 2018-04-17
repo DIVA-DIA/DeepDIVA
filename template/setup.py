@@ -26,7 +26,7 @@ from tensorboardX import SummaryWriter
 import models
 from datasets import image_folder_dataset, bidimensional_dataset
 from util.dataset_analytics import compute_mean_std
-from util.misc import get_all_files_in_folders_subfolders
+from util.misc import get_all_files_in_folders_and_subfolders
 
 
 def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cuda, resume, load_model, start_epoch,
@@ -515,7 +515,7 @@ def copy_code(output_folder):
     cwd = os.getcwd()
     dd_root = os.path.join(cwd.split('DeepDIVA')[0], 'DeepDIVA')
 
-    files = get_all_files_in_folders_subfolders(dd_root)
+    files = get_all_files_in_folders_and_subfolders(dd_root)
 
     # Get all files types in DeepDIVA as specified in FILE_TYPES
     code_files = [item for item in files if item.endswith(tuple(FILE_TYPES))]
