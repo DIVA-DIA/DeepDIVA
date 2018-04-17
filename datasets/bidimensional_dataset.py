@@ -1,3 +1,7 @@
+"""
+Load a dataset of bidimensional points by specifying the folder where its located.
+"""
+
 # Utils
 import logging
 import os
@@ -34,7 +38,9 @@ def load_dataset(dataset_folder):
 
     Returns
     -------
-    data.Dataset
+    train_ds : data.Dataset
+    val_ds : data.Dataset
+    test_ds : data.Dataset
         Train, validation and test splits
     """
     # Get the splits folders
@@ -67,7 +73,7 @@ class Bidimensional(data.Dataset):
 
     def __init__(self, path, transform=None, target_transform=None):
         """
-l       Load the data.csv file and prepare it as a dataset.
+        Load the data.csv file and prepare it as a dataset.
 
         Parameters
         ----------
