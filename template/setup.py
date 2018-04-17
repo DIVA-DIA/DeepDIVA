@@ -101,13 +101,9 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
             model_dict = torch.load(load_model)
             logging.info('Loading a saved model')
             try:
-                model.load_state_dict(model_dict['state_dict'])
-            except:
-                logging.info('Loading model in compatibility mode')
-                if not no_cuda:
-                    model.module.load_pretrained_state_dict(model_dict['state_dict'])
-                else:
-                    model.load_pretrained_state_dict(model_dict['state_dict'])
+                model.load_state_dict(model_dict['state_dict'], strict=False)
+            except Exception as exp:
+                logging.warning(exp)
         else:
             logging.error("No model dict found at '{}'".format(load_model))
             sys.exit(-1)

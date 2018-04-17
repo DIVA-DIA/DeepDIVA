@@ -74,17 +74,6 @@ class AlexNet(nn.Module):
         x = self.cl(x)
         return x
 
-    def load_pretrained_state_dict(self, state_dict):
-        own_state = self.state_dict()
-        for own, pt in zip(own_state.keys(), state_dict.keys()):
-
-            try:
-                own_state[own].copy_(state_dict[pt].data)
-            except:
-                logging.debug('While copying the parameter named {}, whose dimensions in the model are'
-                              ' {} and whose dimensions in the checkpoint are {}, ...'.format(
-                    own, own_state[own].size(), state_dict[pt].size()))
-
 
 def alexnet(pretrained=False, **kwargs):
     r"""AlexNet model architecture from the
@@ -94,5 +83,8 @@ def alexnet(pretrained=False, **kwargs):
     """
     model = AlexNet(**kwargs)
     if pretrained:
-        model.load_pretrained_state_dict(model_zoo.load_url(model_urls['alexnet']))
+        try:
+            model.load_state_dict(model_zoo.load_url(model_urls['alexnet']), strict=False)
+        except Exception as exp:
+            logging.warning(exp)
     return model

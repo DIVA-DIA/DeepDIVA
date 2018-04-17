@@ -20,22 +20,26 @@ else
   wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   chmod +x Miniconda3-latest-Linux-x86_64.sh
   ./Miniconda3-latest-Linux-x86_64.sh
-
-
-  # Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)
-  conda create --file requirements.txt --name deepdiva
-
-  # Activate the environment
-  source activate deepdiva
-
-  # Install missing packages from pip
-  pip install tensorboardX
-  pip install tensorboard
-  pip install tqdm
-  pip install sigopt
-  pip install colorlog
+  source .bashrc
 
 fi
+# Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)
+conda create --file requirements.txt --name deepdiva
+
+# Activate the environment
+source activate deepdiva
+
+# Install missing packages from pip
+pip install tensorboardX
+pip install tensorboard
+pip install tqdm
+pip install sigopt
+pip install colorlog
+
+#pytorch
+#conda install pytorch torchvision cuda91 -c pytorch
+
+
 # Congratulate user on success
 echo "You're the best! Everything worked!"
 

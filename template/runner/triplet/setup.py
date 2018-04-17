@@ -5,14 +5,16 @@ import logging
 import os
 
 # Torch
+import torch
 import torchvision.transforms as transforms
 
 # DeepDIVA
 from datasets.image_folder_triplet import load_dataset
 from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
+from template.runner.triplet.transforms import MultiCrop
 
 
-def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, **kwargs):
+def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, multi_crop, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -37,6 +39,9 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
         Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored
         and images are loaded on demand. This is slower than storing everything in memory.
 
+    :param multi_crop: int
+        Number of crops to use per input image
+
     :param kwargs: dict
         Any additional arguments.
 
@@ -59,21 +64,21 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     logging.debug('Setting up dataset transforms')
 
     train_ds.transform = transforms.Compose([
-        transforms.CenterCrop(model_expected_input_size),
+        transforms.RandomCrop(size=model_expected_input_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
 
     val_ds.transform = transforms.Compose([
-        transforms.CenterCrop(size=model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
+        MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
+        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+        transforms.Lambda(lambda items: torch.stack([transforms.Normalize(mean=mean, std=std)(item) for item in items]))
     ])
 
     test_ds.transform = transforms.Compose([
-        transforms.CenterCrop(size=model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
+        MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
+        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+        transforms.Lambda(lambda items: torch.stack([transforms.Normalize(mean=mean, std=std)(item) for item in items]))
     ])
 
     test_loader, train_loader, val_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,

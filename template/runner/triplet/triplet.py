@@ -115,6 +115,9 @@ class Triplet:
                 adjust_learning_rate(lr, optimizer, epoch, epochs)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder, invert_best=True)
 
+            # Generate new triplets
+            train_loader.dataset.generate_triplets()
+
         # Test
         logging.info('Training completed')
 
