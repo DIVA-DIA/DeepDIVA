@@ -80,7 +80,12 @@ class ApplyModel:
                                          **kwargs)
 
         logging.info('Apply model to dataset')
-        results = ApplyModel._feature_extract(writer=writer, data_loader=data_loader, model=model, epoch=-1, **kwargs)
+        results = ApplyModel._feature_extract(writer=writer,
+                                              data_loader=data_loader,
+                                              model=model,
+                                              epoch=-1,
+                                              classify=classify,
+                                              **kwargs)
         with open(os.path.join(current_log_folder, 'results.pkl'), 'wb') as f:
             pickle.dump(results, f)
         return None, None, None
