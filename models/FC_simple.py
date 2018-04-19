@@ -2,15 +2,37 @@ import torch.nn as nn
 
 
 class Flatten(nn.Module):
+    """
+    Flatten a convolution block into a simple vector.
+
+    Replaces the flattening line (view) often found into forward() methods of networks. This makes it
+    easier to navigate the network with introspection
+    """
     def forward(self, x):
         x = x.view(x.size()[0], -1)
         return x
 
 
 class FC_simple(nn.Module):
+    """
+    Simple feed forward neural network
+
+    Attributes
+    ----------
+    fc1 : torch.nn.Linear
+        Fully connected layer of the network
+    cl : torch.nn.Linear
+        Final classification fully connected layer
+    """
+
     def __init__(self, output_channels=5, **kwargs):
         """
-        :param output_channels: the number of classes in the dataset
+        Creates an FC_simple model from the scratch.
+
+        Parameters
+        ----------
+        output_channels : int
+            Number of neurons in the last layer
         """
         super(FC_simple, self).__init__()
 
@@ -33,9 +55,15 @@ class FC_simple(nn.Module):
     def forward(self, x):
         """
         Computes forward pass on the network
-        :param x: torch.Tensor
-            The input to the model
-        :return: torch.Tensor
+
+        Parameters
+        ----------
+        x : Variable
+            Sample to run forward pass on. (input to the model)
+
+        Returns
+        -------
+        Variable
             Activations of the fully connected layer
         """
         x = self.fc1(x)

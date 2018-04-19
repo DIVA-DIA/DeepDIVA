@@ -1,20 +1,17 @@
 # Utils
 import logging
 import os
-import sys
 
 # Torch related stuff
-import torch.backends.cudnn as cudnn
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 
 # DeepDIVA
-import models
 from datasets.image_folder_dataset import ImageFolderApply
-from template.setup import _load_mean_std_from_file
 from template.runner.triplet.transforms import MultiCrop
+from template.setup import _load_mean_std_from_file
 
 
 def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, workers, inmem, multi_crop, **kwargs):
@@ -51,7 +48,7 @@ def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, wor
     logging.info('Loading {} from:{}'.format(dataset, dataset_folder))
 
     # Load the dataset as images
-    apply_ds = ImageFolderApply(dataset_folder=dataset_folder)
+    apply_ds = ImageFolderApply(path=dataset_folder)
 
     # Loads the analytics csv and extract mean and std
     mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)

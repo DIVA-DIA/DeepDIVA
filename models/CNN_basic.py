@@ -6,6 +6,12 @@ import torch.nn as nn
 
 
 class Flatten(nn.Module):
+    """
+    Flatten a convolution block into a simple vector.
+
+    Replaces the flattening line (view) often found into forward() methods of networks. This makes it
+    easier to navigate the network with introspection
+    """
     def forward(self, x):
         x = x.view(x.size()[0], -1)
         return x
@@ -13,18 +19,29 @@ class Flatten(nn.Module):
 
 class CNN_basic(nn.Module):
     """
-    :var conv1   : torch.nn.Conv2d
-    :var conv2   : torch.nn.Conv2d
-    :var conv3   : torch.nn.Conv2d
-        The first three convolutional layers of the network
+    Simple feed forward convolutional neural network
 
-    :var fc      : torch.nn.Linear
-        Final fully connected layer
+    Attributes
+    ----------
+    conv1 : torch.nn.Conv2d
+    conv2 : torch.nn.Conv2d
+    conv3 : torch.nn.Conv2d
+        Convolutional layers of the network
+    fc : torch.nn.Linear
+        Final classification fully connected layer
+
     """
 
     def __init__(self, output_channels=10, input_channels=3, **kwargs):
         """
-        :param output_channels: the number of classes in the dataset
+        Creates an CNN_basic model from the scratch.
+
+        Parameters
+        ----------
+        output_channels : int
+            Number of neurons in the last layer
+        input_channels : int
+            Dimensionality of the input, typically 3 for RGB
         """
         super(CNN_basic, self).__init__()
 
@@ -55,9 +72,15 @@ class CNN_basic(nn.Module):
     def forward(self, x):
         """
         Computes forward pass on the network
-        :param x: torch.Tensor
-            The input to the model
-        :return: torch.Tensor
+
+        Parameters
+        ----------
+        x : Variable
+            Sample to run forward pass on. (input to the model)
+
+        Returns
+        -------
+        Variable
             Activations of the fully connected layer
         """
         x = self.conv1(x)

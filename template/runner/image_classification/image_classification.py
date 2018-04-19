@@ -1,10 +1,8 @@
 """
-This file is the template for the boilerplate of train/test of a DNN
+This file is the template for the boilerplate of train/test of a DNN for image classification
 
-There are a lot of parameter which can be specified to modify the behaviour
-and they should be used instead of hard-coding stuff.
-
-@authors: Vinaychandran Pondenkandath , Michele Alberti
+There are a lot of parameter which can be specified to modify the behaviour and they should be used 
+instead of hard-coding stuff.
 """
 
 import logging
@@ -13,6 +11,7 @@ import sys
 # Utils
 import numpy as np
 
+# DeepDIVA
 import models
 # Delegated
 from template.runner.image_classification import evaluate, train
@@ -20,43 +19,38 @@ from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 
 
-# DeepDIVA
-
-
-#######################################################################################################################
 class ImageClassification:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval,
+                   **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
         Parameters
         ----------
-        :param writer: Tensorboard SummaryWriter
+        writer : Tensorboard.SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.
-
-        :param current_log_folder: string
+        current_log_folder : string
             Path to where logs/checkpoints are saved
-
-        :param model_name: string
+        model_name : string
             Name of the model
-
-        :param epochs: int
+        epochs : int
             Number of epochs to train
-
-        :param lr: float
+        lr : float
             Value for learning rate
-
-        :param kwargs: dict
+        kwargs : dict
             Any additional arguments.
-
-        :param decay_lr: boolean
-                Decay the lr flag
-
-        :param validation_interval: int
+        decay_lr : boolean
+            Decay the lr flag
+        validation_interval: int
             Run evaluation on validation set every N epochs
 
-        :return: train_value, val_value, test_value
+        Returns
+        -------
+        train_value : ndarray[floats]
+            Accuracy values for train
+        val_value : ndarray(1, `epochs`+1)
+        test_value : float
             Precision values for train and validation splits. Single precision value for the test split.
         """
 
