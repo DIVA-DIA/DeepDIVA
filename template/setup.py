@@ -25,7 +25,7 @@ from tensorboardX import SummaryWriter
 # DeepDIVA
 import models
 from datasets import image_folder_dataset, bidimensional_dataset
-from util.dataset_analytics import compute_mean_std
+from util.data.dataset_analytics import compute_mean_std
 from util.misc import get_all_files_in_folders_and_subfolders
 
 

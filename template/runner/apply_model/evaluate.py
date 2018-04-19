@@ -102,5 +102,8 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
         logging.info('\n' + classification_report(y_true=labels,
                                                   y_pred=preds,
                                                   target_names=[str(item) for item in data_loader.dataset.classes]))
+    else:
+        preds = None
+
 
     return features, preds, labels, filenames

@@ -51,7 +51,7 @@ def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, wor
     apply_ds = ImageFolderApply(path=dataset_folder)
 
     # Loads the analytics csv and extract mean and std
-    mean, std = _load_mean_std_from_file(dataset, dataset_folder, inmem, workers)
+    mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
 
     # Set up dataset transforms
     logging.debug('Setting up dataset transforms')
