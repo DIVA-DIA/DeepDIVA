@@ -1,23 +1,25 @@
-import time
-import pickle
-import logging
-import argparse
+"""
+This contains several commonly used metrics.
+
+"""
 import datetime
+import logging
+import time
 from multiprocessing import Pool
 
 import numpy as np
 
 
 def _apk(query, predicted, k='full'):
-    """
-    Computes the average precision at K.
+    """Computes the average precision@K.
+
     Parameters
     ----------
-    query: int
-        Query label
-    predicted: list
-        List of ints, where each int is a label.
-    k: str or int
+    query : int
+        Query label.
+    predicted : list of int
+        Where each int is a label.
+    k : str or int
         If int, cutoff for retrieval is set to K
         If str, 'full' means cutoff is til the end of predicted
                 'auto' means cutoff is set to number of relevant queries.
@@ -30,8 +32,8 @@ def _apk(query, predicted, k='full'):
 
     Returns
     -------
-    average_prec: float
-        Average Precision at K
+    average_prec : float
+        Average Precision@K
 
     """
 
@@ -58,17 +60,23 @@ def _apk(query, predicted, k='full'):
     #         break
 
     # Vectorized form
+    # Crop the predicted list.
     predicted = np.array(predicted[:min(k, len(predicted))])
 
+    # Make an empty array for relevant queries.
     relv = np.zeros(len(predicted))
 
+    # Find all locations where the predicted value matches the query and vice-versa.
     hit_locs = np.where(predicted == query)[0]
     non_hit_locs = np.where(predicted != query)[0]
 
+    # Set all `hit_locs` to be 1. [0,0,0,0,0,0] -> [0,1,0,1,0,1]
     relv[hit_locs] = 1
+    # Compute the sum of all elements till the particular element. [0,1,0,1,0,1] -> [0,1,1,2,2,3]
     relv = np.cumsum(relv)
+    #  Set all `non_hit_locs` to be zero. [0,1,1,2,2,3] -> [0,1,0,2,0,3]
     relv[non_hit_locs] = 0
-
+    # Divide element-wise by [0/1,1/2,0/3,2/4,0/5,3/6] and sum the array.
     score = np.sum(np.divide(relv, np.arange(1, relv.shape[0] + 1)))
 
     average_prec = score / num_relevant
@@ -77,32 +85,59 @@ def _apk(query, predicted, k='full'):
 
 
 def _mapk(query, predicted, k=None, workers=1):
+    """Compute the mean Average Precision@K.
+
+    Parameters
+    ----------
+    query : list
+        List of queries.
+    predicted : list of list
+        Predicted responses for each query.
+    k : str or int
+        If int, cutoff for retrieval is set to `k`
+        If str, 'full' means cutoff is til the end of predicted
+                'auto' means cutoff is set to number of relevant queries.
+                For e.g.,
+                    `query` = 0
+                    `predicted` = [0, 0, 1, 1, 0]
+                    if `k` == 'full', then `k` is set to 5
+                    if `k` == 'auto', then `k` is set to num of `query` values in `predicted`,
+                    i.e., `k`=3 as there as 3 of them in `predicted`.
+    workers : int
+        Number of parallel workers used to compute the AP@k
+
+    Returns
+    -------
+    map_score : float
+        The mean average precision@K.
+
+    """
     if workers == 1:
         return np.mean([_apk(q, p, k) for q, p in zip(query, predicted)])
     with Pool(workers) as pool:
         vals = [[q, p, k] for q, p in zip(query, predicted)]
         aps = pool.starmap(_apk, vals)
-    return np.mean(aps)
+    map_score = np.mean(aps)
+    return map_score
 
 
 def compute_mapk(distances, labels, k, workers=None):
-    """
-    Convenience function to convert a grid of pairwise distances to predicted
-    elements, to evaluate mAP(at K).
+    """Convenience function to convert a grid of pairwise distances to predicted
+    elements, to evaluate mean average precision (at K).
 
     Parameters
     ----------
     distances : ndarray
-                A numpy array containing pairwise distances between all elements
-    labels  :   list
-                Ground truth labels for every element
-    k   :   int
-                Maximum number of predicted elements
+        A numpy array containing pairwise distances between all elements
+    labels : list
+        Ground truth labels for every element
+    k : int
+        Maximum number of predicted elements
 
     Returns
     -------
-    score   :   double
-                The mean average precision at K over the input lists
+    map_score : float
+        The mean average precision@K.
     """
     k = k if k == 'auto' or k == 'full' else int(k)
 
@@ -123,30 +158,37 @@ def compute_mapk(distances, labels, k, workers=None):
     return map_score
 
 
-def main(args):
-    with open(args.file, 'rb') as f:
-        dist, labels = pickle.load(f)
-    t = time.time()
-    print(compute_mapk(dist, labels, k=args.cutoff, workers=args.workers))
-    print('Time taken: {}'.format(time.time() - t))
+def accuracy(predicted, target, topk=(1,)):
+    """Computes the accuracy@K for the specified values of K
 
+    From https://github.com/pytorch/examples/blob/master/imagenet/main.py
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    Parameters
+    ----------
+    predicted : torch.FloatTensor
+        The predicted output values of the model.
+    target : torch.LongTensor
+        The ground truth for the corresponding output.
+    topk : tuple
+        Multiple values for K can be specified in a tuple, and the
+        different accuracies@K will be computed.
 
-    parser.add_argument('file',
-                        type=str,
-                        help='path to pickle file containing distances and labels')
-    parser.add_argument('-j',
-                        '--workers',
-                        default=1,
-                        type=int,
-                        help='number of workers')
-    parser.add_argument('-k',
-                        '--cutoff',
-                        default=None,
-                        type=int,
-                        help='K in the AP@K')
+    Returns
+    -------
+    res : list
+        List of accuracies computed at the different K's specified in `topk`
 
-    args = parser.parse_args()
-    main(args)
+    """
+
+    maxk = max(topk)
+    batch_size = target.size(0)
+
+    _, pred = predicted.topk(maxk, 1, True, True)
+    pred = pred.t()
+    correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+    res = []
+    for k in topk:
+        correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+        res.append(correct_k.mul_(100.0 / batch_size))
+    return res

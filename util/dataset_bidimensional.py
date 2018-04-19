@@ -1,31 +1,6 @@
 """
 This script allows for creation of a bidimensional(2D) dataset.
 
-Structure of the dataset:
-
-Split folders
--------------
-'args.dataset-folder' has to point to where the dataset will be saved.
-
-Example:
-
-        ~/../../data
-
-Classes folders
----------------
-The splits will have different classes in a separate folder with the class
-name. The file name can be arbitrary (e.g does not have to be 0-* for classes 0 of MNIST).
-Example:
-
-    train/dog/whatever.png
-    train/dog/you.png
-    train/dog/like.png
-
-    train/cat/123.png
-    train/cat/nsdf3.png
-    train/cat/asd932_.png
-
-@author: Michele Alberti, Vinaychandran Pondenkandath
 """
 
 # Utils
@@ -46,8 +21,6 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-########################################################################################################################
-def diagonal(size):
     """
     Samples are generated in a grid fashion (np.linspace) and then draw a diagonal line on x=y
     2 classes.
@@ -58,6 +31,23 @@ def diagonal(size):
         The total number of points in the dataset.
     :return:
         train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    """
+
+
+def diagonal(size):
+    """Generates a dataset where points on a diagonal line are one class, and points surrounding
+    it are a different class.
+
+
+    Parameters
+    ----------
+    size : int
+        The total number of points in the dataset.
+
+    Returns
+    -------
+
+
     """
 
     # Generate data
