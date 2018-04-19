@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from util.metrics import _apk
+from util.evaluation.metrics import _apk
 
 
 def test_apk():

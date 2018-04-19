@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from tqdm import tqdm
 
 # DeepDIVA
-from util.metrics import compute_mapk
+from util.evaluation.metrics import compute_mapk
 
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):

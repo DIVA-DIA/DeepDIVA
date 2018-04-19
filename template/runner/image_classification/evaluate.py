@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 # DeepDIVA
 from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard
-from util.metrics import accuracy
+from util.evaluation.metrics import accuracy
 from util.visualization.confusion_matrix_heatmap import make_heatmap
 
 
