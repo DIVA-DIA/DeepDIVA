@@ -3,6 +3,12 @@
 # return 1 if global command line program installed, else 0
 # example
 # echo "node: $(program_is_installed node)"
+if [[ "$OSTYPE" =~ ^darwin ]]; then
+    echo "Automated installation on MacOS not supported."
+    echo "Please read setup_environment.sh and install manually."
+    exit 1
+fi
+
 function program_is_installed {
   # set to 1 initially
   local return_=1
