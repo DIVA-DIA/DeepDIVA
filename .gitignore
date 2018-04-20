@@ -111,3 +111,6 @@ data/
 
 # Log folder
 .logs
+
+# Documentation folder
+doc
