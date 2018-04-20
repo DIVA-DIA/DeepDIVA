@@ -18,8 +18,8 @@ It is completely open source and accessible as Web Service through
 
 ## Additional resources
 
-- [Fancy page](https://github.com/DIVA-DIA/DeepDIVA)
-- [Tutorials](https://github.com/DIVA-DIA/DeepDIVA)
+- [Fancy page](https://diva-dia.github.io/DeepDIVAweb/index.html)
+- [Tutorials](https://diva-dia.github.io/DeepDIVAweb/tutorial.html)
 - [Paper on arXiv](https://github.com/DIVA-DIA/DeepDIVA)
 
 ## Getting started
@@ -27,9 +27,10 @@ It is completely open source and accessible as Web Service through
 In order to get the framework up and running it is only necessary to:
 
 - Clone the latest version of the repository ```git clone https://github.com/DIVA-DIA/DeepDIVA.git```
-- Run the script ```setup_environment.sh```.
+- Run the script ```bash setup_environment.sh```.
 
 To verify the correctness of the procecdure you can run a small experiment:
 
+- TODO : fix this adding run the script for the dset download nad pythonpath
 - Activate your Python environment ```source activate deepdiva```
 - ```python ./template/RunMe.py --output-folder ../log --dataset-folder /dataset/cifar --epochs 10 --nocuda --ignoregit```

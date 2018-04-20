@@ -158,7 +158,10 @@ class RunMe:
                 local_changes = True
             finally:
                 if local_changes:
-                    logging.error('Errors when acquiring git status. Use --ignoregit to still run.')
+                    logging.error('Errors when acquiring git status. Use --ignoregit to still run.\n'
+                                  'This happens when the git folder has not been found on the file system\n'
+                                  'or when the code is not the same as the last version on the repository.\n'
+                                  'If you are running on a remote machine make sure to sync the .git folder as well.')
                     logging.shutdown()
                     print('Finished with errors. (Log files at {} )'.format(current_log_folder))
                     sys.exit(-1)

@@ -19,7 +19,7 @@ def make_heatmap(confusion_matrix, class_names):
     )
 
     plt.style.use(['seaborn-white', 'seaborn-paper'])
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(10, 10))
     plt.tight_layout()
 
     annot = False if confusion_matrix.size > 10000 else True
