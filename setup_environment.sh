@@ -20,7 +20,6 @@ else
   wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   chmod +x Miniconda3-latest-Linux-x86_64.sh
   ./Miniconda3-latest-Linux-x86_64.sh
-  source ~/.bashrc
   exec bash setup_environment.sh
 
 fi
@@ -42,7 +41,6 @@ conda install pytorch torchvision cuda91 -c pytorch
 
 # Set up PYTHONPATH
 echo 'export PYTHONPATH=$PWD:$PYTHONPATH' >> ~/.bashrc
-source ~/.bashrc
 
 # Congratulate user on success
 echo "You're the best! Everything worked!"
