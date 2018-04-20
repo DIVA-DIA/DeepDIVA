@@ -32,7 +32,7 @@ source activate deepdiva
 
 # Install missing packages from pip
 pip install tensorboardX
-pip install tensorboard
+pip install tensorflow
 pip install tqdm
 pip install sigopt
 pip install colorlog
