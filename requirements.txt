@@ -7,7 +7,6 @@ ca-certificates=2017.08.26=h1d4fec5_0
 cairo=1.14.12=h77bcde2_0
 certifi=2018.1.18=py35_0
 cffi=1.11.4=py35h9745a5d_0
-cuda91=1.0=h4c16780_0
 cycler=0.10.0=py35hc4d5149_0
 dbus=1.12.2=hc3f9b76_1
 decorator=4.2.1=py35_0
@@ -64,7 +63,6 @@ pyparsing=2.2.0=py35h041ed72_1
 pyqt=5.6.0=py35h0e41ada_5
 python=3.5.4=hc3d631a_27
 python-dateutil=2.6.1=py35h90d5b31_1
-pytorch=0.3.1=py35_cuda9.1.85_cudnn7.0.5_2
 pytz=2018.3=py35_0
 qt=5.6.2=hd25b39d_14
 readline=7.0=ha6073c6_4
@@ -78,7 +76,6 @@ six=1.11.0=py35h423b573_1
 sqlite=3.22.0=h1bed415_0
 statsmodels=0.8.0=py35haa9d50b_0
 tk=8.6.7=hc745277_3
-torchvision=0.2.0=py35heaa392f_1
 tornado=4.5.3=py35_0
 traitlets=4.3.2=py35ha522a97_0
 wcwidth=0.1.7=py35hcd08066_0
