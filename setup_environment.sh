@@ -37,7 +37,7 @@ pip install sigopt
 pip install colorlog
 
 #pytorch
-#conda install pytorch torchvision cuda91 -c pytorch
+conda install pytorch torchvision cuda91 -c pytorch
 
 
 # Congratulate user on success
