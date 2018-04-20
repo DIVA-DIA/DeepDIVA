@@ -100,9 +100,6 @@ ENV/
 # mypy
 .mypy_cache/
 
-# data_folder
-data/
-
 # IDE folders
 .idea/
 
