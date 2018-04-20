@@ -1,5 +1,6 @@
+#!/bin/bash
+source ~/.bashrc
 # Verify Conda installation: (https://conda.io/docs/user-guide/install/index.html)
-
 # return 1 if global command line program installed, else 0
 # example
 # echo "node: $(program_is_installed node)"
@@ -26,7 +27,10 @@ else
   wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   chmod +x Miniconda3-latest-Linux-x86_64.sh
   ./Miniconda3-latest-Linux-x86_64.sh
-  exec bash setup_environment.sh
+  tail -n 1 ~/.bashrc >> ~/.bash_functions
+  head -n -2 ~/.bashrc
+  echo 'source ~/.bash_functions' >> ~/.bashrc
+  source ~/.bash_functions
 
 fi
 # Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)
@@ -46,8 +50,7 @@ pip install colorlog
 conda install pytorch torchvision cuda91 -c pytorch
 
 # Set up PYTHONPATH
-echo 'export PYTHONPATH=$PWD:$PYTHONPATH' >> ~/.bashrc
+echo 'export PYTHONPATH=$PWD:$PYTHONPATH' >> ~/.bash_functions
 
 # Congratulate user on success
 echo "You're the best! Everything worked!"
-exec bash
