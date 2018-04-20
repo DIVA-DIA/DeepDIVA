@@ -21,6 +21,7 @@ else
   chmod +x Miniconda3-latest-Linux-x86_64.sh
   ./Miniconda3-latest-Linux-x86_64.sh
   source ~/.bashrc
+  exec bash setup_environment.sh
 
 fi
 # Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)
@@ -39,7 +40,10 @@ pip install colorlog
 #pytorch
 conda install pytorch torchvision cuda91 -c pytorch
 
+# Set up PYTHONPATH
+echo 'export PYTHONPATH=$PWD:$PYTHONPATH' >> ~/.bashrc
+source ~/.bashrc
 
 # Congratulate user on success
 echo "You're the best! Everything worked!"
-
+exec bash
