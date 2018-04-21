@@ -28,11 +28,11 @@ In order to get the framework up and running it is only necessary to:
 
 - Clone the latest version of the repository: ```git clone https://github.com/DIVA-DIA/DeepDIVA.git```
 - Run the script ```bash setup_environment.sh```. 
-- Reload your ```.bashrc``` with: ```source ~/.bashrc```
+- Reload your environment variables from ```.bashrc``` with: ```source ~/.bashrc```
 
 To verify the correctness of the procecdure you can run a small experiment:
 
 - Activate the DeepDIVA python environment: ```source activate deepdiva```
 - Download the MNIST dataset ```python util/data/get_a_dataset.py mnist --output-folder toy_dataset```
-- Train a simple Convolutional Neural Network on the MNIST dataset using the command: ```python ./template/RunMe.py --output-folder ../log --dataset-folder /dataset/cifar --epochs 10 --nocuda --ignoregit```
+- Train a simple Convolutional Neural Network on the MNIST dataset using the command: ```python template/RunMe.py --output-folder log --dataset-folder toy_dataset/MNIST --lr 0.1 --ignoregit --no-cuda```
 

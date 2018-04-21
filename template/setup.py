@@ -85,8 +85,13 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
     if disable_databalancing:
         criterion = nn.CrossEntropyLoss()
     else:
-        weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers)
-        criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weights).type(torch.FloatTensor))
+        try:
+            weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers)
+            criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(weights).type(torch.FloatTensor))
+            logging.info('Loading weights for data balancing')
+        except:
+            logging.warning('Unable to load information for data balancing. Using normal criterion')
+            criterion = nn.CrossEntropyLoss()
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -313,9 +318,15 @@ def _load_mean_std_from_file(dataset_folder, inmem, workers):
         Mean and Std of the selected dataset, contained in the analytics.csv file. These are double arrays.
     """
     # Loads the analytics csv and extract mean and std
-    csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
-    mean = np.asarray(csv_file.ix[0, 1:3])
-    std = np.asarray(csv_file.ix[1, 1:3])
+    try:
+        csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
+        mean = np.asarray(csv_file.ix[0, 1:3])
+        std = np.asarray(csv_file.ix[1, 1:3])
+    except KeyError:
+        import sys
+        logging.error('analytics.csv located in {} incorrectly formed. '
+                      'Try to delete it and run again'.format(dataset_folder))
+        sys.exit(0)
     return mean, std
 
 

@@ -42,7 +42,7 @@ def parse_arguments():
 
     # If experiment name is not set, ask for one
     if args.experiment_name is None:
-        args.experiment_name = input("Experiment name:")
+        args.experiment_name = input("Please enter an experiment name:")
 
     return args, parser
 
@@ -110,9 +110,8 @@ def _data_options(parser):
                              action='store_true',
                              help='Supress data balancing')
     parser_data.add_argument('--output-folder',
-                             default='../output/',
-                             help='where to save all output files.',
-                             required=True)
+                             default='./output/',
+                             help='where to save all output files.', )
 
 
 def _training_options(parser):

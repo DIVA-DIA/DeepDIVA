@@ -9,6 +9,7 @@ import random
 import sys
 from multiprocessing import Pool
 
+import cv2
 import numpy as np
 import torch.utils.data as data
 # Torch related stuff
@@ -172,7 +173,7 @@ class ImageFolderTriplet(data.Dataset):
             if self.in_memory:
                 img_a = self.data[index]
             else:
-                img_a = self.cv2.imread(self.file_names[index])
+                img_a = cv2.imread(self.file_names[index])
             img_a = Image.fromarray(img_a)
             if self.transform is not None:
                 img_a = self.transform(img_a)
@@ -186,9 +187,9 @@ class ImageFolderTriplet(data.Dataset):
             img_p = Image.fromarray(self.data[p])
             img_n = Image.fromarray(self.data[n])
         else:
-            img_a = Image.fromarray(self.cv2.imread(self.file_names[a]))
-            img_p = Image.fromarray(self.cv2.imread(self.file_names[p]))
-            img_n = Image.fromarray(self.cv2.imread(self.file_names[n]))
+            img_a = Image.fromarray(cv2.imread(self.file_names[a]))
+            img_p = Image.fromarray(cv2.imread(self.file_names[p]))
+            img_n = Image.fromarray(cv2.imread(self.file_names[n]))
 
         if self.transform is not None:
             img_a = self.transform(img_a)

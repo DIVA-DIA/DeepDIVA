@@ -56,10 +56,9 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     ###############################################################################################
     # Load the dataset splits as images
     train_ds, val_ds, test_ds = load_dataset(dataset_folder=dataset_folder,
-                                             inmem=inmem,
+                                             in_memory=inmem,
                                              workers=workers,
-                                             num_triplets=n_triplets,
-                                             model_expected_input_size=model_expected_input_size)
+                                             num_triplets=n_triplets)
 
     # Loads the analytics csv and extract mean and std
     mean, std = _load_mean_std_from_file(dataset_folder=dataset_folder,
