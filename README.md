@@ -18,7 +18,7 @@ It is completely open source and accessible as Web Service through
 
 ## Additional resources
 
-- [Deep DIVA Homepage](https://diva-dia.github.io/DeepDIVAweb/index.html)
+- [DeepDIVA Homepage](https://diva-dia.github.io/DeepDIVAweb/index.html)
 - [Tutorials](https://diva-dia.github.io/DeepDIVAweb/tutorial.html)
 - [Paper on arXiv](https://github.com/DIVA-DIA/DeepDIVA)
 
@@ -38,7 +38,7 @@ bash setup_environment.sh
 
 Reload your environment variables from `.bashrc` with: `source ~/.bashrc`
 
-## Verify Everything Works
+## Verifying Everything Works
 
 To verify the correctness of the procecdure you can run a small experiment. Activate the DeepDIVA python environment:
 
@@ -60,7 +60,7 @@ python template/RunMe.py --output-folder log --dataset-folder toy_dataset/MNIST 
 
 ## Citing us
 
-If you use our software, please cite our paper as:
+If you use our software, please cite our paper as (will be updated soon):
 
 ``` latex
 @inproceedings{albertipondenkandath2018deepdiva,
