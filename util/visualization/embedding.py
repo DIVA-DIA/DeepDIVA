@@ -1,17 +1,16 @@
-import os
-import inspect
-import sys
-import pickle
 import argparse
-import torch
+import inspect
+import os
+import pickle
+import sys
 from multiprocessing import Pool
-import numpy as np
+
 import matplotlib as mpl
+import torch
 
 mpl.use('Agg')
 
 import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
 from tensorboardX import SummaryWriter
 
 import cv2

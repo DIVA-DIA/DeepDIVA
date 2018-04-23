@@ -2,15 +2,14 @@
 import logging
 
 import numpy as np
-from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, classification_report
-
 # Torch related stuff
 from torch.autograd import Variable
+from tqdm import tqdm
 
+from util.misc import save_image_and_log_to_tensorboard
 # DeepDIVA
 from util.visualization.confusion_matrix_heatmap import make_heatmap
-from util.misc import save_image_and_log_to_tensorboard
 
 
 def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, classify, **kwargs):

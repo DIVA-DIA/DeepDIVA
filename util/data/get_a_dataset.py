@@ -5,16 +5,15 @@ This script allows for creation of a validation set from the training set.
 
 # Utils
 import argparse
+import inspect
 import os
 import shutil
-import inspect
 import sys
-import logging
 
 import torch
 import torchvision
-import numpy as np
 from PIL import Image
+
 from util.data.dataset_splitter import split_dataset
 
 

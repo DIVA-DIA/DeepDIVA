@@ -7,20 +7,19 @@ and they should be used instead of hard-coding stuff.
 @authors: Vinaychandran Pondenkandath , Michele Alberti
 """
 
+import logging
 import os
 import pickle
-import logging
-
-# Utils
-import numpy as np
 
 # DeepDIVA
 import models
 # Delegated
 from template.runner.apply_model import evaluate
-from template.setup import set_up_model
 from template.runner.apply_model.setup import set_up_dataloader
-from util.misc import checkpoint, adjust_learning_rate
+from template.setup import set_up_model
+
+
+# Utils
 
 
 #######################################################################################################################

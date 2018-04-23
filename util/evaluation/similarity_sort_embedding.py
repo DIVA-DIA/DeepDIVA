@@ -1,8 +1,9 @@
 import argparse
 import pickle
+
 import numpy as np
-from sklearn.metrics import pairwise_distances
 from pandas import DataFrame
+from sklearn.metrics import pairwise_distances
 
 
 def _main(args):

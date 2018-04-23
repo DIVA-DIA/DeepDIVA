@@ -5,12 +5,10 @@ import logging
 import os
 
 # Torch
-import torch
 import torchvision.transforms as transforms
 
 # DeepDIVA
 from datasets.image_folder_triplet import load_dataset
-from template.runner.triplet.transforms import MultiCrop
 from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
 
 

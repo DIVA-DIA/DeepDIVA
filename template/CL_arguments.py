@@ -79,6 +79,10 @@ def _general_parameters(parser):
                                 type=str,
                                 default=None,
                                 help='path to a JSON file containing sig_opt variables and sig_opt bounds.')
+    parser_general.add_argument('--sig-opt-token',
+                                type=str,
+                                default=None,
+                                help='place your SigOpt API token here.')
     parser_general.add_argument('--sig-opt-runs',
                                 type=int,
                                 default=100,

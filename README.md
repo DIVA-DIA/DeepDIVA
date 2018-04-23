@@ -18,12 +18,11 @@ It is completely open source and accessible as Web Service through
 
 ## Additional resources
 
-- [Fancy page](https://diva-dia.github.io/DeepDIVAweb/index.html)
+- [Deep DIVA Homepage](https://diva-dia.github.io/DeepDIVAweb/index.html)
 - [Tutorials](https://diva-dia.github.io/DeepDIVAweb/tutorial.html)
 - [Paper on arXiv](https://github.com/DIVA-DIA/DeepDIVA)
 
 ## Getting started
-
 
 In order to get the framework up and running it is only necessary to clone the latest version of the repository:
 
@@ -39,7 +38,7 @@ bash setup_environment.sh
 
 Reload your environment variables from `.bashrc` with: `source ~/.bashrc`
 
-### Test the correctness of the procecdure
+## Verify Everything Works
 
 To verify the correctness of the procecdure you can run a small experiment. Activate the DeepDIVA python environment:
 
@@ -58,3 +57,21 @@ Train a simple Convolutional Neural Network on the MNIST dataset using the comma
 ``` shell
 python template/RunMe.py --output-folder log --dataset-folder toy_dataset/MNIST --lr 0.1 --ignoregit --no-cuda
 ```
+
+## Citing us
+
+If you use our software, please cite our paper as:
+
+``` latex
+@inproceedings{albertipondenkandath2018deepdiva,
+    archivePrefix = {arXiv},
+    author = {Alberti, Michele Pondenkandath, Vinaychandran Würsch, Marcel Ingold, Rolf Liwicki, Marcus},
+    title = {{DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments}},
+    year = {2018}
+}
+```
+
+## License
+
+Our work is on GNU Lesser General Public License v3.0
+

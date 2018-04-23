@@ -6,15 +6,13 @@ General purpose utility functions.
 # Utils
 import logging
 import os
+import os.path
 import shutil
 import string
 
 import cv2
 import numpy as np
-import os.path
 import torch
-
-
 
 
 def _prettyprint_logging_label(logging_label):

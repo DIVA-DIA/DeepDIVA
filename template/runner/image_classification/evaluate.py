@@ -9,9 +9,9 @@ import torch
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
+from util.evaluation.metrics import accuracy
 # DeepDIVA
 from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard
-from util.evaluation.metrics import accuracy
 from util.visualization.confusion_matrix_heatmap import make_heatmap
 
 

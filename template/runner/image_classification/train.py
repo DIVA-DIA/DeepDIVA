@@ -6,9 +6,9 @@ import time
 import torch
 from tqdm import tqdm
 
+from util.evaluation.metrics import accuracy
 # DeepDIVA
 from util.misc import AverageMeter
-from util.evaluation.metrics import accuracy
 
 
 def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=False, log_interval=25, **kwargs):

@@ -71,28 +71,32 @@ class RunMe:
         with open(args.sig_opt, 'r') as f:
             parameters = json.loads(f.read())
 
-        # Client Token is currently Vinay's one
-        conn = Connection(client_token="KXMUZNABYGKSXXRUEMELUYYRVRCRTRANKCPGDNNYDSGRHGUA")
-        experiment = conn.experiments().create(
-            name=args.experiment_name,
-            parameters=parameters,
-        )
-        print("Created experiment: https://sigopt.com/experiment/" + experiment.id)
-        for i in range(args.sig_opt_runs):
-            # Get suggestion from SigOpt
-            suggestion = conn.experiments(experiment.id).suggestions().create()
-            params = suggestion.assignments
-            for key in params:
-                if isinstance(args.__dict__[key], bool):
-                    params[key] = params[key].lower() in ['true']
-                args.__dict__[key] = params[key]
-            _, _, score = self._execute(args)
-            # In case of multi-run the return type will be a list (otherwise is a single float)
-            if type(score) != float:
-                [conn.experiments(experiment.id).observations().create(suggestion=suggestion.id, value=item)
-                 for item in score]
-            else:
-                conn.experiments(experiment.id).observations().create(suggestion=suggestion.id, value=score)
+        # Put your SigOpt token here.
+        if args.sig_opt_token == None:
+            print('Enter your SigOpt API token using --sig-opt-token')
+            sys.exit(0)
+        else:
+            conn = Connection(client_token=args.sig_opt_token)
+            experiment = conn.experiments().create(
+                name=args.experiment_name,
+                parameters=parameters,
+            )
+            print("Created experiment: https://sigopt.com/experiment/" + experiment.id)
+            for i in range(args.sig_opt_runs):
+                # Get suggestion from SigOpt
+                suggestion = conn.experiments(experiment.id).suggestions().create()
+                params = suggestion.assignments
+                for key in params:
+                    if isinstance(args.__dict__[key], bool):
+                        params[key] = params[key].lower() in ['true']
+                    args.__dict__[key] = params[key]
+                _, _, score = self._execute(args)
+                # In case of multi-run the return type will be a list (otherwise is a single float)
+                if type(score) != float:
+                    [conn.experiments(experiment.id).observations().create(suggestion=suggestion.id, value=item)
+                     for item in score]
+                else:
+                    conn.experiments(experiment.id).observations().create(suggestion=suggestion.id, value=score)
 
     def _run_manual_optimization(self, args):
         # TODO: improve doc
