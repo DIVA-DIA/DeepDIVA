@@ -39,7 +39,7 @@ bash setup_environment.sh
 
 Reload your environment variables from `.bashrc` with: `source ~/.bashrc`
 
-## Test the correctness of the procecdure
+### Test the correctness of the procecdure
 
 To verify the correctness of the procecdure you can run a small experiment. Activate the DeepDIVA python environment:
 
