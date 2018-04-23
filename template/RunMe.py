@@ -71,8 +71,8 @@ class RunMe:
         with open(args.sig_opt, 'r') as f:
             parameters = json.loads(f.read())
 
-        # Client Token is currently Vinay's one
-        conn = Connection(client_token="KXMUZNABYGKSXXRUEMELUYYRVRCRTRANKCPGDNNYDSGRHGUA")
+        # Put your SigOpt token here.
+        conn = Connection(client_token=None)
         experiment = conn.experiments().create(
             name=args.experiment_name,
             parameters=parameters,
