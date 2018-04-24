@@ -83,6 +83,10 @@ class Triplet:
         :return: train_value, val_value, test_value
             Precision values for train and validation splits. Single precision value for the test split.
         """
+        # Sanity check on parameters
+        if kwargs["output_channels"] is None:
+            logging.error("Using triplet class but --output-channels is not specified.")
+            sys.exit(-1)
 
         # Get the selected model input size
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
