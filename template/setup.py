@@ -36,40 +36,42 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, no_cud
 
     Parameters
     ----------
-    :param output_channels: int
+    output_channels : int
         Specify shape of final layer of network. Only used if num_classes is not specified.
 
-    :param model_name: string
+    model_name : string
         Name of the model
 
-    :param pretrained: bool
+    pretrained : bool
         Specify whether to load a pretrained model or not
 
-    :param optimizer_name: string
+    optimizer_name : string
         Name of the optimizer
 
-    :param lr: float
+    lr: float
         Value for learning rate
 
-    :param no_cuda: bool
+    no_cuda : bool
         Specify whether to use the GPU or not
 
-    :param resume: string
+    resume : string
         Path to a saved checkpoint
 
-    :param load_model: string
+    load_model : string
         Path to a saved model
 
-    :param start_epoch
+    start_epoch : int
         Epoch from which to resume training. If if not resuming a previous experiment the value is 0
 
-    :param num_classes: int
+    num_classes: int
         Number of classes for the model
 
-    :param kwargs: dict
+    kwargs: dict
         Any additional arguments.
 
-    :return: model, criterion, optimizer, best_value, start_epoch
+    Returns
+    -------
+        model, criterion, optimizer, best_value, start_epoch
     """
 
     # Initialize the model
