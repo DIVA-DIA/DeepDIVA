@@ -20,7 +20,7 @@ It is completely open source and accessible as Web Service through
 
 - [DeepDIVA Homepage](https://diva-dia.github.io/DeepDIVAweb/index.html)
 - [Tutorials](https://diva-dia.github.io/DeepDIVAweb/tutorial.html)
-- [Paper on arXiv](https://github.com/DIVA-DIA/DeepDIVA) (available as of 25 Apr 2018 00:00:00 GMT)
+- [Paper on arXiv](https://arxiv.org/abs/1805.00329) 
 
 ## Getting started
 
