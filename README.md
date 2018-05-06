@@ -65,9 +65,12 @@ If you use our software, please cite our paper as (will be updated soon):
 ``` latex
 @inproceedings{albertipondenkandath2018deepdiva,
     archivePrefix = {arXiv},
+    arxivId = {1805.00329},
+    eprint = {1805.00329},
     author = {Alberti, Michele Pondenkandath, Vinaychandran Würsch, Marcel Ingold, Rolf Liwicki, Marcus},
     title = {{DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments}},
     year = {2018}
+    month = {apr},
 }
 ```
 
