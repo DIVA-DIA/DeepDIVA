@@ -1,9 +1,13 @@
+import os
 import argparse
 import pickle
 
 import numpy as np
 from pandas import DataFrame
 from sklearn.metrics import pairwise_distances
+
+def _get_only_filename(path):
+    return os.path.basename(path).split('.')[0]
 
 
 def _main(args):
@@ -12,6 +16,7 @@ def _main(args):
 
     features, preds, labels, filenames = results
     distances = pairwise_distances(features, metric='cosine', n_jobs=-1)
+    filenames = np.array([_get_only_filename(item) for item in filenames])
 
     avg_top_one = []
     results = []
@@ -29,6 +34,8 @@ def _main(args):
 
     tmp = []
     tmp.append('Query')
+    if args.num_results == None:
+        args.num_results = len(features) - 1
     _ = [tmp.append('R{}'.format(i + 1)) for i in range(args.num_results)]
 
     dframe = DataFrame(results, columns=tmp)
@@ -51,7 +58,7 @@ if __name__ == "__main__":
                         help='path to generate output CSV')
     parser.add_argument('--num-results',
                         type=int,
-                        default=10,
+                        default=None,
                         help='save top N results for each query')
 
     args = parser.parse_args()
