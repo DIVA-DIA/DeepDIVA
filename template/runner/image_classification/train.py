@@ -6,10 +6,9 @@ import time
 import torch
 from tqdm import tqdm
 
-from util.evaluation.metrics import accuracy
 # DeepDIVA
 from util.misc import AverageMeter
-
+from util.evaluation.metrics import accuracy
 
 def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=False, log_interval=25, **kwargs):
     """
@@ -48,8 +47,8 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
     # Instantiate the counters
     batch_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
+    loss_meter = AverageMeter()
+    acc_meter = AverageMeter()
     data_time = AverageMeter()
 
     # Switch to train mode (turn on dropout & stuff)
@@ -72,36 +71,17 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
-        # Compute output
-        output = model(input_var)
-
-        # Compute and record the loss
-        loss = criterion(output, target_var)
-        losses.update(loss.data[0], input.size(0))
-
-        # Compute and record the accuracy
-        # acc1, acc5 = accuracy(output.data, target, topk=(1, 5))
-        acc1 = accuracy(output.data, target, topk=(1,))[0]
-
-        top1.update(acc1[0], input.size(0))
-        # top5.update(acc5[0], input.size(0))
+        acc, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, acc_meter)
 
         # Add loss and accuracy to Tensorboard
-        if multi_run == None:
+        if multi_run is None:
             writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_accuracy', acc1.cpu().numpy(), epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_accuracy', acc.cpu().numpy(), epoch * len(train_loader) + batch_idx)
         else:
             writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
                               epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
+            writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc.cpu().numpy(),
                               epoch * len(train_loader) + batch_idx)
-
-        # Reset gradient
-        optimizer.zero_grad()
-        # Compute gradients
-        loss.backward()
-        # Perform a step by updating the weights
-        optimizer.step()
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -112,20 +92,42 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
             pbar.set_description('train epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(train_loader)))
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
-                             Loss='{loss.avg:.4f}\t'.format(loss=losses),
-                             Acc1='{top1.avg:.3f}\t'.format(top1=top1),
+                             Loss='{loss.avg:.4f}\t'.format(loss=loss_meter),
+                             Acc1='{acc_meter.avg:.3f}\t'.format(acc_meter=acc_meter),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
-        writer.add_scalar('train/accuracy', top1.avg, epoch)
+        writer.add_scalar('train/accuracy', acc_meter.avg, epoch)
     else:
-        writer.add_scalar('train/accuracy_{}'.format(multi_run), top1.avg, epoch)
+        writer.add_scalar('train/accuracy_{}'.format(multi_run), acc_meter.avg, epoch)
 
     logging.debug('Train epoch[{}]: '
-                  'Acc@1={top1.avg:.3f}\t'
+                  'Acc@1={acc_meter.avg:.3f}\t'
                   'Loss={loss.avg:.4f}\t'
                   'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
-                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
+                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, acc_meter=acc_meter))
 
-    return top1.avg
+    return acc_meter.avg
+
+
+def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, acc_meter):
+    # Compute output
+    output = model(input_var)
+
+    # Compute and record the loss
+    loss = criterion(output, target_var)
+    loss_meter.update(loss.data[0], len(input_var))
+
+    # Compute and record the accuracy
+    acc = accuracy(output.data, target_var.data, topk=(1,))[0]
+    acc_meter.update(acc[0], len(input_var))
+
+    # Reset gradient
+    optimizer.zero_grad()
+    # Compute gradients
+    loss.backward()
+    # Perform a step by updating the weights
+    optimizer.step()
+
+    return acc, loss
