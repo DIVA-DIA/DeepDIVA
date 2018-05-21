@@ -19,8 +19,8 @@ It is completely open source and accessible as Web Service through
 ## Additional resources
 
 - [DeepDIVA Homepage](https://diva-dia.github.io/DeepDIVAweb/index.html)
-- [Tutorials](https://diva-dia.github.io/DeepDIVAweb/tutorial.html)
-- [Paper on arXiv](https://github.com/DIVA-DIA/DeepDIVA) (available as of 25 Apr 2018 00:00:00 GMT)
+- [Tutorials](https://diva-dia.github.io/DeepDIVAweb/articles.html)
+- [Paper on arXiv](https://arxiv.org/abs/1805.00329) 
 
 ## Getting started
 
@@ -65,9 +65,12 @@ If you use our software, please cite our paper as (will be updated soon):
 ``` latex
 @inproceedings{albertipondenkandath2018deepdiva,
     archivePrefix = {arXiv},
+    arxivId = {1805.00329},
+    eprint = {1805.00329},
     author = {Alberti, Michele Pondenkandath, Vinaychandran Würsch, Marcel Ingold, Rolf Liwicki, Marcus},
     title = {{DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments}},
-    year = {2018}
+    year = {2018},
+    month = {apr},
 }
 ```
 
