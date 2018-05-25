@@ -21,7 +21,7 @@ class FC_simple(nn.Module):
     ----------
     expected_input_size : int
         Expected input size
-    fc1 : torch.nn.Linear
+    fc1 : torch.nn.Sequential
         Fully connected layer of the network
     cl : torch.nn.Linear
         Final classification fully connected layer

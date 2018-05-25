@@ -27,11 +27,11 @@ class _AlexNet(nn.Module):
     ----------
     expected_input_size : tuple(int,int)
         Expected input size (width, height)
-    conv1 : torch.nn.Conv2d
-    conv2 : torch.nn.Conv2d
-    conv3 : torch.nn.Conv2d
-    conv4 : torch.nn.Conv2d
-    conv5 : torch.nn.Conv2d
+    conv1 : torch.nn.Sequential
+    conv2 : torch.nn.Sequential
+    conv3 : torch.nn.Sequential
+    conv4 : torch.nn.Sequential
+    conv5 : torch.nn.Sequential
         Convolutional layers of the network
     fc1 : torch.nn.Linear
     fc2 : torch.nn.Linear
