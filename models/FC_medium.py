@@ -19,6 +19,8 @@ class FC_medium(nn.Module):
 
     Attributes
     ----------
+    expected_input_size : int
+        Expected input size
     fc1 : torch.nn.Linear
     fc2 : torch.nn.Linear
     fc3 : torch.nn.Linear
