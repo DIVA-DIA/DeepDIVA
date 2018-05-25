@@ -20,10 +20,8 @@ class TNet(nn.Module):
 
     Attributes
     ----------
-    expected_input_size : tuple(int,int)
-        Expected input size (width, height)
-    conv1 : torch.nn.Conv2d
-    conv2 : torch.nn.Conv2d
+    conv1 : torch.nn.Sequential
+    conv2 : torch.nn.Sequential
         Convolutional layers of the network
     fc : torch.nn.Linear
         Final classification fully connected layer
@@ -58,7 +56,6 @@ class TNet(nn.Module):
         self.fc = nn.Sequential(
             Flatten(),
             nn.Linear(64 * 8 * 8, output_channels),
-            nn.Tanh()
         )
 
     def forward(self, x):
