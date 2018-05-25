@@ -20,6 +20,8 @@ class TNet(nn.Module):
 
     Attributes
     ----------
+    expected_input_size : tuple(int,int)
+        Expected input size (width, height)
     conv1 : torch.nn.Conv2d
     conv2 : torch.nn.Conv2d
         Convolutional layers of the network
