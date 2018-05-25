@@ -19,6 +19,8 @@ class FC_simple(nn.Module):
 
     Attributes
     ----------
+    expected_input_size : int
+        Expected input size
     fc1 : torch.nn.Linear
         Fully connected layer of the network
     cl : torch.nn.Linear
