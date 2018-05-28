@@ -46,7 +46,33 @@ class _BabyResNet(nn.Module):
 
     def __init__(self, block_type, num_block, output_channels=1000, **kwargs):
         """
-        Creates a ResNet model from the scratch.
+        Creates a BabyResNet model from the scratch.
+
+        BabyResNet differs from a regular ResNet for it has an input size of 32x32
+        rather than 224x224. The intuition behind is that it makes not so much sense
+        to rescale an input image from a native domain from 32x32 to 224x224 (e.g. in
+        CIFAR or MNIST datasets) because of multiple reasons. To begin with,  the image
+        distortion of such an upscaling is massive, but most importantly we pay an
+        extremely high overhead both in terms of computation and in number of parameters
+        involved. For this reason the ResNet architecture has been adapted to fit a
+        smaller input size.
+
+        Adaptations:
+        The conv1 layer filters have been reduced from 7x7 to 3x3 with stride 1 and the
+        padding removed. Additionally the number of filters has been increased to 128.
+        The initial maxpool stride has been lowered to 1.
+        This way, with an input of 32x32 the final output of the conv1 is then 28x28x128
+        which matches the expected input size of conv3x layer. This is no coincidence.
+        Since the image is already smaller than 56x56 (which is the expected size of
+        conv2x layer) the conv2x layer has been dropped entirely.
+        This would reduce the total number of layers in the network. In an effort to
+        reduce this gap, we increased the number of blocks in the conv3x layer with
+        as many blocks there where in the conv2x (we basically moved blocks from one layer
+        to another).
+        The final architecture closely matches the original ResNet but it is optimized
+        for handling an input of 32x32 pixels. The results of the BabyResNet and the original
+        ResNet are NOT the same (the final number of parameters differs slightly) and
+        the BabyResNet obtain (as expected) better results on CIFAR-10.
 
         Parameters
         ----------
@@ -60,20 +86,19 @@ class _BabyResNet(nn.Module):
         super(_BabyResNet, self).__init__()
 
         self.features = None
-        self.num_input_filters = 64 # Attention: this gets updated after each convx layer creation!
-        self.expected_input_size = (224, 224)
+        self.num_input_filters = 128  # Attention: this gets updated after each convx layer creation!
+        self.expected_input_size = (32, 32)
 
         # First convolutional layer, bring the input into the 56x56x64 desired size
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, self.num_input_filters, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.Conv2d(3, self.num_input_filters, kernel_size=3, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(self.num_input_filters),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=1, padding=0),
         )
 
         # Bulk part of the ResNet with four groups of blocks (expected size: 56x56x64)
-        self.conv2x = self._make_layer(block_type, 64,  num_block[0])
-        self.conv3x = self._make_layer(block_type, 128, num_block[1], stride=2)
+        self.conv3x = self._make_layer(block_type, 128, num_block[1])
         self.conv4x = self._make_layer(block_type, 256, num_block[2], stride=2)
         self.conv5x = self._make_layer(block_type, 512, num_block[3], stride=2)
 
@@ -149,7 +174,6 @@ class _BabyResNet(nn.Module):
         """
         x = self.conv1(x)
 
-        x = self.conv2x(x)
         x = self.conv3x(x)
         x = self.conv4x(x)
         x = self.conv5x(x)
