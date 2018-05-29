@@ -11,6 +11,91 @@ import numpy as np
 
 
 def _apk(query, predicted, k='full'):
+    """
+    Computes the average precision@k.
+
+    Parameters
+    ----------
+    query : int
+        Query label.
+    predicted : List(int)
+        Ordered list where each element is a label.
+    k : str or int
+        If int, cutoff for retrieval is set to K
+        If str, 'full' means cutoff is til the end of predicted
+                'auto' means cutoff is set to number of relevant queries.
+                For e.g.,
+                    query = 0
+                    predicted = [0, 0, 1, 1, 0]
+                    if k == 'full', then k is set to 5
+                    if k == 'auto', then k is set to num of 'query' values in 'predicted',
+                    i.e., k=3 as there as 3 of them in 'predicted'
+
+    Returns
+    -------
+    average_prec : float
+        Average Precision@k
+
+    """
+    if k == 'auto':
+        k = predicted.count(query)
+    elif k == 'full':
+        k = len(predicted)
+
+    if k == 0 or len(predicted) == 0:
+        return 0
+
+    if len(predicted) > k:
+        predicted = predicted[:k]
+
+    score = 0.0  # The score is the precision@i integrated over i=1:k
+    num_hits = 0.0
+
+    for i, p in enumerate(predicted):
+        if p == query:
+            num_hits += 1.0
+            score += num_hits / (i + 1.0)
+
+    return score / k
+
+    # Non-vectorized version.
+    # score = 0.0
+    # hit = 0
+    # for i in range(min(k, len(predicted))):
+    #     prec = predicted[:i + 1].count(query) / (i + 1)
+    #     relv = 1 if predicted[i] == query else 0
+    #     score += prec * relv
+    #
+    #     hit += relv
+    #     if hit >= num_relevant:
+    #         break
+
+    # Vectorized form
+    # Crop the predicted list.
+    predicted = np.array(predicted[:min(k, len(predicted))])
+
+    # Make an empty array for relevant queries.
+    relv = np.zeros(len(predicted))
+
+    # Find all locations where the predicted value matches the query and vice-versa.
+    hit_locs = np.where(predicted == query)[0]
+    non_hit_locs = np.where(predicted != query)[0]
+
+    # Set all `hit_locs` to be 1. [0,0,0,0,0,0] -> [0,1,0,1,0,1]
+    relv[hit_locs] = 1
+    # Compute the sum of all elements till the particular element. [0,1,0,1,0,1] -> [0,1,1,2,2,3]
+    relv = np.cumsum(relv)
+    #  Set all `non_hit_locs` to be zero. [0,1,1,2,2,3] -> [0,1,0,2,0,3]
+    relv[non_hit_locs] = 0
+    # Divide element-wise by [0/1,1/2,0/3,2/4,0/5,3/6] and sum the array.
+    score = np.sum(np.divide(relv, np.arange(1, relv.shape[0] + 1)))
+
+    average_prec = score / k
+
+    return average_prec
+
+
+def _apk_old(query, predicted, k='full'):
     """Computes the average precision@K.
 
     Parameters
