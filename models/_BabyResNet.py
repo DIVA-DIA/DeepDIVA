@@ -71,8 +71,9 @@ class _BabyResNet(nn.Module):
         to another).
         The final architecture closely matches the original ResNet but it is optimized
         for handling an input of 32x32 pixels. The results of the BabyResNet and the original
-        ResNet are NOT the same (the final number of parameters differs slightly) and
-        the BabyResNet obtain (as expected) better results on CIFAR-10.
+        ResNet are NOT the same (the final number of parameters differs slightly with the
+        BabyResNet having 320 parameters more) and the BabyResNet obtain (as expected)
+        better results on CIFAR-10.
 
         Parameters
         ----------
@@ -301,7 +302,7 @@ def babyresnet18(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_BasicBlock, [2, 2, 2, 2], **kwargs)
+    return _BabyResNet(_BasicBlock, [0, 4, 2, 2], **kwargs)
 
 
 def babyresnet34(**kwargs):
@@ -313,7 +314,7 @@ def babyresnet34(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_BasicBlock, [3, 4, 6, 3], **kwargs)
+    return _BabyResNet(_BasicBlock, [0, 7, 6, 3], **kwargs)
 
 
 def babyresnet50(**kwargs):
@@ -325,7 +326,7 @@ def babyresnet50(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_Bottleneck, [3, 4, 6, 3], **kwargs)
+    return _BabyResNet(_Bottleneck, [0, 7, 6, 3], **kwargs)
 
 
 def babyresnet101(**kwargs):
@@ -337,7 +338,7 @@ def babyresnet101(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_Bottleneck, [3, 4, 23, 3], **kwargs)
+    return _BabyResNet(_Bottleneck, [0, 7, 23, 3], **kwargs)
 
 
 def babyresnet152(**kwargs):
@@ -349,4 +350,4 @@ def babyresnet152(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_Bottleneck, [3, 8, 36, 3], **kwargs)
+    return _BabyResNet(_Bottleneck, [0, 11, 36, 3], **kwargs)
