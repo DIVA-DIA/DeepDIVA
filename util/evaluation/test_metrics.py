@@ -6,14 +6,46 @@ from util.evaluation.metrics import _apk
 
 
 def test_apk():
-    assert math.isnan(_apk(1, [0, 0]))
+    # Test base base case scenario
+    assert _apk(1, [0, 0]) == 0.0
+    assert _apk(1, [0, 1]) == 0.25
+    assert _apk(1, [1, 0]) == 0.5
+    assert _apk(1, [1, 1]) == 1.0
+
+    # Test non-zero labels & 'full'
+    assert _apk(1, [2, 3], 'full') == 0.0
+    assert _apk(1, [4, 1], 'full') == 0.25
+    assert _apk(1, [1, 5], 'full') == 0.5
+    assert _apk(1, [1, 1], 'full') == 1.0
+
+    # Test @k
+    assert _apk(1, [0, 0], 1) == 0.0
     assert _apk(1, [0, 1], 1) == 0.0
-    assert _apk(1, [1, 0]) == 1.0
-    assert _apk(1, [0, 1], 2) == 0.5
-    assert _apk(1, [0, 1, 0, 1], 'full') == 0.5
+    assert _apk(1, [1, 0], 1) == 1.0
+    assert _apk(1, [1, 1], 1) == 1.0
+
+    # Test 'auto'
+    assert _apk(1, [0, 0], 'auto') == 0.0
+    assert _apk(1, [0, 1], 'auto') == 0.0
+    assert _apk(1, [1, 0], 'auto') == 1.0
+    assert _apk(1, [1, 1], 'auto') == 1.0
+
+    # Test with more than 2 numbers
+    assert _apk(1, [0, 1, 0, 1]) == 0.25
+    assert _apk(1, [0, 1, 0, 1], 2) == 0.25
     assert _apk(1, [0, 1, 0, 1], 'auto') == 0.25
-    assert _apk(1, [0, 0, 1, 1], 'auto') == 0.0
-    np.testing.assert_almost_equal(_apk(1, [0, 0, 1, 1], 'full'), 0.41666666)
-    assert _apk(1, [0, 0, 1, 0, 0, 1], 'full') == 1.0 / 3
-    np.testing.assert_almost_equal(_apk(1, [1, 0, 1, 0, 0, 1, 0, 0, 1, 1], 'full'), 0.62222222222)
-    assert _apk(1, [1] * 10000000, 'full') == 1.0
+
+    assert _apk(1, [2, 3, 1, 1], 1) == 0.0
+    assert _apk(1, [4, 5, 1, 1], 2) == 0.0
+    assert _apk(1, [6, 7, 1, 1], 'auto') == 0.0
+    np.testing.assert_almost_equal(_apk(1, [2, 3, 1, 1], 3), 0.11111111)
+    np.testing.assert_almost_equal(_apk(1, [5, 4, 1, 1], 4), 0.20833333)
+    np.testing.assert_almost_equal(_apk(1, [6, 6, 1, 1]), 0.20833333)
+    np.testing.assert_almost_equal(_apk(1, [11, 12, 1, 1], 'full'), 0.20833333)
+
+    # Test longer sequences
+    assert _apk(1, [1] * 10000000) == 1.0
+
+    # Test k > |prediction|
+    assert _apk(5, [5, 4, 3, 2, 1, 0], 8) == 0.125
+    assert _apk(5, [5, 4, 3, 2, 1, 0], 10) == 0.1
