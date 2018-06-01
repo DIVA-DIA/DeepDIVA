@@ -59,10 +59,12 @@ def load_dataset(dataset_folder, num_triplets=None, in_memory=False, workers=1):
         logging.error("Test folder not found in the args.dataset_folder=" + dataset_folder)
         sys.exit(-1)
 
-    train_ds = ImageFolderTriplet(train_dir, train=True, num_triplets=num_triplets, workers=workers,
-                                  in_memory=in_memory)
-    val_ds = ImageFolderTriplet(val_dir, train=False, num_triplets=num_triplets, workers=workers, in_memory=in_memory)
-    test_ds = ImageFolderTriplet(test_dir, train=False, num_triplets=num_triplets, workers=workers, in_memory=in_memory)
+    train_ds = ImageFolderTriplet(train_dir, train=True, num_triplets=num_triplets,
+                                  workers=workers,in_memory=in_memory)
+    val_ds = ImageFolderTriplet(val_dir, train=False, num_triplets=num_triplets,
+                                workers=workers, in_memory=in_memory)
+    test_ds = ImageFolderTriplet(test_dir, train=False, num_triplets=num_triplets,
+                                 workers=workers, in_memory=in_memory)
     return train_ds, val_ds, test_ds
 
 
