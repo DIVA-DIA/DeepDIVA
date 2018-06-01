@@ -78,6 +78,7 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
             multi_crop = True
             bs, ncrops, c, h, w = data.size()
             data = data.view(-1, c, h, w)
+
         if not no_cuda:
             data = data.cuda()
 
@@ -89,7 +90,7 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
         if multi_crop:
             out = out.view(bs, ncrops, -1).mean(1)
 
-        # Euclidean distance
+        # Store output
         outputs.append(out.data.cpu().numpy())
         labels.append(label.data.cpu().numpy())
 
@@ -103,12 +104,13 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     num_tests = len(data_loader.dataset.file_names)
     labels = np.concatenate(labels, 0).reshape(num_tests)
     outputs = np.concatenate(outputs, 0)
+    # Cosine similarity distance
     distances = pairwise_distances(outputs, metric='cosine', n_jobs=16)
-    logging.debug('Computed pairwise distances')
-    logging.debug('Distance matrix shape: {}'.format(distances.shape))
+    logging.info('Computed pairwise distances')
+    logging.info('Distance matrix shape: {}'.format(distances.shape))
     t = time.time()
     mAP_score = compute_mapk(distances, labels, k=map)
-    logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
+    logging.info('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(mAP_score))
 
