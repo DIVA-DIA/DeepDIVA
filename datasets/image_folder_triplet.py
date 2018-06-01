@@ -128,26 +128,29 @@ class ImageFolderTriplet(data.Dataset):
         """
         Generate triplets for training. Triplets have format [anchor, positive, negative]
         """
-        labels = self.labels
-        num_triplets = self.num_triplets
         logging.info('Begin generating triplets')
         triplets = []
-        for i in trange(num_triplets, leave=False):
-            c1 = np.random.randint(0, np.max(labels))
-            c2 = np.random.randint(0, np.max(labels))
+        for _ in trange(self.num_triplets, leave=False):
+            # Select two different classes, c1 and c2
+            c1 = np.random.randint(0, np.max(self.labels))
+            c2 = np.random.randint(0, np.max(self.labels))
             while c1 == c2:
-                c2 = np.random.randint(0, np.max(labels))
+                c2 = np.random.randint(0, np.max(self.labels))
 
-            c1_items = np.where(labels == c1)[0]
+            # Select two different object of class c1, a and p
+            c1_items = np.where(self.labels == c1)[0]
             a = random.choice(c1_items)
             p = random.choice(c1_items)
             while a == p:
                 p = random.choice(c1_items)
 
-            c2_items = np.where(labels == c2)[0]
+            # Select an item from class c2, n
+            c2_items = np.where(self.labels == c2)[0]
             n = random.choice(c2_items)
+
+            # Add the triplet to the list as we now have a,p,n
             triplets.append([a, p, n])
-        logging.info('Finished generating {} triplets'.format(num_triplets))
+        logging.info('Finished generating {} triplets'.format(self.num_triplets))
         return triplets
 
     def __getitem__(self, index):
@@ -171,10 +174,10 @@ class ImageFolderTriplet(data.Dataset):
             # a, pn, l = self.matches[index]
             l = self.labels[index]
             if self.in_memory:
-                img_a = self.data[index]
+                img_a = Image.fromarray(self.data[index])
             else:
-                img_a = cv2.imread(self.file_names[index])
-            img_a = Image.fromarray(img_a)
+                img_a = Image.fromarray(cv2.imread(self.file_names[index]))
+
             if self.transform is not None:
                 img_a = self.transform(img_a)
             return img_a, l
