@@ -229,23 +229,15 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
-        train_ds.transform = transforms.Compose([
+        transform = transforms.Compose([
             transforms.Resize(model_expected_input_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
 
-        val_ds.transform = transforms.Compose([
-            transforms.Resize(model_expected_input_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
-
-        test_ds.transform = transforms.Compose([
-            transforms.Resize(model_expected_input_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+        train_ds.transform = transform
+        val_ds.transform = transform
+        test_ds.transform = transform
 
         train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
@@ -271,20 +263,14 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
-        train_ds.transform = transforms.Compose([
+        transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])
 
-        val_ds.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
-
-        test_ds.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+        train_ds.transform = transform
+        val_ds.transform = transform
+        test_ds.transform = transform
 
         train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
