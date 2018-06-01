@@ -70,7 +70,7 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     multi_crop = False
 
     # Iterate over whole evaluation set
-    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=200)
+    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (data, label) in pbar:
 
         # Check if data is provided in multi-crop form and process accordingly
