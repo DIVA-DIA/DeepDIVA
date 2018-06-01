@@ -12,7 +12,7 @@ from datasets.image_folder_triplet import load_dataset
 from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
 
 
-def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, multi_crop, **kwargs):
+def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -36,9 +36,6 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     :param inmem: boolean
         Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored
         and images are loaded on demand. This is slower than storing everything in memory.
-
-    :param multi_crop: int
-        Number of crops to use per input image
 
     :param kwargs: dict
         Any additional arguments.
