@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from util.evaluation.metrics import _apk
+from util.evaluation.metrics import _apk, _mapk
 
 
 def test_apk_corner_cases():
@@ -55,13 +55,20 @@ def test_apk_advanced():
     assert _apk(1, [2, 3, 1, 1], 1) == 0.0
     assert _apk(1, [4, 5, 1, 1], 2) == 0.0
     assert _apk(1, [6, 7, 1, 1], 'auto') == 0.0
-    np.testing.assert_almost_equal(_apk(1, [2, 3, 1, 1], 3), 0.11111111)
-    np.testing.assert_almost_equal(_apk(1, [5, 4, 1, 1], 4), 0.20833333)
-    np.testing.assert_almost_equal(_apk(1, [6, 6, 1, 1]), 0.20833333)
-    np.testing.assert_almost_equal(_apk(1, [11, 12, 1, 1], 'full'), 0.20833333)
+    np.testing.assert_almost_equal([_apk(1, [2, 3, 1, 1], 3)], [0.11111111])
+    np.testing.assert_almost_equal([_apk(1, [5, 4, 1, 1], 4)], [0.20833333])
+    np.testing.assert_almost_equal([_apk(1, [6, 6, 1, 1])], [0.20833333])
+    np.testing.assert_almost_equal([_apk(1, [11, 12, 1, 1], 'full')], [0.20833333])
 
 
 def test_apk_long_sequences():
     # Test longer sequences
-    assert _apk(1, [1] * 10000) == 1.0
+    assert _apk(1, [1] * 15000) == 1.0
 
+
+def test_mapk():
+    # Single entry
+    np.testing.assert_almost_equal([_mapk([1],[[2, 3, 1, 1]], 'full')], [0.20833333])
+
+    # Multiple entries
+    np.testing.assert_almost_equal([_mapk([1, 1], [[2, 3, 1, 1],[1, 1]], 'full')], [0.60416666])
