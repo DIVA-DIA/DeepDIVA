@@ -17,22 +17,21 @@ and they should be used instead of hard-coding stuff.
 
 # Utils
 from __future__ import print_function
-
 import logging
 import sys
-
 import numpy as np
 import torch
 import torch.nn as nn
-# DeepDIVA
-from torch.nn import init
 
+# DeepDIVA
 import models
-from template.runner.triplet import train, evaluate
-# Delegated
+from torch.nn import init
 from template.runner.triplet.setup import setup_dataloaders
 from template.setup import set_up_model
 from util.misc import adjust_learning_rate, checkpoint
+
+# Delegated
+from template.runner.triplet import train, evaluate
 
 
 #######################################################################################################################
