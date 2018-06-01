@@ -48,125 +48,36 @@ def _apk(query, predicted, k='full'):
     if len(predicted) > k:
         predicted = predicted[:k]
 
-    score = 0.0  # The score is the precision@i integrated over i=1:k
-    num_hits = 0.0
+    predicted = np.array(predicted)
 
-    for i, p in enumerate(predicted):
-        if p == query:
-            num_hits += 1.0
-            score += num_hits / (i + 1.0)
+    # Non-vectorized version.
+    # score = 0.0  # The score is the precision@i integrated over i=1:k
+    # num_hits = 0.0
+    #
+    # for i, p in enumerate(predicted):
+    #     if p == query:
+    #         num_hits += 1.0
+    #         score += num_hits / (i + 1.0)
+    #
+    # return score / k
+
+    # Make an empty array for relevant queries.
+    relevant = np.zeros(len(predicted))
+
+    # Find all locations where the predicted value matches the query and vice-versa.
+    hit_locs = np.where(predicted == query)[0]
+    non_hit_locs = np.where(predicted != query)[0]
+
+    # Set all `hit_locs` to be 1. [0,0,0,0,0,0] -> [0,1,0,1,0,1]
+    relevant[hit_locs] = 1
+    # Compute the sum of all elements till the particular element. [0,1,0,1,0,1] -> [0,1,1,2,2,3]
+    relevant = np.cumsum(relevant)
+    #  Set all `non_hit_locs` to be zero. [0,1,1,2,2,3] -> [0,1,0,2,0,3]
+    relevant[non_hit_locs] = 0
+    # Divide element-wise by [0/1,1/2,0/3,2/4,0/5,3/6] and sum the array.
+    score = np.sum(np.divide(relevant, np.arange(1, relevant.shape[0] + 1)))
 
     return score / k
-
-    # Non-vectorized version.
-    # score = 0.0
-    # hit = 0
-    # for i in range(min(k, len(predicted))):
-    #     prec = predicted[:i + 1].count(query) / (i + 1)
-    #     relv = 1 if predicted[i] == query else 0
-    #     score += prec * relv
-    #
-    #     hit += relv
-    #     if hit >= num_relevant:
-    #         break
-
-    # Vectorized form
-    # Crop the predicted list.
-    predicted = np.array(predicted[:min(k, len(predicted))])
-
-    # Make an empty array for relevant queries.
-    relv = np.zeros(len(predicted))
-
-    # Find all locations where the predicted value matches the query and vice-versa.
-    hit_locs = np.where(predicted == query)[0]
-    non_hit_locs = np.where(predicted != query)[0]
-
-    # Set all `hit_locs` to be 1. [0,0,0,0,0,0] -> [0,1,0,1,0,1]
-    relv[hit_locs] = 1
-    # Compute the sum of all elements till the particular element. [0,1,0,1,0,1] -> [0,1,1,2,2,3]
-    relv = np.cumsum(relv)
-    #  Set all `non_hit_locs` to be zero. [0,1,1,2,2,3] -> [0,1,0,2,0,3]
-    relv[non_hit_locs] = 0
-    # Divide element-wise by [0/1,1/2,0/3,2/4,0/5,3/6] and sum the array.
-    score = np.sum(np.divide(relv, np.arange(1, relv.shape[0] + 1)))
-
-    average_prec = score / k
-
-    return average_prec
-
-
-def _apk_old(query, predicted, k='full'):
-    """Computes the average precision@K.
-
-    Parameters
-    ----------
-    query : int
-        Query label.
-    predicted : list of int
-        Where each int is a label.
-    k : str or int
-        If int, cutoff for retrieval is set to K
-        If str, 'full' means cutoff is til the end of predicted
-                'auto' means cutoff is set to number of relevant queries.
-                For e.g.,
-                    query = 0
-                    predicted = [0, 0, 1, 1, 0]
-                    if k == 'full', then k is set to 5
-                    if k == 'auto', then k is set to num of 'query' values in 'predicted',
-                    i.e., k=3 as there as 3 of them in 'predicted'
-
-    Returns
-    -------
-    average_prec : float
-        Average Precision@K
-
-    """
-
-    num_relevant = predicted.count(query)
-
-    if k == 'auto':
-        k = num_relevant
-    elif k == 'full':
-        k = len(predicted)
-
-    if num_relevant == 0:
-        return np.nan
-
-    # Non-vectorized version.
-    # score = 0.0
-    # hit = 0
-    # for i in range(min(k, len(predicted))):
-    #     prec = predicted[:i + 1].count(query) / (i + 1)
-    #     relv = 1 if predicted[i] == query else 0
-    #     score += prec * relv
-    #
-    #     hit += relv
-    #     if hit >= num_relevant:
-    #         break
-
-    # Vectorized form
-    # Crop the predicted list.
-    predicted = np.array(predicted[:min(k, len(predicted))])
-
-    # Make an empty array for relevant queries.
-    relv = np.zeros(len(predicted))
-
-    # Find all locations where the predicted value matches the query and vice-versa.
-    hit_locs = np.where(predicted == query)[0]
-    non_hit_locs = np.where(predicted != query)[0]
-
-    # Set all `hit_locs` to be 1. [0,0,0,0,0,0] -> [0,1,0,1,0,1]
-    relv[hit_locs] = 1
-    # Compute the sum of all elements till the particular element. [0,1,0,1,0,1] -> [0,1,1,2,2,3]
-    relv = np.cumsum(relv)
-    #  Set all `non_hit_locs` to be zero. [0,1,1,2,2,3] -> [0,1,0,2,0,3]
-    relv[non_hit_locs] = 0
-    # Divide element-wise by [0/1,1/2,0/3,2/4,0/5,3/6] and sum the array.
-    score = np.sum(np.divide(relv, np.arange(1, relv.shape[0] + 1)))
-
-    average_prec = score / num_relevant
-
-    return average_prec
 
 
 def _mapk(query, predicted, k=None, workers=1):
@@ -197,13 +108,17 @@ def _mapk(query, predicted, k=None, workers=1):
         The mean average precision@K.
 
     """
-    if workers == 1:
-        return np.mean([_apk(q, p, k) for q, p in zip(query, predicted)])
-    with Pool(workers) as pool:
-        vals = [[q, p, k] for q, p in zip(query, predicted)]
-        aps = pool.starmap(_apk, vals)
-    map_score = np.mean(aps)
-    return map_score
+    return np.mean([_apk(q, p, k) for q, p in zip(query, predicted)])
+    # The overhead of the pool is killing any possible speedup.
+    # In order to make this parallel (if ever needed) one should create a Process class which swallows
+    # 1/`workers` part of `vals`, such that only `workers` threads are created.
+
+    # if workers == 1:
+    #     return np.mean([_apk(q, p, k) for q, p in zip(query, predicted)])
+    # with Pool(workers) as pool:
+    #     vals = [[q, p, k] for q, p in zip(query, predicted)]
+    #     aps = pool.starmap(_apk, vals)
+    #     return np.mean(aps)
 
 
 def compute_mapk(distances, labels, k, workers=None):
@@ -224,21 +139,30 @@ def compute_mapk(distances, labels, k, workers=None):
     map_score : float
         The mean average precision@K.
     """
+
+    # Resolve k
     k = k if k == 'auto' or k == 'full' else int(k)
+
+    # Reduce the size of distances that would anyway not be used afterwards. This makes sorting them faster.
+    max_count = k
+    if k == 'full':
+        max_count = len(labels)
+    if k == 'auto':
+        # Take the highest frequency in the labels i.e. the highest possible 'auto' value for all entries
+        max_count = np.max(np.unique(labels, return_counts=True)[1])
+    distances = distances[:,:max_count]
 
     if workers == None:
         workers = 16 if k == 'auto' or k == 'full' else 1
 
     t = time.time()
     sorted_predictions = [list(labels[np.argsort(dist_row)][1:]) for dist_row in distances]
-    logging.debug('Finished sorting distance matrix in {} seconds'
+    logging.info('Finished sorting distance matrix in {} seconds'
                   .format(datetime.timedelta(seconds=int(time.time() - t))))
 
-    queries = labels
-
     t = time.time()
-    map_score = _mapk(queries, sorted_predictions, k, workers)
-    logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
+    map_score = _mapk(labels, sorted_predictions, k, workers)
+    logging.info('Finished computing all mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     return map_score
 
