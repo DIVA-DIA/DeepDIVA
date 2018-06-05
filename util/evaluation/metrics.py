@@ -10,7 +10,7 @@ from multiprocessing import Pool
 import numpy as np
 
 
-def _apk(query, predicted, k='full'):
+def apk(query, predicted, k='full'):
     """
     Computes the average precision@k.
 
@@ -24,16 +24,17 @@ def _apk(query, predicted, k='full'):
         If int, cutoff for retrieval is set to K
         If str, 'full' means cutoff is til the end of predicted
                 'auto' means cutoff is set to number of relevant queries.
-                For e.g.,
-                    query = 0
-                    predicted = [0, 0, 1, 1, 0]
-                    if k == 'full', then k is set to 5
-                    if k == 'auto', then k is set to num of 'query' values in 'predicted',
-                    i.e., k=3 as there as 3 of them in 'predicted'
+
+        Example:
+            query = 0
+            predicted = [0, 0, 1, 1, 0]
+            if k == 'full', then k is set to 5
+            if k == 'auto', then k is set to num of 'query' values in 'predicted',
+            i.e., k=3 as there as 3 of them in 'predicted'
 
     Returns
     -------
-    average_prec : float
+    float
         Average Precision@k
 
     """
@@ -80,7 +81,7 @@ def _apk(query, predicted, k='full'):
     return score / k
 
 
-def _mapk(query, predicted, k=None, workers=1):
+def mapk(query, predicted, k=None, workers=1):
     """Compute the mean Average Precision@K.
 
     Parameters
@@ -93,22 +94,22 @@ def _mapk(query, predicted, k=None, workers=1):
         If int, cutoff for retrieval is set to `k`
         If str, 'full' means cutoff is til the end of predicted
                 'auto' means cutoff is set to number of relevant queries.
-                For e.g.,
-                    `query` = 0
-                    `predicted` = [0, 0, 1, 1, 0]
-                    if `k` == 'full', then `k` is set to 5
-                    if `k` == 'auto', then `k` is set to num of `query` values in `predicted`,
-                    i.e., `k`=3 as there as 3 of them in `predicted`.
+        For e.g.,
+            `query` = 0
+            `predicted` = [0, 0, 1, 1, 0]
+            if `k` == 'full', then `k` is set to 5
+            if `k` == 'auto', then `k` is set to num of `query` values in `predicted`,
+            i.e., `k`=3 as there as 3 of them in `predicted`.
     workers : int
         Number of parallel workers used to compute the AP@k
 
     Returns
     -------
-    map_score : float
+    float
         The mean average precision@K.
 
     """
-    return np.mean([_apk(q, p, k) for q, p in zip(query, predicted)])
+    return np.mean([apk(q, p, k) for q, p in zip(query, predicted)])
     # The overhead of the pool is killing any possible speedup.
     # In order to make this parallel (if ever needed) one should create a Process class which swallows
     # 1/`workers` part of `vals`, such that only `workers` threads are created.
@@ -150,18 +151,25 @@ def compute_mapk(distances, labels, k, workers=None):
     if k == 'auto':
         # Take the highest frequency in the labels i.e. the highest possible 'auto' value for all entries
         max_count = np.max(np.unique(labels, return_counts=True)[1])
-    distances = distances[:,:max_count]
+
+    # Fetch the index of the lowest `max_count` (k) elements
+    t = time.time()
+    ind = np.argpartition(distances, max_count)[:, :max_count]
+    # Find the sorting sequence according to the shortest distances selected from `ind`
+    ssd = np.argsort(np.array(distances)[np.arange(distances.shape[0])[:, None], ind], axis=1)
+    # Consequently sort `ind`
+    ind = ind[np.arange(ind.shape[0])[:, None], ssd]
+    # Now `ind` contains the sorted indexes of the lowest `max_count` (k) elements
+    # Resolve the labels of the elements referred by `ind`
+    sorted_predictions = [list(labels[row][1:]) for row in ind]
+    logging.info('Finished computing sorted predictions in {} seconds'
+                 .format(datetime.timedelta(seconds=int(time.time() - t))))
 
     if workers == None:
         workers = 16 if k == 'auto' or k == 'full' else 1
 
     t = time.time()
-    sorted_predictions = [list(labels[np.argsort(dist_row)][1:]) for dist_row in distances]
-    logging.info('Finished sorting distance matrix in {} seconds'
-                  .format(datetime.timedelta(seconds=int(time.time() - t))))
-
-    t = time.time()
-    map_score = _mapk(labels, sorted_predictions, k, workers)
+    map_score = mapk(labels, sorted_predictions, k, workers)
     logging.info('Finished computing all mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     return map_score
