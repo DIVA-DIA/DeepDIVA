@@ -171,7 +171,6 @@ class Triplet:
             sys.exit(-1)
 
     ####################################################################################################################
-
     # These methods delegate their function to other classes in this package.
     # It is useful because sub-classes can selectively change the logic of certain parts only.
 
