@@ -162,7 +162,7 @@ def compute_mapk(distances, labels, k, workers=None):
     # Now `ind` contains the sorted indexes of the lowest `max_count` (k) elements
     # Resolve the labels of the elements referred by `ind`
     sorted_predictions = [list(labels[row][1:]) for row in ind]
-    logging.info('Finished computing sorted predictions in {} seconds'
+    logging.debug('Finished computing sorted predictions in {} seconds'
                  .format(datetime.timedelta(seconds=int(time.time() - t))))
 
     if workers == None:
@@ -170,7 +170,7 @@ def compute_mapk(distances, labels, k, workers=None):
 
     t = time.time()
     map_score = mapk(labels, sorted_predictions, k, workers)
-    logging.info('Finished computing all mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
+    logging.debug('Finished computing all mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     return map_score
 

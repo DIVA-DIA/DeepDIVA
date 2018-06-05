@@ -106,11 +106,11 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     outputs = np.concatenate(outputs, 0)
     # Cosine similarity distance
     distances = pairwise_distances(outputs, metric='cosine', n_jobs=16)
-    logging.info('Computed pairwise distances')
-    logging.info('Distance matrix shape: {}'.format(distances.shape))
+    logging.debug('Computed pairwise distances')
+    logging.debug('Distance matrix shape: {}'.format(distances.shape))
     t = time.time()
     mAP_score = compute_mapk(distances, labels, k=map)
-    logging.info('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
+    logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
     logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(mAP_score))
 
