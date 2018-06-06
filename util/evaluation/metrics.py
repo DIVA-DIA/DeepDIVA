@@ -107,9 +107,12 @@ def mapk(query, predicted, k=None, workers=1):
     -------
     float
         The mean average precision@K.
-
+    list(float)
+        The per class mean averages precision @k
     """
-    return np.mean([apk(q, p, k) for q, p in zip(query, predicted)])
+    results = np.array([apk(q, p, k) for q, p in zip(query, predicted)])
+    per_class_mapk = [np.mean(np.array(results)[np.where(query == l)[0]]) for l in np.unique(query)]
+    return np.mean(results), per_class_mapk
     # The overhead of the pool is killing any possible speedup.
     # In order to make this parallel (if ever needed) one should create a Process class which swallows
     # 1/`workers` part of `vals`, such that only `workers` threads are created.
@@ -137,8 +140,10 @@ def compute_mapk(distances, labels, k, workers=None):
 
     Returns
     -------
-    map_score : float
+    float
         The mean average precision@K.
+    list(float)
+        The per class mean averages precision @k
     """
 
     # Resolve k
@@ -163,16 +168,12 @@ def compute_mapk(distances, labels, k, workers=None):
     # Resolve the labels of the elements referred by `ind`
     sorted_predictions = [list(labels[row][1:]) for row in ind]
     logging.debug('Finished computing sorted predictions in {} seconds'
-                 .format(datetime.timedelta(seconds=int(time.time() - t))))
+                  .format(datetime.timedelta(seconds=int(time.time() - t))))
 
-    if workers == None:
+    if workers is None:
         workers = 16 if k == 'auto' or k == 'full' else 1
 
-    t = time.time()
-    map_score = mapk(labels, sorted_predictions, k, workers)
-    logging.debug('Finished computing all mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
-
-    return map_score
+    return mapk(labels, sorted_predictions, k, workers)
 
 
 def accuracy(predicted, target, topk=(1,)):
