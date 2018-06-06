@@ -107,11 +107,11 @@ def mapk(query, predicted, k=None, workers=1):
     -------
     float
         The mean average precision@K.
-    list(float)
+    dict{label, float}
         The per class mean averages precision @k
     """
     results = np.array([apk(q, p, k) for q, p in zip(query, predicted)])
-    per_class_mapk = [np.mean(np.array(results)[np.where(query == l)[0]]) for l in np.unique(query)]
+    per_class_mapk = {str(l): np.mean(np.array(results)[np.where(query == l)[0]]) for l in np.unique(query)}
     return np.mean(results), per_class_mapk
     # The overhead of the pool is killing any possible speedup.
     # In order to make this parallel (if ever needed) one should create a Process class which swallows
@@ -142,7 +142,7 @@ def compute_mapk(distances, labels, k, workers=None):
     -------
     float
         The mean average precision@K.
-    list(float)
+    dict{label, float}
         The per class mean averages precision @k
     """
 
