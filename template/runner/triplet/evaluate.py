@@ -1,5 +1,6 @@
 # Utils
 import datetime
+import json
 import logging
 import time
 
@@ -109,15 +110,18 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     logging.debug('Computed pairwise distances')
     logging.debug('Distance matrix shape: {}'.format(distances.shape))
     t = time.time()
-    mAP_score = compute_mapk(distances, labels, k=map)
+    mAP, per_class_mAP = compute_mapk(distances, labels, k=map)
+    writer.add_text('Per class mAP at epoch {}\n'.format(epoch),
+                    json.dumps(per_class_mAP, indent=2, sort_keys=True))
+
     logging.debug('Completed evaluation of mAP in {}'.format(datetime.timedelta(seconds=int(time.time() - t))))
 
-    logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(mAP_score))
+    logging.info('\33[91m ' + logging_label + ' set: mAP: {}\n\33[0m'.format(mAP))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
-        writer.add_scalar(logging_label + '/mAP', mAP_score, epoch)
+        writer.add_scalar(logging_label + '/mAP', mAP, epoch)
     else:
-        writer.add_scalar(logging_label + '/mAP{}'.format(multi_run), mAP_score, epoch)
+        writer.add_scalar(logging_label + '/mAP{}'.format(multi_run), mAP, epoch)
 
-    return mAP_score
+    return mAP
