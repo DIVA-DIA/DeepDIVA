@@ -435,7 +435,6 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, deb
     
     Resources:
     https://stackoverflow.com/questions/31519997/is-it-possible-to-only-parse-one-argument-groups-parameters-with-argparse
-    
     """
 
     # Fetch all non-default parameters

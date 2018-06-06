@@ -72,7 +72,7 @@ class RunMe:
             parameters = json.loads(f.read())
 
         # Put your SigOpt token here.
-        if args.sig_opt_token == None:
+        if args.sig_opt_token is None:
             print('Enter your SigOpt API token using --sig-opt-token')
             sys.exit(0)
         else:
@@ -130,7 +130,6 @@ class RunMe:
         :param args:
         :return:
         """
-
 
         # Set up logging
         # Don't use args.output_folder as that breaks when using SigOpt
