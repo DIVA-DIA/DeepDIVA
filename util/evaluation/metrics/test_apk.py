@@ -3,7 +3,7 @@ import numpy as np
 from util.evaluation.metrics import apk, mapk
 
 
-def test_apk_corner_cases():
+def test_accuracy():
     # Sanity check
     assert apk(1, []) == 0.0
 

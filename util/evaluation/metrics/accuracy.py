@@ -1,3 +1,7 @@
+# Utils
+import logging
+
+
 def accuracy(predicted, target, topk=(1,)):
     """Computes the accuracy@K for the specified values of K
 
@@ -7,8 +11,10 @@ def accuracy(predicted, target, topk=(1,)):
     ----------
     predicted : torch.FloatTensor
         The predicted output values of the model.
+        The size is batch_size x num_classes
     target : torch.LongTensor
         The ground truth for the corresponding output.
+        The size is batch_size x 1
     topk : tuple
         Multiple values for K can be specified in a tuple, and the
         different accuracies@K will be computed.
@@ -19,6 +25,19 @@ def accuracy(predicted, target, topk=(1,)):
         List of accuracies computed at the different K's specified in `topk`
 
     """
+    if len(predicted.shape) != 2:
+        logging.error('Invalid input shape for prediction: predicted.shape={}'
+                      .format(predicted.shape))
+        return None
+    if len(target.shape) != 1:
+        logging.error('Invalid input shape for target: target.shape={}'
+                      .format(target.shape))
+        return None
+
+    if len(predicted) == 0 or len(target) == 0 or len(predicted) != len(target):
+        logging.error('Invalid input for accuracy: len(predicted)={}, len(target)={}'
+                      .format(len(predicted), len(target)))
+        return None
 
     maxk = max(topk)
     batch_size = target.size(0)
