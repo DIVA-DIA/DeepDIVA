@@ -1,8 +1,3 @@
-"""
-This script allows for creation of a validation set from the training set.
-
-"""
-
 # Utils
 import argparse
 import inspect
