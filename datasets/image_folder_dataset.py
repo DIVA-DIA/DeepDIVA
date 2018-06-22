@@ -7,9 +7,9 @@ import logging
 import os
 import sys
 from multiprocessing import Pool
-
 import cv2
 import numpy as np
+
 # Torch related stuff
 import torch.utils.data as data
 import torchvision

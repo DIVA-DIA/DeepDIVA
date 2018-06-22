@@ -2,16 +2,17 @@
 Load a dataset of images by specifying the folder where its located and prepares it for triplet
 similarity matching training.
 """
+
 # Utils
 import logging
 import os
 import random
 import sys
 from multiprocessing import Pool
-
 import cv2
 import numpy as np
 import torch.utils.data as data
+
 # Torch related stuff
 import torchvision
 from PIL import Image

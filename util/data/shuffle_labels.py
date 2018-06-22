@@ -1,6 +1,5 @@
 """
 This script allows creates a symlink directory with all labels shuffled.
-
 """
 
 # Utils
@@ -17,7 +16,8 @@ from sklearn.model_selection import train_test_split
 
 
 def split_dataset(dataset_folder, output_folder, symbolic):
-    """ Partition a dataset into train/val splits on the filesystem.
+    """
+    Partition a dataset into train/val splits on the filesystem.
 
     Parameters
     ----------
@@ -30,10 +30,8 @@ def split_dataset(dataset_folder, output_folder, symbolic):
 
     Returns
     -------
-    None
-
+        None
     """
-
     # Getting the train dir
     traindir = os.path.join(dataset_folder, 'train')
 
@@ -52,7 +50,6 @@ def split_dataset(dataset_folder, output_folder, symbolic):
 
     # Shuffle the labels
     random.shuffle(labels)
-
 
     # Create the folder structure to accommodate the two new splits
     split_train_dir = os.path.join(output_folder, "train")

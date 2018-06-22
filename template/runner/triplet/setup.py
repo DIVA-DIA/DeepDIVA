@@ -18,30 +18,27 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
 
     Parameters
     ----------
-    :param model_expected_input_size: tuple
+    model_expected_input_size : tuple
         Specify the height and width that the model expects.
-
-    :param dataset_folder: string
+    dataset_folder : string
         Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
-
-    :param n_triplets: int
+    n_triplets : int
         Number of triplets to generate for train/val/tes
-
-    :param batch_size: int
+    batch_size : int
         Number of datapoints to process at once
-
-    :param workers: int
+    workers : int
         Number of workers to use for the dataloaders
-
-    :param inmem: boolean
-        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored
+    inmem : boolean
+        Flag : if False, the dataset is loaded in an online fashion i.e. only file names are stored
         and images are loaded on demand. This is slower than storing everything in memory.
 
-    :param kwargs: dict
-        Any additional arguments.
 
-    :return: dataloader, dataloader, dataloader, int
-        Three dataloaders for train, val and test. Number of classes for the model.
+    Returns
+    -------
+    train_loader : torch.utils.data.DataLoader
+    val_loader : torch.utils.data.DataLoader
+    test_loader : torch.utils.data.DataLoader
+        Dataloaders for train, val and test.
     """
 
     # Recover dataset name

@@ -1,6 +1,5 @@
 """
 This script allows for creation of a bidimensional(2D) dataset.
-
 """
 
 # Utils
@@ -11,32 +10,18 @@ import os
 import random
 import shutil
 import sys
-
 import matplotlib
-
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-"""
-Samples are generated in a grid fashion (np.linspace) and then draw a diagonal line on x=y
-2 classes.
-
-Parameters
-----------
-:param size: int
-    The total number of points in the dataset.
-:return:
-    train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
-"""
-
 
 def diagonal(size):
-    """Generates a dataset where points on a diagonal line are one class, and points surrounding
-    it are a different class.
-
+    """
+    Generates a dataset where points on a diagonal line are one class,
+    and points surrounding it are a different class.
 
     Parameters
     ----------
@@ -45,8 +30,8 @@ def diagonal(size):
 
     Returns
     -------
-
-
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
 
     # Generate data
@@ -64,10 +49,13 @@ def circle(size):
 
     Parameters
     ----------
-    :param size: int
+    size : int
         The total number of points in the dataset.
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
 
     # Compute center point lying on the grid of np.linspace (0.5050505050501)
@@ -88,10 +76,13 @@ def donut(size):
 
     Parameters
     ----------
-    :param size: int
+    size : int
         The total number of points in the dataset.
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
 
     # Generate data
@@ -112,10 +103,13 @@ def stripes(size):
 
     Parameters
     ----------
-    :param size: int
+    size : int
         The total number of points in the dataset.
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
     # The *0.99 serves to make the points on 1.0 to "fall on the left bin" otherwise you get 1 more class
     samples = np.array([(x, y, int((x * 0.99 * 100) / 20))
@@ -132,10 +126,13 @@ def spiral(size):
 
     Parameters
     ----------
-    :param size: int
+    size : int
         The total number of points in the dataset.
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
 
     turn_factor = 12
@@ -159,10 +156,13 @@ def spiral_multi(size):
 
     Parameters
     ----------
-    :param size: int
+    size : int
         The total number of points in the dataset.
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
 
     turn_factor = -4
@@ -202,10 +202,13 @@ def xor(size):
 
     Parameters
     ----------
-    :param size: int
+    size : int
         The total number of points in the dataset.
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
 
     samples = np.array([(x, y, ((x < 0.5) and (y < 0.5)) or ((x > 0.5) and (y > 0.5)))
@@ -222,10 +225,13 @@ def flag(size):
 
     Parameters
     ----------
-    :param size: int
+    size : int
         The total number of points in the dataset.
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
 
     samples = np.array([(x, y, _multi_quadrant(x, y))
@@ -253,11 +259,13 @@ def _split_data(samples):
 
     Parameters
     ----------
-    :param samples: np.array(n,m+1)
+    samples : np.array(n,m+1)
         The samples to be split: n is the number of samples, m is the number of dimensions and the +1 is the label
 
-    :return:
-        train, val, test where each of them has the shape [n,3]. Each row is (x,y,label)
+    Returns
+    -------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
     """
     # Split it
     train, tmp, label_train, label_tmp = train_test_split(samples[:, 0:2], samples[:, 2], test_size=0.4,
@@ -271,6 +279,23 @@ def _split_data(samples):
 
 
 def _visualize_distribution(train, val, test, save_path, marker_size=1):
+    """
+    This routine creates a PDF with three images for train, val and test respectively where
+    each image is a visual representation of the split distribution with class colors.
+
+    Parameters
+    ----------
+    train, val, test : ndarray[float] of size (n,3)
+        The three splits. Each row is (x,y,label)
+    save_path : String
+        Path where to save the PDF
+    marker_size : float
+        Size of the marker representing each datapoint. For big dataset make this small
+
+    Returns
+    -------
+        None
+    """
     fig, axs = plt.subplots(ncols=3, sharex='all', sharey='all')
     plt.setp(axs.flat, aspect=1.0, adjustable='box-forced')
     axs[0].scatter(train[:, 0], train[:, 1], c=train[:, 2], s=marker_size, cmap=plt.get_cmap('Set1'))
@@ -283,7 +308,6 @@ def _visualize_distribution(train, val, test, save_path, marker_size=1):
     fig.savefig(save_path)
     fig.clf()
     plt.close()
-    return
 
 
 if __name__ == "__main__":

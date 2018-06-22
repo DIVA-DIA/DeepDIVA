@@ -63,7 +63,7 @@ class RunMe:
 
         Parameters:
         -----------
-        :param args:
+        args:
         :return:
             None
         """
@@ -106,7 +106,7 @@ class RunMe:
 
         Parameters:
         -----------
-        :param args:
+        args:
         :return:
             None
         """
@@ -127,7 +127,7 @@ class RunMe:
 
         Parameters:
         -----------
-        :param args:
+        args:
         :return:
         """
 
@@ -209,18 +209,18 @@ class RunMe:
         Additionally "variance shaded plots" gets to be generated and are visible not only on FS but also on
         tensorboard under 'IMAGES'.
 
-        Parameters:
-        -----------
-        :param runner_class: class
+        Parameters
+        ----------
+        runner_class: class
             This is necessary to know on which class should we run the experiments.  Default is runner.image_classification.image_classification
-
-        :param writer: Tensorboard SummaryWriter
+        writer: Tensorboard SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.
 
-        :param args:
-            Any additional arguments (especially for the runner_class)
-
-        :return: float[n, epochs], float[n, epochs], float[n]
+        Returns
+        -------
+        ndarray[float] of size (n, epochs)
+        ndarray[float] of size (n, epochs)
+        ndarray[float] of size (n)
             Train, Val and Test results for each run (n) and epoch
         """
 

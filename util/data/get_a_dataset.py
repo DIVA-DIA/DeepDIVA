@@ -4,15 +4,31 @@ import inspect
 import os
 import shutil
 import sys
-
-import torch
-import torchvision
 from PIL import Image
 
+# Torch
+import torch
+import torchvision
+
+# DeepDIVA
 from util.data.dataset_splitter import split_dataset
 
 
 def mnist(args):
+    """
+    Fetches and prepare in a DeepDIVA friendly format the MNIST dataset on the location specified
+    on the file system
+
+    Parameters
+    ----------
+    args : dict
+        List of arguments necessary to run this routine. In particular its necessary to provide
+        output_folder as String containing the path where the dataset will be downloaded
+
+    Returns
+    -------
+        None
+    """
     # Use torchvision to download the dataset
     torchvision.datasets.MNIST(root=args.output_folder, download=True)
 
@@ -47,8 +63,6 @@ def mnist(args):
     shutil.rmtree(os.path.join(args.output_folder, 'processed'))
 
     split_dataset(dataset_folder=dataset_root, split=0.2, symbolic=False)
-
-    return
 
 
 def _make_folder_if_not_exists(path):

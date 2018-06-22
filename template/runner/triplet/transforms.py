@@ -5,7 +5,8 @@ import torch
 
 
 class MultiCrop(object):
-    """Crop the given PIL Image into multiple random crops
+    """
+    Crop the given PIL Image into multiple random crops
 
     .. Note::
          This transform returns a tuple of images and there may be a mismatch in the number of
@@ -48,7 +49,8 @@ class MultiCrop(object):
 
 
 def multi_crop(img, size, n_crops):
-    """Crop the given PIL Image into multiple random crops.
+    """
+    Crop the given PIL Image into multiple random crops.
 
     .. Note::
         This transform returns a tuple of images and there may be a

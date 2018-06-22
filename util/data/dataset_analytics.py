@@ -32,15 +32,16 @@ Example:
 @author: Michele Alberti
 """
 
+# Utils
 import argparse
 import logging
-# Utils
 import os
 import sys
-
+from multiprocessing import Pool
 import cv2
 import numpy as np
 import pandas as pd
+
 # Torch related stuff
 import torch
 import torchvision.datasets as datasets
@@ -53,16 +54,15 @@ def compute_mean_std(dataset_folder, inmem, workers):
 
     Parameters
     ----------
-    :param dataset_folder: String (path)
+    dataset_folder : String (path)
         Path to the dataset folder (see above for details)
-
-    :param inmem: Boolean
+    inmem : Boolean
         Specifies whether is should be computed i nan online of offline fashion.
-
-    :param workers: int
+    workers : int
         Number of workers to use for the mean/std computation
 
-    :return:
+    Returns
+    -------
         None
     """
 
@@ -119,16 +119,16 @@ def cms_online(file_names, workers):
 
     Parameters
     ----------
-    :param file_names: List of String
+    file_names : List of String
         List of file names of the dataset
-
-    :param workers: int
+    workers : int
         Number of workers to use for the mean/std computation
 
-    :return:
-        Mean (double) and Std (double)
+    Returns
+    -------
+    mean : double
+    std : double
     """
-    from multiprocessing import Pool
 
     # Set up a pool of workers
     pool = Pool(workers)
@@ -165,10 +165,12 @@ def cms_inmem(file_names):
 
     Parameters
     ----------
-    :param file_names: List of String
+    file_names: List of String
         List of file names of the dataset
-    :return:
-        Mean (double) and Std (double)
+    Returns
+    -------
+    mean : double
+    std : double
     """
     img = np.zeros([file_names.size] + list(cv2.imread(file_names[0]).shape))
 
@@ -190,19 +192,17 @@ def _get_class_frequencies_weights(dataset, workers):
 
     Parameters
     ----------
-    :param train_loader: torch.utils.data.dataloader.DataLoader
+    train_loader: torch.utils.data.dataloader.DataLoader
         Dataloader for the training se
-
-
-    :param workers: int
+    workers: int
         Number of workers to use for the mean/std computation
 
-    :return:
-        The weights vector as a 1D array
+    Returns
+    -------
+    ndarray[double] of size (num_classes)
+        The weights vector as a 1D array normalized (sum up to 1)
     """
     logging.info('Begin computing class frequencies weights')
-    # mini_batches = np.array([target_mini_batch.numpy() for _, target_mini_batch in train_loader])
-    # all_labels = np.squeeze(np.array([sample for mini_batch in mini_batches for sample in mini_batch]))
     all_labels = None
     try:
         all_labels = [item[1] for item in dataset.imgs]
@@ -217,7 +217,6 @@ def _get_class_frequencies_weights(dataset, workers):
             all_labels = np.concatenate(all_labels).reshape(len(dataset))
 
     total_num_samples = len(all_labels)
-    # num_samples_per_class = np.array(list(np.collections.Counter(all_labels).values()))
     num_samples_per_class = np.unique(all_labels, return_counts=True)[1]
     class_frequencies = (num_samples_per_class / total_num_samples)
     logging.info('Finished computing class frequencies weights')

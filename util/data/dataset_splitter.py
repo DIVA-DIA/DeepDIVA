@@ -1,6 +1,5 @@
 """
 This script allows for creation of a validation set from the training set.
-
 """
 
 # Utils
@@ -8,15 +7,16 @@ import argparse
 import os
 import shutil
 import sys
-
 import numpy as np
+
 # Torch related stuff
 import torchvision.datasets as datasets
 from sklearn.model_selection import train_test_split
 
 
 def split_dataset(dataset_folder, split, symbolic):
-    """ Partition a dataset into train/val splits on the filesystem.
+    """
+    Partition a dataset into train/val splits on the filesystem.
 
     Parameters
     ----------
@@ -29,8 +29,7 @@ def split_dataset(dataset_folder, split, symbolic):
 
     Returns
     -------
-    None
-
+        None
     """
 
     # Getting the train dir

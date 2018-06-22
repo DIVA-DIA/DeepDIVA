@@ -31,32 +31,27 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
     Parameters
     ----------
-    :param data_loader : torch.utils.data.DataLoader
+    data_loader : torch.utils.data.DataLoader
         The dataloader of the evaluation set
-
-    :param model : torch.nn.module
+    model : torch.nn.module
         The network model being used
-
-    :param criterion: torch.nn.loss
+    criterion: torch.nn.loss
         The loss function used to compute the loss of the model
-
-    :param writer : tensorboardX.writer.SummaryWriter
+    writer : tensorboardX.writer.SummaryWriter
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
-
-    :param epoch : int
+    epoch : int
         Number of the epoch (for logging purposes)
-
-    :param logging_label : string
+    logging_label : string
         Label for logging purposes. Typically 'test' or 'valid'. Its prepended to the logging output path and messages.
-
-    :param no_cuda : boolean
+    no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
-
-    :param log_interval : int
+    log_interval : int
         Interval limiting the logging of mini-batches. Default value of 10.
 
-    :return:
-        None
+    Returns
+    -------
+    top1.avg : float
+        Accuracy of the model of the evaluated split
     """
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
@@ -162,6 +157,28 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
 
 def _log_classification_report(data_loader, epoch, preds, targets, writer):
+    """
+    This routine computes and prints on Tensorboard TEXT a classification
+    report with F1 score, Precision, Recall and similar metrics computed
+    per-class.
+
+    Parameters
+    ----------
+    data_loader : torch.utils.data.DataLoader
+        The dataloader of the evaluation set
+    epoch : int
+        Number of the epoch (for logging purposes)
+    preds : list
+        List of all predictions of the model for this epoch
+    targets : list
+        List of all correct labels for this epoch
+    writer : tensorboardX.writer.SummaryWriter
+        The tensorboard writer object. Used to log values on file for the tensorboard visualization.
+
+    Returns
+    -------
+        None
+    """
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         classification_report_string = str(classification_report(y_true=targets,

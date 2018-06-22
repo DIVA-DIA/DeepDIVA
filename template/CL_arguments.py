@@ -165,9 +165,8 @@ def _training_options(parser):
 
 def _apply_options(parser):
     """
-       Options specific for applying a model
-       """
-
+    Options specific for applying a model
+    """
     parser_apply = parser.add_argument_group('APPLY', 'Apply Model Options')
 
     parser_apply.add_argument('--classify',
@@ -223,7 +222,6 @@ def _system_options(parser):
     """
     System options
     """
-
     parser_system = parser.add_argument_group('SYS', 'System Options')
     parser_system.add_argument('--gpu-id',
                                default=None,

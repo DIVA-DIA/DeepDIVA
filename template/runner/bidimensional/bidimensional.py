@@ -1,24 +1,20 @@
 """
-This file is the template for the boilerplate of train/test of a DNN on a points cloud dataset
-In particular, point_cloud is designed to work with clouds of bi-dimensional points.
-
-There are a lot of parameter which can be specified to modify the behaviour
-and they should be used instead of hard-coding stuff.
-
-@authors: Vinaychandran Pondenkandath , Michele Alberti
+This file is the template for the boilerplate of train/test of a DNN on a bidimensional dataset
+In particular, it is designed to work with clouds of bi-dimensional points.
 """
 
 # Utils
 import logging
-# Torch
 import sys
-
 import numpy as np
+
+# Torch
 import torch
 from torch import nn
 
 # DeepDIVA
 import models
+
 # Delegated
 from template.runner.image_classification import ImageClassification, evaluate, train
 from template.setup import set_up_model, set_up_dataloaders
@@ -29,39 +25,39 @@ from util.visualization.decision_boundaries import plot_decision_boundaries
 #######################################################################################################################
 class Bidimensional(ImageClassification):
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval,
+                   **kwargs):
         """
-           This is the main routine where train(), validate() and test() are called.
+        This is the main routine where train(), validate() and test() are called.
 
-           Parameters
-           ----------
-           :param writer: Tensorboard SummaryWriter
-               Responsible for writing logs in Tensorboard compatible format.
+        Parameters
+        ----------
+        writer : Tensorboard.SummaryWriter
+            Responsible for writing logs in Tensorboard compatible format.
+        current_log_folder : string
+            Path to where logs/checkpoints are saved
+        model_name : string
+            Name of the model
+        epochs : int
+            Number of epochs to train
+        lr : float
+            Value for learning rate
+        kwargs : dict
+            Any additional arguments.
+        decay_lr : boolean
+            Decay the lr flag
+        validation_interval: int
+            Run evaluation on validation set every N epochs
 
-           :param current_log_folder: string
-               Path to where logs/checkpoints are saved
-
-           :param model_name: string
-               Name of the model
-
-           :param epochs: int
-               Number of epochs to train
-
-           :param lr: float
-               Value for learning rate
-
-           :param decay_lr: boolean
-                Decay the lr flag
-
-            :param validation_interval: int
-                Run evaluation on validation set every N epochs
-
-           :param kwargs: dict
-               Any additional arguments.
-
-           :return: train_value, val_value, test_value
-               Precision values for train and validation splits. Single precision value for the test split.
-       """
+        Returns
+        -------
+        train_value : ndarray[floats] of size (1, `epochs`)
+            Accuracy values for train split
+        val_value : ndarray[floats] of size (1, `epochs`+1)
+            Accuracy values for validation split
+        test_value : float
+            Accuracy value for test split
+        """
 
         # Get the selected model
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
@@ -139,6 +135,21 @@ class Bidimensional(ImageClassification):
     ####################################################################################################################
     @staticmethod
     def _validate_model_input_size(model_expected_input_size, model_name):
+        """
+        This method verifies that the model expected input size is an int.
+        This is necessary to avoid confusion with models which run on other types of data.
+
+        Parameters
+        ----------
+        model_expected_input_size
+            The item retrieved from the model which corresponds to the expected input size
+        model_name : String
+            Name of the model (logging purpose only)
+
+        Returns
+        -------
+            None
+        """
         if type(model_expected_input_size) is not int or model_expected_input_size is not 2:
             logging.error('Model {model_name} expected input size is not bidimensional (2). '
                           'Received: {model_expected_input_size}'
@@ -148,27 +159,64 @@ class Bidimensional(ImageClassification):
 
     @staticmethod
     def _evaluate_and_plot_decision_boundary(model, val_coords, coords, grid_resolution, val_loader, num_classes,
-                                             writer,
-                                             epoch, no_cuda, epochs, **kwargs):
+                                             writer, epoch, no_cuda, epochs, **kwargs):
+        """
+        This routine is responsible for creating the visualization "decision boundaries".
+        See https://diva-dia.github.io/DeepDIVAweb/articles/visualize-results/ for more
+        details about it.
+
+        Parameters
+        ----------
+        model : nn.module
+            The model
+        val_coords : list
+            List of all validation points
+        coords : torch.autograd.Variable
+            List of all the points to be evaluated on the grid
+        grid_resolution : int
+            How many points per axis on the grid
+        val_loader : torch.utils.data.DataLoader
+            The dataloader of the validation set (to extract the label of the points)
+        num_classes : int
+            Number of classes (mainly for coloring purposed
+        writer : Tensorboard.SummaryWriter
+            Responsible for writing logs in Tensorboard compatible format.
+        epoch : int
+            The current epoch
+        epochs : int
+            Number of the epoch
+        no_cuda : boolean
+            Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
+
+        Returns
+        -------
+            None
+        """
+        # Look for the extreme boundaries of the validation set
         min_x, min_y = np.min(val_coords[:, 0]), np.min(val_coords[:, 1])
         max_x, max_y = np.max(val_coords[:, 0]), np.max(val_coords[:, 1])
 
+        # Create a list of points in a grid fashion
         grid_x = np.linspace(min_x, max_x, grid_resolution)
         grid_y = np.linspace(min_y, max_y, grid_resolution)
-
         grid_x, grid_y = np.meshgrid(grid_x, grid_y)
 
+        # Softmax for deciding the final color of the prediction
         sm = nn.Softmax(dim=0)
 
+        # Forward pass on the points
         if not no_cuda:
             outputs = model(coords)
             outputs = sm(outputs)
             outputs = outputs.data.cpu().numpy()
         else:
             outputs = sm(model(coords)).data.numpy()
+
+        # Get classes and confidence for each point
         output_winners = np.array([np.argmax(item) for item in outputs])
         outputs_confidence = np.array([outputs[i, item] for i, item in enumerate(output_winners)])
 
+        # Create plot
         plot_decision_boundaries(output_winners=output_winners, output_confidence=outputs_confidence,
                                  grid_x=grid_x, grid_y=grid_y, point_x=val_coords[:, 0], point_y=val_coords[:, 1],
                                  point_class=val_loader.dataset.data[:, 2], num_classes=num_classes,

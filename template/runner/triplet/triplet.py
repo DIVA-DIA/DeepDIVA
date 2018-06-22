@@ -1,6 +1,7 @@
 """
 This file is the template for the boilerplate of train/test of a triplet network.
 This code has initially been adapted to our purposes from:
+
         PyTorch training code for TFeat shallow convolutional patch descriptor:
         http://www.iis.ee.ic.ac.uk/%7Evbalnt/shallow_descr/TFeat_paper.pdf
 
@@ -11,8 +12,6 @@ This code has initially been adapted to our purposes from:
 
 There are a lot of parameter which can be specified to modify the behaviour
 and they should be used instead of hard-coding stuff.
-
-@authors: Michele Alberti, Vinaychandran Pondenkandath
 """
 
 # Utils
@@ -46,41 +45,31 @@ class Triplet:
 
         Parameters
         ----------
-        :param writer: Tensorboard SummaryWriter
+        writer : Tensorboard SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.
-
-        :param current_log_folder: string
+        current_log_folder : string
             Path to where logs/checkpoints are saved
-
-        :param model_name: string
+        model_name : string
             Name of the model
-
-        :param epochs: int
+        epochs : int
             Number of epochs to train
-
-        :param lr: float
+        lr : float
             Value for learning rate
-
-        :param margin: float
-            the margin value for the triplet loss function
-
-        :param anchor_swap: boolean
-            turns on anchor swap
-
-        :param decay_lr: boolean
-                Decay the lr flag
-
-        :param validation_interval: int
+        margin : float
+            The margin value for the triplet loss function
+        anchor_swap : boolean
+            Turns on anchor swap
+        decay_lr : boolean
+            Decay the lr flag
+        validation_interval : int
             Run evaluation on validation set every N epochs
-
-        :param regenerate_every: int
+        regenerate_every : int
             Re-generate triplets every N epochs
 
-        :param kwargs: dict
-            Any additional arguments.
-
-        :return: train_value, val_value, test_value
-            Precision values for train and validation splits. Single precision value for the test split.
+        Returns
+        -------
+        train_value, val_value, test_value
+            Mean Average Precision values for train and validation splits.
         """
         # Sanity check on parameters
         if kwargs["output_channels"] is None:
@@ -160,9 +149,23 @@ class Triplet:
             init.constant(m.bias.data, 0.1)
 
     ####################################################################################################################
-
     @staticmethod
     def _validate_model_input_size(model_expected_input_size, model_name):
+        """
+        This method verifies that the model expected input size is a tuple of 2 elements.
+        This is necessary to avoid confusion with models which run on other types of data.
+
+        Parameters
+        ----------
+        model_expected_input_size
+            The item retrieved from the model which corresponds to the expected input size
+        model_name : String
+            Name of the model (logging purpose only)
+
+        Returns
+        -------
+            None
+        """
         if type(model_expected_input_size) is not tuple or len(model_expected_input_size) != 2:
             logging.error('Model {model_name} expected input size is not a tuple. '
                           'Received: {model_expected_input_size}'
@@ -185,7 +188,3 @@ class Triplet:
     @classmethod
     def _test(cls, test_loader, model, criterion, writer, epoch, **kwargs):
         return evaluate.test(test_loader, model, criterion, writer, epoch, **kwargs)
-
-    @classmethod
-    def _apply(cls, val_loader, model, criterion, writer, epoch, **kwargs):
-        return evaluate.apply(val_loader, model, criterion, writer, epoch, **kwargs)

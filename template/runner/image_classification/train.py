@@ -10,38 +10,35 @@ from tqdm import tqdm
 from util.misc import AverageMeter
 from util.evaluation.metrics import accuracy
 
-def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=False, log_interval=25, **kwargs):
+
+def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=False, log_interval=25,
+          **kwargs):
     """
     Training routine
 
     Parameters
     ----------
-    :param train_loader : torch.utils.data.DataLoader
+    train_loader : torch.utils.data.DataLoader
         The dataloader of the train set.
-
-    :param model : torch.nn.module
+    model : torch.nn.module
         The network model being used.
-
-    :param criterion : torch.nn.loss
+    criterion : torch.nn.loss
         The loss function used to compute the loss of the model.
-
-    :param optimizer : torch.optim
+    optimizer : torch.optim
         The optimizer used to perform the weight update.
-
-    :param writer : tensorboardX.writer.SummaryWriter
+    writer : tensorboardX.writer.SummaryWriter
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
-
-    :param epoch : int
+    epoch : int
         Number of the epoch (for logging purposes).
-
-    :param no_cuda : boolean
+    no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
-
-    :param log_interval : int
+    log_interval : int
         Interval limiting the logging of mini-batches. Default value of 10.
 
-    :return:
-        None
+    Returns
+    ----------
+    top1.avg : float
+        Accuracy of the model of the evaluated split
     """
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
@@ -112,6 +109,33 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
 
 def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, acc_meter):
+    """
+    This routing train the model passed as parameter for one mini-batch
+
+    Parameters
+    ----------
+    model : torch.nn.module
+        The network model being used.
+    criterion : torch.nn.loss
+        The loss function used to compute the loss of the model.
+    optimizer : torch.optim
+        The optimizer used to perform the weight update.
+    input_var : torch.autograd.Variable
+        The input data for the mini-batch
+    target_var : torch.autograd.Variable
+        The target data (labels) for the mini-batch
+    loss_meter : AverageMeter
+        Tracker for the overall loss
+    acc_meter : AverageMeter
+        Tracker for the overall accuracy
+
+    Returns
+    -------
+    acc : float
+        Accuracy for this mini-batch
+    loss : float
+        Loss for this mini-batch
+    """
     # Compute output
     output = model(input_var)
 

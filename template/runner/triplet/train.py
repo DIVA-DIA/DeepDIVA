@@ -15,32 +15,27 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
 
     Parameters
     ----------
-    :param train_loader : torch.utils.data.DataLoader
+    train_loader : torch.utils.data.DataLoader
         The dataloader of the train set.
-
-    :param model : torch.nn.module
+    model : torch.nn.module
         The network model being used.
-
-    :param criterion : torch.nn.loss
+    criterion : torch.nn.loss
         The loss function used to compute the loss of the model.
-
-    :param optimizer : torch.optim
+    optimizer : torch.optim
         The optimizer used to perform the weight update.
-
-    :param writer : tensorboardX.writer.SummaryWriter
+    writer : tensorboardX.writer.SummaryWriter
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
-
-    :param epoch : int
+    epoch : int
         Number of the epoch (for logging purposes).
-
-    :param no_cuda : boolean
+    no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
-
-    :param log_interval : int
+    log_interval : int
         Interval limiting the logging of mini-batches. Default value of 10.
 
-    :return:
-        None
+    Returns
+    ----------
+    int
+        Placeholder 0. In the future this should become the FPR95
     """
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
@@ -85,7 +80,6 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
         # Compute and record the loss
         loss = criterion(out_p, out_a, out_n)
 
-        # TODO here input would be the normal input in a image_classification situation. How to conveert it to the triplet?
         losses.update(loss.data[0], data_a.size(0))
 
         # Reset gradient

@@ -3,8 +3,9 @@ import datetime
 import json
 import logging
 import time
-
+from sklearn.metrics import pairwise_distances
 import numpy as np
+
 # Torch related stuff
 from torch.autograd import Variable
 from tqdm import tqdm
@@ -29,37 +30,31 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
 
     Parameters
     ----------
-    :param data_loader : torch.utils.data.DataLoader
+    data_loader : torch.utils.data.DataLoader
         The dataloader of the evaluation set
-
-    :param model : torch.nn.module
+    model : torch.nn.module
         The network model being used
-
-    :param criterion: torch.nn.loss
+    criterion: torch.nn.loss
         The loss function used to compute the loss of the model
-
-    :param writer : tensorboardX.writer.SummaryWriter
+    writer : tensorboardX.writer.SummaryWriter
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
-
-    :param epoch : int
+    epoch : int
         Number of the epoch (for logging purposes)
-
-    :param logging_label : string
+    logging_label : string
         Label for logging purposes. Typically 'test' or 'valid'. Its prepended to the logging output path and messages.
-
-    :param no_cuda : boolean
+    no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
-
-    :param log_interval : int
+    log_interval : int
         Interval limiting the logging of mini-batches. Default value of 10.
-
-    :param map : str
+    map : str
         Specify value for mAP computation. Possible values are ("auto", "full" or specify K for AP@K)
 
-    :return:
-        None
+    Returns
+    -------
+    mAP : float
+        Mean average precision for evaluated on this split
+
     """
-    from sklearn.metrics import pairwise_distances
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
     # Switch to evaluate mode (turn off dropout & such )
@@ -105,6 +100,7 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
     num_tests = len(data_loader.dataset.file_names)
     labels = np.concatenate(labels, 0).reshape(num_tests)
     outputs = np.concatenate(outputs, 0)
+
     # Cosine similarity distance
     distances = pairwise_distances(outputs, metric='cosine', n_jobs=16)
     logging.debug('Computed pairwise distances')
