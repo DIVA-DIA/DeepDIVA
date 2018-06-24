@@ -1,25 +1,39 @@
 """
-This file is the entry point of DeepDIVA.
+This file is the main entry point of DeepDIVA.
 
-@authors: Vinaychandran Pondenkandath , Michele Alberti
+We introduce DeepDIVA: an infrastructure designed to enable quick and
+intuitive setup of reproducible experiments with a large range of
+useful analysis functionality. Reproducing scientific results can be
+a frustrating experience, not only in document image analysis but
+in machine learning in general. Using DeepDIVA a researcher can either
+reproduce a given experiment or share their own experiments with others.
+Moreover, the framework offers a large range of functions, such as
+boilerplate code, keeping track of experiments, hyper-parameter
+optimization, and visualization of data and results.
+
+It is completely open source and accessible as Web Service through DIVAService
+
+>> Official website: https://diva-dia.github.io/DeepDIVAweb/
+>> GitHub repo: https://github.com/DIVA-DIA/DeepDIVA
+>> Tutorials: https://diva-dia.github.io/DeepDIVAweb/articles.html
+
+authors: Michele Alberti and Vinaychandran Pondenkandath (equal contribution)
 """
 
-import datetime
-import json
-import logging
 # Utils
 import os
 import subprocess
 import sys
 import time
 import traceback
-
+import datetime
+import json
+import logging
 import numpy as np
-# Tensor board
+from sklearn.model_selection import ParameterGrid
+
 # SigOpt
 from sigopt import Connection
-# Python
-from sklearn.model_selection import ParameterGrid
 
 # DeepDIVA
 import template.CL_arguments
@@ -31,24 +45,44 @@ from util.visualization.mean_std_plot import plot_mean_std
 
 ########################################################################################################################
 class RunMe:
-    # TODO: improve doc
     """
-    This file is the entry point of DeepDIVA.
-    In particular depending on the args passed one can:
-        -single run
-        -multi run
-        -optimize with SigOpt
-        -optimize manually (grid)
+    This class is used as entry point of DeepDIVA.
+    The there are four main scenarios for using the framework:
 
-    For details on parameters check CL_arguments.py
+        - Single run: (classic) run an experiment once with the given parameters specified by
+                      command line. This is typical usage scenario.
+
+        - Multi run: this will run multiple times an experiment. It basically runs the `single run`
+                     scenario multiple times and aggregates the results. This is particularly useful
+                     to counter effects of randomness.
+
+        - Optimize with SigOpt: this will start an hyper-parameter optimization search with the aid
+                                of SigOpt (State-of-the-art Bayesian optimization tool). For more
+                                info on how to use it see the tutorial page on:
+                                https://diva-dia.github.io/DeepDIVAweb/articles.html
+
+        - Optimize manually: this will start a grid-like hyper-parameter optimization with the
+                             boundaries for the values specifies by the user in a provided file.
+                             This is much less efficient than using SigOpt but on the other hand
+                             is not using any commercial solutions.
     """
 
     # Reference to the argument parser. Useful for accessing types of arguments later e.g. setup.set_up_logging()
     parser = None
 
     def main(self):
+        """
+        Select the use case based on the command line arguments and delegate the execution
+        to the most appropriate sub-routine
+
+        Returns
+        -------
+        None
+        """
+        # Parse all command line arguments
         args, RunMe.parser = template.CL_arguments.parse_arguments()
 
+        # Select the use case
         if args.sig_opt is not None:
             self._run_sig_opt(args)
         elif args.hyper_param_optim is not None:
@@ -57,15 +91,20 @@ class RunMe:
             self._execute(args)
 
     def _run_sig_opt(self, args):
-        # TODO: improve doc
         """
         This function creates a new SigOpt experiment and optimizes the selected parameters.
 
-        Parameters:
-        -----------
-        args:
-        :return:
-            None
+        SigOpt is a state-of-the-art Bayesian optimization tool. For more info on how to use
+        it see the tutorial page on: https://diva-dia.github.io/DeepDIVAweb/articles.html
+
+        Parameters
+        ----------
+        args : dict
+            Contains all command line arguments parsed.
+
+        Returns
+        -------
+        None
         """
         # Load parameters from file
         with open(args.sig_opt, 'r') as f:
@@ -73,15 +112,15 @@ class RunMe:
 
         # Put your SigOpt token here.
         if args.sig_opt_token is None:
-            print('Enter your SigOpt API token using --sig-opt-token')
-            sys.exit(0)
+            logging.error('Enter your SigOpt API token using --sig-opt-token')
+            sys.exit(-1)
         else:
             conn = Connection(client_token=args.sig_opt_token)
             experiment = conn.experiments().create(
                 name=args.experiment_name,
                 parameters=parameters,
             )
-            print("Created experiment: https://sigopt.com/experiment/" + experiment.id)
+            logging.info("Created experiment: https://sigopt.com/experiment/" + experiment.id)
             for i in range(args.sig_opt_runs):
                 # Get suggestion from SigOpt
                 suggestion = conn.experiments(experiment.id).suggestions().create()
@@ -99,47 +138,62 @@ class RunMe:
                     conn.experiments(experiment.id).observations().create(suggestion=suggestion.id, value=score)
 
     def _run_manual_optimization(self, args):
-        # TODO: improve doc
         """
-        Run a manual optimization search with the parameters provided
+        Start a grid-like hyper-parameter optimization with the boundaries for the
+        values specifies by the user in a provided file.
 
+        Parameters
+        ----------
+        args : dict
+            Contains all command line arguments parsed.
 
-        Parameters:
-        -----------
-        args:
-        :return:
-            None
+        Returns
+        -------
+        None
         """
-        print('Hyper Parameter Optimization mode')
+        logging.info('Hyper Parameter Optimization mode')
+        # Open file with the boundaries and create a grid-like list of parameters to try
         with open(args.hyper_param_optim, 'r') as f:
             hyper_param_values = json.loads(f.read())
         hyper_param_grid = ParameterGrid(hyper_param_values)
+        # Run an experiment for each entry in the list of parameters
         for i, params in enumerate(hyper_param_grid):
-            print('{} of {} possible parameter combinations evaluated'.format(i, len(hyper_param_grid)))
+            logging.info('{} of {} possible parameter combinations evaluated'
+                         .format(i, len(hyper_param_grid)))
             for key in params:
                 args.__dict__[key] = params[key]
             self._execute(args)
 
     @staticmethod
     def _execute(args):
-        # TODO: improve doc
         """
+        Run an experiment once with the given parameters specified by command line.
+        This is typical usage scenario.
 
-        Parameters:
-        -----------
-        args:
-        :return:
+        Parameters
+        ----------
+        args : dict
+            Contains all command line arguments parsed.
+
+        Returns
+        -------
+        train_scores : ndarray[floats] of size (1, `epochs`)
+            Score values for train split
+        val_scores : ndarray[floats] of size (1, `epochs`+1)
+            Score values for validation split
+        test_scores : float
+            Score value for test split
         """
-
         # Set up logging
         # Don't use args.output_folder as that breaks when using SigOpt
         current_log_folder, writer = set_up_logging(parser=RunMe.parser, args_dict=args.__dict__, **args.__dict__)
 
-        # Check Git status
+        # Copy the code into the output folder
+        copy_code(output_folder=current_log_folder)
+
+        # Check Git status to verify all local changes have been committed
         if args.ignoregit:
             logging.warning('Git status is ignored!')
-            # Copy the code into the output folder
-            copy_code(output_folder=current_log_folder)
         else:
             try:
                 local_changes = False
@@ -165,28 +219,33 @@ class RunMe:
                                   'This happens when the git folder has not been found on the file system\n'
                                   'or when the code is not the same as the last version on the repository.\n'
                                   'If you are running on a remote machine make sure to sync the .git folder as well.')
+                    logging.error('Finished with errors. (Log files at {} )'.format(current_log_folder))
                     logging.shutdown()
-                    print('Finished with errors. (Log files at {} )'.format(current_log_folder))
                     sys.exit(-1)
 
-        # Set up execution environment
-        # Specify CUDA_VISIBLE_DEVICES and seeds
+        # Set up execution environment. Specify CUDA_VISIBLE_DEVICES and seeds
         set_up_env(**args.__dict__)
 
-        # Select with introspection which runner class should be used. Default is runner.image_classification.image_classification
+        # Select with introspection which runner class should be used.
+        # Default is runner.image_classification.image_classification
         runner_class = getattr(sys.modules["template.runner." + args.runner_class],
                                args.runner_class).__dict__[to_capital_camel_case(args.runner_class)]
 
         try:
+            # Run the actual experiment
             start_time = time.time()
             if args.multi_run is not None:
-                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class, writer, current_log_folder, args)
+                train_scores, val_scores, test_scores = RunMe._multi_run(runner_class=runner_class,
+                                                                         writer=writer,
+                                                                         current_log_folder=current_log_folder,
+                                                                         args=args)
             else:
-                train_scores, val_scores, test_scores = runner_class.single_run(writer=writer, current_log_folder=current_log_folder,
+                train_scores, val_scores, test_scores = runner_class.single_run(writer=writer,
+                                                                                current_log_folder=current_log_folder,
                                                                                 **args.__dict__)
             end_time = time.time()
-            logging.info(
-                'Time taken for train/eval/test is: {}'.format(datetime.timedelta(seconds=int(end_time - start_time))))
+            logging.info('Time taken for train/eval/test is: {}'
+                         .format(datetime.timedelta(seconds=int(end_time - start_time))))
         except Exception as exp:
             if args.quiet:
                 print('Unhandled error: {}'.format(repr(exp)))
@@ -195,6 +254,7 @@ class RunMe:
             logging.error('Execution finished with errors :(')
             sys.exit(-1)
         finally:
+            # Free logging resources
             logging.shutdown()
             logging.getLogger().handlers = []
             writer.close()
@@ -205,22 +265,30 @@ class RunMe:
     @staticmethod
     def _multi_run(runner_class, writer, current_log_folder, args):
         """
+        Run multiple times an experiment and aggregates the results.
+        This is particularly useful to counter effects of randomness.
+
         Here multiple runs with same parameters are executed and the results averaged.
-        Additionally "variance shaded plots" gets to be generated and are visible not only on FS but also on
-        tensorboard under 'IMAGES'.
+        Additionally "variance shaded plots" gets to be generated and are visible not only
+        on FS but also on tensorboard under 'IMAGES'.
 
         Parameters
         ----------
-        runner_class: class
+        runner_class : String
             This is necessary to know on which class should we run the experiments.  Default is runner.image_classification.image_classification
-        writer: Tensorboard SummaryWriter
+        writer: Tensorboard.SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.
+        current_log_folder : String
+            Path to the output folder. Required for saving the raw data of the plots
+            generated by the multi-run routine.
+        args : dict
+            Contains all command line arguments parsed.
 
         Returns
         -------
-        ndarray[float] of size (n, epochs)
-        ndarray[float] of size (n, epochs)
-        ndarray[float] of size (n)
+        train_scores : ndarray[float] of size (n, `epochs`)
+        val_scores : ndarray[float] of size (n, `epochs`+1)
+        test_score : ndarray[float] of size (n)
             Train, Val and Test results for each run (n) and epoch
         """
 
