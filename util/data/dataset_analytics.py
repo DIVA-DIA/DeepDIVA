@@ -71,8 +71,8 @@ def compute_mean_std(dataset_folder, inmem, workers):
 
     # Sanity check on the training folder
     if not os.path.isdir(traindir):
-        print("Train folder not found in the args.dataset_folder={}".format(dataset_folder))
-        sys.exit(-1)
+        logging.warning("Train folder not found in the args.dataset_folder={}".format(dataset_folder))
+        return
 
     # Load the dataset file names
     train_ds = datasets.ImageFolder(traindir,

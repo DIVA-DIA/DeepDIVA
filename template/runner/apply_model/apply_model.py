@@ -11,6 +11,7 @@ import logging
 import os
 import pickle
 
+import torch
 # DeepDIVA
 import models
 # Delegated
@@ -25,7 +26,8 @@ from template.setup import set_up_model
 #######################################################################################################################
 class ApplyModel:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, output_channels, classify, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
+                   output_channels, classify, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -67,7 +69,8 @@ class ApplyModel:
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
-        data_loader, num_classes = set_up_dataloader(model_expected_input_size, **kwargs)
+        data_loader, num_classes = set_up_dataloader(model_expected_input_size=model_expected_input_size,
+                                                     classify=classify, **kwargs)
 
         # Setting up model, optimizer, criterion
         output_channels = num_classes if classify else output_channels
