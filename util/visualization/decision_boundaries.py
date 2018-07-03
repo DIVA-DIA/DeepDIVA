@@ -1,6 +1,6 @@
-import matplotlib
-
-matplotlib.use('Agg')
+import matplotlib as mpl
+# To facilitate plotting on a headless server
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from util.misc import save_image_and_log_to_tensorboard
@@ -9,18 +9,35 @@ def plot_decision_boundaries(output_winners, output_confidence, grid_x, grid_y, 
                              point_class, num_classes, step, writer, epochs, **kwargs):
     """
     Plots the decision boundaries as a 2D image onto Tensorboard.
-    :param output_winners: which class is the 'winner' of the network at each location
-    :param output_confidence: confidence value of the network for the 'winner' class
-    :param grid_x: X axis locations of the decision grid
-    :param grid_y: Y axis locations of the decision grid
-    :param point_x: X axis locations of the real points to be plotted
-    :param point_y: Y axis locations of the real points to be plotted
-    :param point_class: class of the real points at each location
-    :param num_classes: number of unique classes
-    :param step: global training step
-    :param writer: Tensorboard summarywriter object
-    :param epochs: total number of training epochs
-    :return: None
+
+    Parameters
+    ----------
+    output_winners: numpy.ndarray
+        which class is the 'winner' of the network at each location
+    output_confidence: numpy.ndarray
+        confidence value of the network for the 'winner' class
+    grid_x: numpy.ndarray
+        X axis locations of the decision grid
+    grid_y: numpy.ndarray
+        Y axis locations of the decision grid
+    point_x: numpy.ndarray
+        X axis locations of the real points to be plotted
+    point_y: numpy.ndarray
+        Y axis locations of the real points to be plotted
+    point_class: numpy.ndarray
+        class of the real points at each location
+    writer: tensorboardX SummaryWriter
+        Tensorboard summarywriter object
+    num_classes: int
+        number of unique classes
+    step: int
+        global training step
+    epochs: int
+        total number of training epochs
+
+    Returns
+    -------
+    None
     """
 
     multi_run = kwargs['run'] if 'run' in kwargs else None

@@ -1,5 +1,5 @@
 import matplotlib as mpl
-
+# To facilitate plotting on a headless server
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -7,6 +7,32 @@ import numpy as np
 
 
 def plot_mean_std(x=None, arr=None, suptitle='', title='', xlabel='X', ylabel='Y', xlim=None, ylim=None):
+    """
+    Plots the accuracy/loss curve over several runs with standard deviation and mean.
+    Parameters
+    ----------
+    x: numpy.ndarray
+        contains the ticks on the x-axis
+    arr: numpy.ndarray
+        contains the accuracy values for each epoch per run
+    suptitle: str
+        title for the plot
+    title: str
+        sub-title for the plot
+    xlabel: str
+        label for the x-axis
+    ylabel: str
+        label for the y-axis
+    xlim: float or None
+        optionally specify a upper limit on the x-axis
+    ylim: float or None
+        optionally specify a upper limit on the y-axis
+
+    Returns
+    -------
+    data: numpy.ndarray
+        Contains an RGB image of the plotted accuracy curves
+    """
     fig = plt.figure(1)
     arr_mean = np.mean(arr, 0)
     arr_std = np.std(arr, 0)
