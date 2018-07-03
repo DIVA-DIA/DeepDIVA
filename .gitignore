@@ -109,5 +109,3 @@ ENV/
 # Log folder
 .logs
 
-# Documentation folder
-doc
