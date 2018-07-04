@@ -34,7 +34,7 @@ else
 
 fi
 # Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)
-conda create --file requirements.txt --name deepdiva
+conda create --file conda_requirements.txt --name deepdiva
 
 # Activate the environment
 source activate deepdiva
