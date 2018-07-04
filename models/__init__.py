@@ -5,7 +5,7 @@ from .FC_simple import FC_simple
 from .TNet import TNet
 from ._AlexNet import _AlexNet, alexnet
 from ._ResNet import resnet18, resnet34, resnet50, resnet101, resnet152
-from ._BabyResNet import babyresnet18, babyresnet34, babyresnet50, babyresnet101, babyresnet152
+from .BabyResNet import babyresnet18, babyresnet34, babyresnet50, babyresnet101, babyresnet152
 
 """
 Formula to compute the output size of a conv. layer
