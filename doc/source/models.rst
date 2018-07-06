@@ -4,6 +4,14 @@ models package
 Submodules
 ----------
 
+models.AlexNet module
+---------------------
+
+.. automodule:: models.AlexNet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 models.BabyResNet module
 ------------------------
 
@@ -32,6 +40,14 @@ models.FC\_simple module
 ------------------------
 
 .. automodule:: models.FC_simple
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+models.ResNet module
+--------------------
+
+.. automodule:: models.ResNet
     :members:
     :undoc-members:
     :show-inheritance:
