@@ -1,19 +1,54 @@
 util.data package
 =================
 
-.. automodule:: util.data
+Submodules
+----------
+
+util.data.dataset\_analytics module
+-----------------------------------
+
+.. automodule:: util.data.dataset_analytics
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
+util.data.dataset\_bidimensional module
+---------------------------------------
 
-.. toctree::
+.. automodule:: util.data.dataset_bidimensional
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-   util.data.dataset_analytics
-   util.data.dataset_bidimensional
-   util.data.dataset_splitter
-   util.data.get_a_dataset
-   util.data.shuffle_labels
+util.data.dataset\_splitter module
+----------------------------------
 
+.. automodule:: util.data.dataset_splitter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+util.data.get\_a\_dataset module
+--------------------------------
+
+.. automodule:: util.data.get_a_dataset
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+util.data.shuffle\_labels module
+--------------------------------
+
+.. automodule:: util.data.shuffle_labels
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: util.data
+    :members:
+    :undoc-members:
+    :show-inheritance:

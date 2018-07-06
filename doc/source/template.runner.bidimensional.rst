@@ -1,15 +1,22 @@
 template.runner.bidimensional package
 =====================================
 
-.. automodule:: template.runner.bidimensional
+Submodules
+----------
+
+template.runner.bidimensional.bidimensional module
+--------------------------------------------------
+
+.. automodule:: template.runner.bidimensional.bidimensional
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
 
-.. toctree::
+Module contents
+---------------
 
-   template.runner.bidimensional.bidimensional
-
+.. automodule:: template.runner.bidimensional
+    :members:
+    :undoc-members:
+    :show-inheritance:

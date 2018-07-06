@@ -1,17 +1,38 @@
 datasets package
 ================
 
-.. automodule:: datasets
+Submodules
+----------
+
+datasets.bidimensional\_dataset module
+--------------------------------------
+
+.. automodule:: datasets.bidimensional_dataset
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
+datasets.image\_folder\_dataset module
+--------------------------------------
 
-.. toctree::
+.. automodule:: datasets.image_folder_dataset
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-   datasets.bidimensional_dataset
-   datasets.image_folder_dataset
-   datasets.image_folder_triplet
+datasets.image\_folder\_triplet module
+--------------------------------------
 
+.. automodule:: datasets.image_folder_triplet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: datasets
+    :members:
+    :undoc-members:
+    :show-inheritance:

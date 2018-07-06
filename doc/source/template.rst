@@ -1,11 +1,6 @@
 template package
 ================
 
-.. automodule:: template
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
@@ -16,10 +11,43 @@ Subpackages
 Submodules
 ----------
 
-.. toctree::
+template.CL\_arguments module
+-----------------------------
 
-   template.CL_arguments
-   template.RunMe
-   template.setup
-   template.test_RunMe
+.. automodule:: template.CL_arguments
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
+template.RunMe module
+---------------------
+
+.. automodule:: template.RunMe
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+template.setup module
+---------------------
+
+.. automodule:: template.setup
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+template.test\_RunMe module
+---------------------------
+
+.. automodule:: template.test_RunMe
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: template
+    :members:
+    :undoc-members:
+    :show-inheritance:

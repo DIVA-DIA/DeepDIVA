@@ -1,11 +1,6 @@
 util package
 ============
 
-.. automodule:: util
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
@@ -18,7 +13,19 @@ Subpackages
 Submodules
 ----------
 
-.. toctree::
+util.misc module
+----------------
 
-   util.misc
+.. automodule:: util.misc
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: util
+    :members:
+    :undoc-members:
+    :show-inheritance:

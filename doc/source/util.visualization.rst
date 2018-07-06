@@ -1,19 +1,54 @@
 util.visualization package
 ==========================
 
-.. automodule:: util.visualization
+Submodules
+----------
+
+util.visualization.confusion\_matrix\_heatmap module
+----------------------------------------------------
+
+.. automodule:: util.visualization.confusion_matrix_heatmap
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
+util.visualization.decision\_boundaries module
+----------------------------------------------
 
-.. toctree::
+.. automodule:: util.visualization.decision_boundaries
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-   util.visualization.confusion_matrix_heatmap
-   util.visualization.decision_boundaries
-   util.visualization.embedding
-   util.visualization.mean_std_plot
-   util.visualization.visualize_activations
+util.visualization.embedding module
+-----------------------------------
 
+.. automodule:: util.visualization.embedding
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+util.visualization.mean\_std\_plot module
+-----------------------------------------
+
+.. automodule:: util.visualization.mean_std_plot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+util.visualization.visualize\_activations module
+------------------------------------------------
+
+.. automodule:: util.visualization.visualize_activations
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: util.visualization
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,19 +1,54 @@
 template.runner.triplet package
 ===============================
 
-.. automodule:: template.runner.triplet
+Submodules
+----------
+
+template.runner.triplet.evaluate module
+---------------------------------------
+
+.. automodule:: template.runner.triplet.evaluate
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
+template.runner.triplet.setup module
+------------------------------------
 
-.. toctree::
+.. automodule:: template.runner.triplet.setup
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-   template.runner.triplet.evaluate
-   template.runner.triplet.setup
-   template.runner.triplet.train
-   template.runner.triplet.transforms
-   template.runner.triplet.triplet
+template.runner.triplet.train module
+------------------------------------
 
+.. automodule:: template.runner.triplet.train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+template.runner.triplet.transforms module
+-----------------------------------------
+
+.. automodule:: template.runner.triplet.transforms
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+template.runner.triplet.triplet module
+--------------------------------------
+
+.. automodule:: template.runner.triplet.triplet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: template.runner.triplet
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,11 +1,6 @@
 util.evaluation package
 =======================
 
-.. automodule:: util.evaluation
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
@@ -16,7 +11,19 @@ Subpackages
 Submodules
 ----------
 
-.. toctree::
+util.evaluation.similarity\_sort\_embedding module
+--------------------------------------------------
 
-   util.evaluation.similarity_sort_embedding
+.. automodule:: util.evaluation.similarity_sort_embedding
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: util.evaluation
+    :members:
+    :undoc-members:
+    :show-inheritance:

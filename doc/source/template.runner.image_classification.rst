@@ -1,17 +1,38 @@
 template.runner.image\_classification package
 =============================================
 
-.. automodule:: template.runner.image_classification
+Submodules
+----------
+
+template.runner.image\_classification.evaluate module
+-----------------------------------------------------
+
+.. automodule:: template.runner.image_classification.evaluate
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
+template.runner.image\_classification.image\_classification module
+------------------------------------------------------------------
 
-.. toctree::
+.. automodule:: template.runner.image_classification.image_classification
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-   template.runner.image_classification.evaluate
-   template.runner.image_classification.image_classification
-   template.runner.image_classification.train
+template.runner.image\_classification.train module
+--------------------------------------------------
 
+.. automodule:: template.runner.image_classification.train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: template.runner.image_classification
+    :members:
+    :undoc-members:
+    :show-inheritance:

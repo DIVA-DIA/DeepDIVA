@@ -1,11 +1,6 @@
 template.runner package
 =======================
 
-.. automodule:: template.runner
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
@@ -16,3 +11,10 @@ Subpackages
     template.runner.image_classification
     template.runner.triplet
 
+Module contents
+---------------
+
+.. automodule:: template.runner
+    :members:
+    :undoc-members:
+    :show-inheritance:
