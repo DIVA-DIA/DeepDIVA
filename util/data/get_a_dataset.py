@@ -124,6 +124,55 @@ def svhn(args):
     split_dataset(dataset_folder=dataset_root, split=0.2, symbolic=False)
 
 
+def cifar10(args):
+    """
+    Fetches and prepares (in a DeepDIVA friendly format) the CIFAR dataset to the location specified
+    on the file system
+
+    Parameters
+    ----------
+    args : dict
+        List of arguments necessary to run this routine. In particular its necessary to provide
+        output_folder as String containing the path where the dataset will be downloaded
+
+    Returns
+    -------
+        None
+    """
+    # Use torchvision to download the dataset
+    cifar_train = torchvision.datasets.CIFAR10(root=args.output_folder, train=True, download=True)
+    cifar_test = torchvision.datasets.CIFAR10(root=args.output_folder, train=False, download=True)
+
+    # Load the data into memory
+    train_data, train_labels = cifar_train.train_data, cifar_train.train_labels
+
+    test_data, test_labels = cifar_test.test_data, cifar_test.test_labels
+
+    # Make output folders
+    dataset_root = os.path.join(args.output_folder, 'CIFAR10')
+    train_folder = os.path.join(dataset_root, 'train')
+    test_folder = os.path.join(dataset_root, 'test')
+
+    _make_folder_if_not_exists(dataset_root)
+    _make_folder_if_not_exists(train_folder)
+    _make_folder_if_not_exists(test_folder)
+
+    def _write_data_to_folder(arr, labels, folder):
+        for i, (img, label) in enumerate(zip(arr, labels)):
+            dest = os.path.join(folder, str(label))
+            _make_folder_if_not_exists(dest)
+            Image.fromarray(img).save(os.path.join(dest, str(i) + '.png'))
+
+    # Write the images to the folders
+    _write_data_to_folder(train_data, train_labels, train_folder)
+    _write_data_to_folder(test_data, test_labels, test_folder)
+
+    os.remove(os.path.join(args.output_folder, 'cifar-10-python.tar.gz'))
+    shutil.rmtree(os.path.join(args.output_folder, 'cifar-10-batches-py'))
+
+    split_dataset(dataset_folder=dataset_root, split=0.2, symbolic=False)
+
+
 def _make_folder_if_not_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
