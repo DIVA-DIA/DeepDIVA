@@ -70,25 +70,30 @@ class RunMe:
     # Reference to the argument parser. Useful for accessing types of arguments later e.g. setup.set_up_logging()
     parser = None
 
-    def main(self):
+    def main(self, args=None):
         """
         Select the use case based on the command line arguments and delegate the execution
         to the most appropriate sub-routine
 
         Returns
         -------
-        None
+        train_scores : ndarray[floats] of size (1, `epochs`) or None
+            Score values for train split
+        val_scores : ndarray[floats] of size (1, `epochs`+1) or None
+            Score values for validation split
+        test_scores : float or None
+            Score value for test split
         """
         # Parse all command line arguments
-        args, RunMe.parser = template.CL_arguments.parse_arguments()
+        args, RunMe.parser = template.CL_arguments.parse_arguments(args)
 
         # Select the use case
         if args.sig_opt is not None:
-            self._run_sig_opt(args)
+            return self._run_sig_opt(args)
         elif args.hyper_param_optim is not None:
-            self._run_manual_optimization(args)
+            return self._run_manual_optimization(args)
         else:
-            self._execute(args)
+            return self._execute(args)
 
     def _run_sig_opt(self, args):
         """
@@ -104,7 +109,8 @@ class RunMe:
 
         Returns
         -------
-        None
+        None, None, None
+            At the moment it is not necessary to return meaningful values from here
         """
         # Load parameters from file
         with open(args.sig_opt, 'r') as f:
@@ -136,6 +142,7 @@ class RunMe:
                      for item in score]
                 else:
                     conn.experiments(experiment.id).observations().create(suggestion=suggestion.id, value=score)
+        return None, None, None
 
     def _run_manual_optimization(self, args):
         """
@@ -149,7 +156,8 @@ class RunMe:
 
         Returns
         -------
-        None
+        None, None, None
+            At the moment it is not necessary to return meaningful values from here
         """
         logging.info('Hyper Parameter Optimization mode')
         # Open file with the boundaries and create a grid-like list of parameters to try
@@ -163,6 +171,7 @@ class RunMe:
             for key in params:
                 args.__dict__[key] = params[key]
             self._execute(args)
+        return None, None, None
 
     @staticmethod
     def _execute(args):
@@ -259,7 +268,6 @@ class RunMe:
             logging.getLogger().handlers = []
             writer.close()
             print('All done! (Log files at {} )'.format(current_log_folder))
-            current_log_folder = None
         return train_scores, val_scores, test_scores
 
     @staticmethod
