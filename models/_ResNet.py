@@ -1,3 +1,6 @@
+"""
+Model definition adapted from: https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
+"""
 import logging
 import math
 
@@ -186,7 +189,6 @@ def resnet34(pretrained=False, **kwargs):
     return model
 
 
-
 def resnet50(pretrained=False, **kwargs):
     """Constructs a _ResNet-50 model.
 
@@ -200,7 +202,6 @@ def resnet50(pretrained=False, **kwargs):
         except Exception as exp:
             logging.warning(exp)
     return model
-
 
 
 def resnet101(pretrained=False, **kwargs):

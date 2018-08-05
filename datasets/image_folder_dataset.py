@@ -15,6 +15,8 @@ import torch.utils.data as data
 import torchvision
 from PIL import Image
 
+from util.misc import get_all_files_in_folders_and_subfolders, has_extension
+
 
 def load_dataset(dataset_folder, in_memory=False, workers=1):
     """
@@ -53,16 +55,20 @@ def load_dataset(dataset_folder, in_memory=False, workers=1):
     ----------
     dataset_folder : string
         Path to the dataset on the file System
+
     in_memory : boolean
         Load the whole dataset in memory. If False, only file names are stored and images are loaded
         on demand. This is slower than storing everything in memory.
+
     workers: int
         Number of workers to use for the dataloaders
 
     Returns
     -------
     train_ds : data.Dataset
+
     val_ds : data.Dataset
+
     test_ds : data.Dataset
         Train, validation and test splits
     """
@@ -179,7 +185,7 @@ class ImageFolderApply(data.Dataset):
     TODO fill me
     """
 
-    def __init__(self, path, transform=None, target_transform=None):
+    def __init__(self, path, transform=None, target_transform=None, classify=False):
         """
         TODO fill me
 
@@ -196,15 +202,29 @@ class ImageFolderApply(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
-        # Get an online dataset
-        dataset = torchvision.datasets.ImageFolder(path)
+        if classify is True:
+            # Get an online dataset
+            dataset = torchvision.datasets.ImageFolder(path)
 
-        # Extract the actual file names and labels as entries
-        self.file_names = np.asarray([item[0] for item in dataset.imgs])
-        self.labels = np.asarray([item[1] for item in dataset.imgs])
+            # Extract the actual file names and labels as entries
+            self.file_names = np.asarray([item[0] for item in dataset.imgs])
+            self.labels = np.asarray([item[1] for item in dataset.imgs])
+        else:
+            # Get all files in the folder that are images
+            self.file_names = self._get_filenames(self.dataset_folder)
+
+            # Extract the label for each file (assuming standard format of root_folder/class_folder/img.jpg)
+            self.labels = [item.split('/')[-2] for item in self.file_names]
 
         # Set expected class attributes
         self.classes = np.unique(self.labels)
+
+    def _get_filenames(self, path):
+        file_names = []
+        for item in get_all_files_in_folders_and_subfolders(path):
+            if has_extension(item, ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif']):
+                file_names.append(item)
+        return file_names
 
     def __getitem__(self, index):
         """
@@ -221,10 +241,13 @@ class ImageFolderApply(data.Dataset):
             label of the image
         filename : string
         """
-        img, target, filename = cv2.imread(self.file_names[index]), self.labels[index], self.file_names[index]
 
-        # Doing this so that it is consistent with all other datasets to return a PIL Image
-        img = Image.fromarray(img)
+        # Weird way to open things due to issue https://github.com/python-pillow/Pillow/issues/835
+        with open(self.file_names[index], 'rb') as f:
+            img = Image.open(f)
+            img = img.convert('RGB')
+
+        target, filename = self.labels[index], self.file_names[index]
 
         if self.transform is not None:
             img = self.transform(img)

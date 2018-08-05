@@ -25,41 +25,44 @@ from template.setup import set_up_model
 #######################################################################################################################
 class ApplyModel:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, output_channels, classify, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
+                   output_channels, classify, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
         Parameters
         ----------
-        :param writer: Tensorboard SummaryWriter
+        writer: Tensorboard SummaryWriter
             Responsible for writing logs in Tensorboard compatible format.
 
-        :param current_log_folder: string
+        current_log_folder: string
             Path to where logs/checkpoints are saved
 
-        :param model_name: string
+        model_name: string
             Name of the model
 
-        :param epochs: int
+        epochs: int
             Number of epochs to train
 
-        :param lr: float
+        lr: float
             Value for learning rate
 
-        :param kwargs: dict
+        kwargs: dict
             Any additional arguments.
 
-        :param decay_lr: boolean
-                Decay the lr flag
+        decay_lr: boolean
+            Decay the lr flag
 
-        :param output_channels: int
+        output_channels: int
             Specify shape of final layer of network.
 
-        :param classify : boolean
+        classify : boolean
             Specifies whether to generate a classification report for the data or not.
 
-        :return: train_value, val_value, test_value
-            Precision values for train and validation splits. Single precision value for the test split.
+        Returns
+        -------
+        None: None
+            None
         """
 
         # Get the selected model input size
@@ -67,7 +70,8 @@ class ApplyModel:
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
-        data_loader, num_classes = set_up_dataloader(model_expected_input_size, **kwargs)
+        data_loader, num_classes = set_up_dataloader(model_expected_input_size=model_expected_input_size,
+                                                     classify=classify, **kwargs)
 
         # Setting up model, optimizer, criterion
         output_channels = num_classes if classify else output_channels
@@ -90,10 +94,8 @@ class ApplyModel:
         return None, None, None
 
     ####################################################################################################################
-    """
-    These methods delegate their function to other classes in this package. 
-    It is useful because sub-classes can selectively change the logic of certain parts only.
-    """
+    # These methods delegate their function to other classes in this package.
+    # It is useful because sub-classes can selectively change the logic of certain parts only.
 
     @classmethod
     def _feature_extract(cls, writer, data_loader, model, epoch, **kwargs):

@@ -1,6 +1,7 @@
 import matplotlib as mpl
-
+# To facilitate plotting on a headless server
 mpl.use('Agg')
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -9,9 +10,21 @@ import pandas as pd
 
 def make_heatmap(confusion_matrix, class_names):
     """
-    Adapted from https://gist.github.com/shaypal5/94c53d765083101efc0240d776a23823
     This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
+
+    Adapted from https://gist.github.com/shaypal5/94c53d765083101efc0240d776a23823
+
+    Parameters
+    ----------
+    confusion_matrix : numpy.ndarray
+        Array containing the confusion matrix to be plotted
+    class_names: list of strings
+        Names of the different classes
+
+    Returns
+    -------
+    data : numpy.ndarray
+        Contains an RGB image of the plotted confusion matrix
     """
 
     df_cm = pd.DataFrame(
@@ -22,6 +35,7 @@ def make_heatmap(confusion_matrix, class_names):
     fig = plt.figure(figsize=(10, 10))
     plt.tight_layout()
 
+    # Disable class labels if there are too many rows/columns in the confusion matrix.
     annot = False if confusion_matrix.size > 10000 else True
     try:
         heatmap = sns.heatmap(df_cm, annot=annot, fmt="d", cmap=plt.get_cmap('Blues'), annot_kws={"size": 14})

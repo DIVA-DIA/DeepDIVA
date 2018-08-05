@@ -1,3 +1,7 @@
+"""
+Model definition adapted from: https://github.com/pytorch/vision/blob/master/torchvision/models/alexnet.py
+"""
+
 import logging
 
 import torch.nn as nn

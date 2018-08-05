@@ -18,28 +18,29 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
 
     Parameters
     ----------
-    :param data_loader : torch.utils.data.DataLoader
+    data_loader : torch.utils.data.DataLoader
         The dataloader of the evaluation set
 
-    :param model : torch.nn.module
+    model : torch.nn.module
         The network model being used
 
-    :param writer : tensorboardX.writer.SummaryWriter
+    writer : tensorboardX.writer.SummaryWriter
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
 
-    :param epoch : int
+    epoch : int
         Number of the epoch (for logging purposes)
 
-    :param no_cuda : boolean
+    no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
 
-    :param classify : boolean
-        Specifies whether to generate a classification report for the data or not.
-
-    :param log_interval : int
+    log_interval : int
         Interval limiting the logging of mini-batches. Default value of 10.
 
-    :return:
+    classify : boolean
+        Specifies whether to generate a classification report for the data or not.
+
+    Returns
+    -------
         None
     """
     logging_label = 'apply'
@@ -60,7 +61,7 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
         if not no_cuda:
             data = data.cuda()
 
-        data_a, label = Variable(data, volatile=True), Variable(label)
+        data_a = Variable(data, volatile=True)
 
         # Compute output
         out = model(data_a)
@@ -70,7 +71,7 @@ def feature_extract(data_loader, model, writer, epoch, no_cuda, log_interval, cl
 
         preds.append([np.argmax(item.data.cpu().numpy()) for item in out])
         features.append(out.data.cpu().numpy())
-        labels.append(label.data.cpu().numpy())
+        labels.append(label)
         filenames.append(filename)
 
         # Log progress to console

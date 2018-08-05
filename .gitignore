@@ -58,7 +58,7 @@ local_settings.py
 instance/
 .webassets-cache
 
-# Scrapy stuff:
+y# Scrapy stuff:
 .scrapy
 
 # Sphinx documentation
@@ -109,5 +109,7 @@ ENV/
 # Log folder
 .logs
 
-# Documentation folder
-doc
+# Sphinx build stuff
+_build
+_static
+_templates

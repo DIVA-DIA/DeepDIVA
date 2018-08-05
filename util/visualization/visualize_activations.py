@@ -1,3 +1,6 @@
+"""
+This script generates visualizations of the activation of intermediate layers of CNNs.
+"""
 import argparse
 import os
 import sys
@@ -12,6 +15,18 @@ import models
 
 
 def make_grid_own(activations):
+    """
+    Plots all activations of a layer in a grid format.
+    Parameters
+    ----------
+    activations: numpy.ndarray
+        array of activation values for each filter in a layer
+
+    Returns
+    -------
+    large_fig: numpy.ndarray
+        image array containing all activation heatmaps of a layer
+    """
     activations = (activations / np.max(activations)) * 255
     num_plots = int(np.ceil(np.sqrt(activations.shape[0])))
     large_fig = np.zeros((num_plots * activations.shape[1], num_plots * activations.shape[2]))
@@ -28,6 +43,18 @@ def make_grid_own(activations):
 
 
 def main(args):
+    """
+    Main routine of script to generate activation heatmaps.
+    Parameters
+    ----------
+    args : argparse.Namespace
+        contains all arguments parsed from input
+
+    Returns
+    -------
+    None
+
+    """
     model = models.__dict__[args.model_name](pretrained=args.pretrained)
 
     # Resume from checkpoint
