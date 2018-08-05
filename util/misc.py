@@ -218,8 +218,8 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image_tensor=None, 
     writer.add_image(tag=tag, img_tensor=image_tensor, global_step=global_step)
 
     # Get output folder using the FileHandler from the logger.
-    # (Assumes only two handlers are attached to the logger)
-    output_folder = os.path.dirname(logging.getLogger().handlers[1].baseFilename)
+    # (Assumes the file handler is the last one)
+    output_folder = os.path.dirname(logging.getLogger().handlers[-1].baseFilename)
 
     if global_step is not None:
         dest_filename = os.path.join(output_folder, 'images', tag + '_{}.png'.format(global_step))
