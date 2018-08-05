@@ -7,9 +7,9 @@ import torch
 
 # DeepDIVA
 import models
+import sys
 
-
-def parse_arguments():
+def parse_arguments(args=None):
     """
     Argument Parser
     """
@@ -31,7 +31,7 @@ def parse_arguments():
 
     ###############################################################################
     # Parse argument
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # Recover dataset name
     dataset = os.path.basename(os.path.normpath(args.dataset_folder))
