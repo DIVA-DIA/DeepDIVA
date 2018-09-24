@@ -224,6 +224,11 @@ def _get_class_frequencies_weights(dataset, workers):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
+        level=logging.INFO
+    )
+
     ###############################################################################
     # Argument Parser
 
