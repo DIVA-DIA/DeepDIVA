@@ -236,9 +236,11 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     # Verify dataset integrity
     if not disable_dataset_integrity:
         if enable_deep_dataset_integrity:
-            verify_integrity_deep(dataset_folder)
+            if not verify_integrity_deep(dataset_folder):
+                sys.exit(-1)
         else:
-            verify_integrity_quick(dataset_folder)
+            if not verify_integrity_quick(dataset_folder):
+                sys.exit(-1)
 
     ###############################################################################################
     # Load the dataset splits as images
