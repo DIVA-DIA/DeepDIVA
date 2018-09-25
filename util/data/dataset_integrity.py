@@ -53,9 +53,39 @@ def generate_integrity_footprint(dataset_folder):
     """
     logging.info("Generating the footprint of: {}".format(dataset_folder))
     data = _process_folder(dataset_folder)
-    data['last_modified'] = str(time.ctime(max(os.path.getmtime(root) for root, _, _ in os.walk(dataset_folder))))
+    data['last_modified'] = get_last_modified(dataset_folder)
     logging.info('Footprint generated successfully')
     return data
+
+
+def get_last_modified(dataset_folder):
+    """
+    Elaborates the most recent 'last_modified' tag by scanning all files
+    in the root folder and sub-folders.
+
+    This routine excludes the 'footprint.json' file which, if taken into
+    account, would prevent the verification process to succeed (as it modifies
+    the last modified of the root itself).
+
+    Parameters
+    ----------
+    dataset_folder : String (path)
+        Path to the dataset folder
+
+    Returns
+    -------
+        last_modified : String
+            A string representing the last modified of the entire folder
+    """
+    last_modified = 0
+    for root, folders, files in os.walk(dataset_folder):
+        if 'footprint.json' in files:
+            files.remove('footprint.json')
+        if not files:
+            continue
+        tmp = max([os.path.getmtime(os.path.join(root, f)) for f in files])
+        last_modified = max(tmp, last_modified)
+    return str(time.ctime(last_modified))
 
 
 def _process_folder(path):
@@ -149,7 +179,7 @@ def verify_integrity_quick(dataset_folder):
         with open(os.path.join(dataset_folder, 'footprint.json')) as json_file:
             data = json.load(json_file)
             old_timestamp = data['last_modified']
-            new_timestamp = str(time.ctime(max(os.path.getmtime(root) for root, _, _ in os.walk(dataset_folder))))
+            new_timestamp = get_last_modified(dataset_folder)
             logging.info("Newly measured timestamp: {}".format(new_timestamp))
             if old_timestamp == new_timestamp:
                 logging.info("Dataset integrity verified (quick). The dataset has not been modified")
@@ -160,6 +190,9 @@ def verify_integrity_quick(dataset_folder):
                 return False
     except FileNotFoundError:
         logging.error("Missing footprint. Cannot verify dataset integrity.")
+        logging.warning("Creating a new footprint, since it is missing.")
+        data = generate_integrity_footprint(dataset_folder=dataset_folder)
+        save_footprint(dataset_folder=dataset_folder, filename='footprint.json', data=data)
         return False
 
 
@@ -200,6 +233,9 @@ def verify_integrity_deep(dataset_folder):
                 return False
     except FileNotFoundError:
         logging.error("Missing footprint. Cannot verify dataset integrity.")
+        logging.warning("Creating a new footprint, since it is missing.")
+        data = generate_integrity_footprint(dataset_folder=dataset_folder)
+        save_footprint(dataset_folder=dataset_folder, filename='footprint.json', data=data)
         return False
 
 
