@@ -77,6 +77,11 @@ def get_last_modified(dataset_folder):
         last_modified : String
             A string representing the last modified of the entire folder
     """
+    # NOTE: To speed up this process it would be possible to only look
+    # the last_modified of the files and folders in the root. This is
+    # dangerous because if a files gets modified in the sub-folders it
+    # does not modify the last_modified of its parent folder. However,
+    # that would be very quick.
     last_modified = 0
     for root, folders, files in os.walk(dataset_folder):
         if 'footprint.json' in files:
