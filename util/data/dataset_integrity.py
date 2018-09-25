@@ -152,7 +152,7 @@ def verify_integrity_quick(dataset_folder):
             new_timestamp = str(time.ctime(max(os.path.getmtime(root) for root, _, _ in os.walk(dataset_folder))))
             logging.info("Newly measured timestamp: {}".format(new_timestamp))
             if old_timestamp == new_timestamp:
-                logging.info("The dataset has not been modified")
+                logging.info("Dataset integrity verified (quick). The dataset has not been modified")
                 return True
             else:
                 logging.error("The dataset has been modified. The last_modified field does not match: old[{}] new[{}]"
@@ -185,7 +185,7 @@ def verify_integrity_deep(dataset_folder):
             new_data = generate_integrity_footprint(dataset_folder)
 
             if old_data == new_data:
-                logging.info("The dataset has not been modified")
+                logging.info("Dataset integrity verified (deep). The dataset has not been modified")
                 return True
             else:
                 logging.error("The dataset has been modified. The footprints does not match.")
