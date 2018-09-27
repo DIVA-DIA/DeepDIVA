@@ -1,16 +1,23 @@
-name: deepdiva
+name: ddiva
 channels:
   - pytorch
   - defaults
 dependencies:
+  - alabaster=0.7.10=py35h6fb19ab_0
+  - asn1crypto=0.24.0=py35_0
+  - attrs=17.4.0=py35_0
+  - babel=2.5.3=py35_0
   - bzip2=1.0.6=h9a117a8_4
   - ca-certificates=2017.08.26=h1d4fec5_0
   - cairo=1.14.12=h77bcde2_0
   - certifi=2018.1.18=py35_0
   - cffi=1.11.4=py35h9745a5d_0
+  - chardet=3.0.4=py35hb6e9ddf_1
+  - cryptography=2.2.1=py35h14c3975_0
   - cycler=0.10.0=py35hc4d5149_0
   - dbus=1.12.2=hc3f9b76_1
   - decorator=4.2.1=py35_0
+  - docutils=0.14=py35hd11081d_0
   - expat=2.2.5=he0dffb1_0
   - ffmpeg=3.4=h7264315_0
   - fontconfig=2.12.4=h88586e7_1
@@ -22,11 +29,14 @@ dependencies:
   - harfbuzz=1.7.4=hc5b324e_0
   - hdf5=1.10.1=h9caa474_1
   - icu=58.2=h9c2bf20_1
+  - idna=2.6=py35h8605a33_1
+  - imagesize=1.0.0=py35_0
   - intel-openmp=2018.0.0=hc7b2577_8
   - ipython=6.2.1=py35hd850d2a_1
   - ipython_genutils=0.2.0=py35hc9e07d0_0
   - jasper=1.900.1=hd497a04_4
   - jedi=0.11.1=py35_0
+  - jinja2=2.10=py35h480ab6d_0
   - jpeg=9b=h024ee3a_2
   - libedit=3.1=heed3624_0
   - libffi=3.2.1=hd88cf55_4
@@ -40,14 +50,16 @@ dependencies:
   - libvpx=1.6.1=h888fd40_0
   - libxcb=1.12=hcd93eb1_4
   - libxml2=2.9.7=h26e45fe_0
+  - markupsafe=1.0=py35h4f4fcf6_1
   - matplotlib=2.1.2=py35h0e671d2_0
   - mkl=2018.0.1=h19d6760_4
+  - more-itertools=4.1.0=py35_0
   - ncurses=6.0=h9df7e31_2
-  - ninja=1.8.2=py35h6bb024c_1
   - numpy=1.14.1=py35h3dfced4_1
   - olefile=0.45.1=py35_0
   - opencv=3.3.1=py35h6cbbc71_1
   - openssl=1.0.2n=hb7f436b_0
+  - packaging=17.1=py35_0
   - pandas=0.22.0=py35hf484d3e_0
   - parso=0.1.1=py35h1b200a3_0
   - patsy=0.5.0=py35_0
@@ -55,19 +67,25 @@ dependencies:
   - pexpect=4.4.0=py35_0
   - pickleshare=0.7.4=py35hd57304d_0
   - pillow=5.0.0=py35h3deb7b8_0
-  - pip=10.0.1=py35_0
+  - pip=9.0.1=py35h7e7da9d_4
   - pixman=0.34.0=hceecf20_3
+  - pluggy=0.6.0=py35hb428803_0
   - prompt_toolkit=1.0.15=py35hc09de7a_0
   - ptyprocess=0.5.2=py35h38ce0a3_0
+  - py=1.5.3=py35_0
   - pycparser=2.18=py35h61b3040_1
   - pygments=2.2.0=py35h0f41973_0
+  - pyopenssl=17.5.0=py35h4f8b8c8_0
   - pyparsing=2.2.0=py35h041ed72_1
   - pyqt=5.6.0=py35h0e41ada_5
+  - pysocks=1.6.8=py35_0
+  - pytest=3.5.0=py35_0
   - python=3.5.4=hc3d631a_27
   - python-dateutil=2.6.1=py35h90d5b31_1
   - pytz=2018.3=py35_0
   - qt=5.6.2=hd25b39d_14
   - readline=7.0=ha6073c6_4
+  - requests=2.18.4=py35hb9e6ad1_1
   - scikit-learn=0.19.1=py35hbf1f462_0
   - scipy=1.0.0=py35hcbbe4a2_0
   - seaborn=0.8.1=py35h04cba02_0
@@ -75,39 +93,44 @@ dependencies:
   - simplegeneric=0.8.1=py35_2
   - sip=4.18.1=py35h9eaea60_2
   - six=1.11.0=py35h423b573_1
+  - snowballstemmer=1.2.1=py35h5435977_0
+  - sphinx=1.7.2=py35_0
+  - sphinxcontrib=1.0=py35hcb7efd2_1
+  - sphinxcontrib-websupport=1.0.1=py35h3537809_1
   - sqlite=3.22.0=h1bed415_0
   - statsmodels=0.8.0=py35haa9d50b_0
   - tk=8.6.7=hc745277_3
   - tornado=4.5.3=py35_0
   - traitlets=4.3.2=py35ha522a97_0
+  - typing=3.6.4=py35_0
+  - urllib3=1.22=py35h2ab6e29_0
   - wcwidth=0.1.7=py35hcd08066_0
   - wheel=0.30.0=py35hd3883cf_1
   - xz=5.2.3=h55aa19d_2
   - zlib=1.2.11=ha838bed_2
   - cuda91=1.0=h4c16780_0
-  - pytorch=0.4.0=py35_cuda9.1.85_cudnn7.1.2_1
-  - torchvision=0.2.1=py35_1
+  - pytorch=0.3.1=py35_cuda9.1.85_cudnn7.0.5_2
+  - torchvision=0.2.0=py35heaa392f_1
   - pip:
-    - absl-py==0.2.2
+    - absl-py==0.1.12
     - astor==0.6.2
     - bleach==1.5.0
-    - chardet==3.0.4
-    - colorlog==3.1.4
+    - colorlog==3.1.2
     - gast==0.2.0
-    - grpcio==1.13.0
+    - grpcio==1.10.0
     - html5lib==0.9999999
-    - idna==2.7
+    - humanfriendly==4.10
     - markdown==2.6.11
-    - protobuf==3.6.0
-    - requests==2.19.1
-    - sigopt==3.4.0
-    - tensorboard==1.8.0
-    - tensorboardx==1.2
-    - tensorflow==1.8.0
+    - protobuf==3.5.2.post1
+    - sigopt==3.0.0
+    - tensorboard==1.6.0
+    - tensorboard-logger==0.1.0
+    - tensorboardx==1.1
+    - tensorflow==1.6.0
+    - tensorflow-tensorboard==1.5.1
     - termcolor==1.1.0
-    - torch==0.4.0
-    - tqdm==4.23.4
-    - urllib3==1.23
+    - torch==0.3.1.post2
+    - tqdm==4.19.6
     - werkzeug==0.14.1
-prefix: /home/pondenka/.conda/envs/deepdiva
+prefix: /home/pondenka/.conda/envs/ddiva
 
