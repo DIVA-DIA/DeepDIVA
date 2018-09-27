@@ -112,10 +112,18 @@ def _data_options(parser):
     parser_data.add_argument('--disable-databalancing',
                              default=False,
                              action='store_true',
-                             help='Supress data balancing')
+                             help='Suppress data balancing')
     parser_data.add_argument('--output-folder',
                              default='./output/',
                              help='where to save all output files.', )
+    parser_data.add_argument('--disable-dataset-integrity',
+                             default=False,
+                             action='store_true',
+                             help='Suppress the dataset integrity verification')
+    parser_data.add_argument('--enable-deep-dataset-integrity',
+                             default=False,
+                             action='store_true',
+                             help='Enable the deep dataset integrity verification')
 
 
 def _training_options(parser):

@@ -28,8 +28,6 @@ Example:
     train/cat/123.png
     train/cat/nsdf3.png
     train/cat/asd932_.png
-
-@author: Michele Alberti
 """
 
 # Utils
@@ -75,8 +73,7 @@ def compute_mean_std(dataset_folder, inmem, workers):
         return
 
     # Load the dataset file names
-    train_ds = datasets.ImageFolder(traindir,
-                                    transform=transforms.Compose([transforms.ToTensor()]))
+    train_ds = datasets.ImageFolder(traindir, transform=transforms.Compose([transforms.ToTensor()]))
 
     # Extract the actual file names and labels as entries
     file_names = np.asarray([item[0] for item in train_ds.imgs])
@@ -104,7 +101,7 @@ def _return_mean(image_path):
     return mean
 
 
-# Loads an image with OpenCV and returns the
+# Loads an image with OpenCV and returns the channel wise std of the image.
 def _return_std(image_path, mean):
     # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
     img = cv2.imread(image_path) / 255.0
@@ -227,6 +224,11 @@ def _get_class_frequencies_weights(dataset, workers):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format='%(asctime)s - %(filename)s:%(funcName)s %(levelname)s: %(message)s',
+        level=logging.INFO
+    )
+
     ###############################################################################
     # Argument Parser
 

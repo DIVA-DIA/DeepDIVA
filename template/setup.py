@@ -26,6 +26,7 @@ from tensorboardX import SummaryWriter
 import models
 from datasets import image_folder_dataset, bidimensional_dataset
 from util.data.dataset_analytics import compute_mean_std
+from util.data.dataset_integrity import verify_integrity_quick, verify_integrity_deep
 from util.misc import get_all_files_in_folders_and_subfolders
 
 
@@ -198,7 +199,8 @@ def _get_optimizer(optimizer_name, model, **kwargs):
     return torch.optim.__dict__[optimizer_name](model.parameters(), **params)
 
 
-def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, inmem=False, **kwargs):
+def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers,
+                       disable_dataset_integrity, enable_deep_dataset_integrity,  inmem=False, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -229,6 +231,16 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     # Recover dataset name
     dataset = os.path.basename(os.path.normpath(dataset_folder))
     logging.info('Loading {} from:{}'.format(dataset, dataset_folder))
+
+    ###############################################################################################
+    # Verify dataset integrity
+    if not disable_dataset_integrity:
+        if enable_deep_dataset_integrity:
+            if not verify_integrity_deep(dataset_folder):
+                sys.exit(-1)
+        else:
+            if not verify_integrity_quick(dataset_folder):
+                sys.exit(-1)
 
     ###############################################################################################
     # Load the dataset splits as images
