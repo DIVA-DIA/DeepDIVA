@@ -21,8 +21,8 @@ from util.misc import checkpoint, adjust_learning_rate
 
 class ImageClassification:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval,
-                   **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
+                   validation_interval, checkpoint_all_epochs, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -42,8 +42,10 @@ class ImageClassification:
             Any additional arguments.
         decay_lr : boolean
             Decay the lr flag
-        validation_interval: int
+        validation_interval : int
             Run evaluation on validation set every N epochs
+        checkpoint_all_epochs : bool
+            If enabled, save checkpoint after every epoch.
 
         Returns
         -------
@@ -77,14 +79,19 @@ class ImageClassification:
         val_value[-1] = ImageClassification._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = ImageClassification._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = ImageClassification._train(train_loader, model, criterion, optimizer, writer, epoch,
+                                                            **kwargs)
 
             # Validate
             if epoch % validation_interval == 0:
                 val_value[epoch] = ImageClassification._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
+            best_value = checkpoint(epoch=epoch, new_value=val_value[epoch],
+                                    best_value=best_value, model=model,
+                                    optimizer=optimizer,
+                                    log_dir=current_log_folder,
+                                    checkpoint_all_epochs=checkpoint_all_epochs)
 
         # Test
         test_value = ImageClassification._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)

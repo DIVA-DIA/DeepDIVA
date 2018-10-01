@@ -108,7 +108,8 @@ def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
     return
 
 
-def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_best=False):
+def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir,
+               invert_best=False, checkpoint_all_epochs=False):
     """Saves the current training checkpoint and the best valued checkpoint to file.
 
     Parameters
@@ -131,11 +132,13 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_b
     invert_best : bool
         Changes the scale such that smaller values are better than bigger values
         (useful when metric evaluted is error rate)
+    checkpoint_all_epochs : bool
+        If enabled, save checkpoint after every epoch.
 
     Returns
     -------
     best_value : float
-        Best value ever obtained (so the last checkpointed model).
+        Best value ever obtained.
 
     """
     if invert_best:
@@ -154,6 +157,9 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir, invert_b
     }, filename)
     if is_best:
         shutil.copyfile(filename, os.path.join(os.path.split(filename)[0], 'model_best.pth.tar'))
+    # If enabled, save all checkpoints with epoch number.
+    if checkpoint_all_epochs == True:
+        shutil.move(filename, os.path.join(os.path.split(filename)[0], 'checkpoint_{}.pth.tar'.format(epoch)))
     return best_value
 
 

@@ -38,8 +38,9 @@ from template.runner.triplet import train, evaluate
 
 class Triplet:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, margin, anchor_swap,
-                   validation_interval, regenerate_every, **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
+                   margin, anchor_swap, validation_interval, regenerate_every,
+                   checkpoint_all_epochs, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -65,6 +66,8 @@ class Triplet:
             Run evaluation on validation set every N epochs
         regenerate_every : int
             Re-generate triplets every N epochs
+        checkpoint_all_epochs : bool
+            If enabled, save checkpoint after every epoch.
 
         Returns
         -------
@@ -125,7 +128,8 @@ class Triplet:
                                     model=model,
                                     optimizer=optimizer,
                                     log_dir=current_log_folder,
-                                    invert_best=True)
+                                    invert_best=True,
+                                    checkpoint_all_epochs=checkpoint_all_epochs)
 
             # Generate new triplets every N epochs
             if epoch % regenerate_every == 0:
