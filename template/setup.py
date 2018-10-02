@@ -233,15 +233,6 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     logging.info('Loading {} from:{}'.format(dataset, dataset_folder))
 
     ###############################################################################################
-    # Verify dataset integrity
-    if not disable_dataset_integrity:
-        if enable_deep_dataset_integrity:
-            if not verify_integrity_deep(dataset_folder):
-                sys.exit(-1)
-        else:
-            verify_integrity_quick(dataset_folder)
-
-    ###############################################################################################
     # Load the dataset splits as images
     try:
         logging.debug("Try to load dataset as images")
@@ -265,6 +256,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
         logging.info("Dataset loaded as images")
+        _verify_dataset_integrity(dataset_folder, disable_dataset_integrity, enable_deep_dataset_integrity)
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
@@ -298,6 +290,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size, train_ds, val_ds, test_ds,
                                                                            workers)
         logging.info("Dataset loaded as bidimensional data")
+        _verify_dataset_integrity(dataset_folder, disable_dataset_integrity, enable_deep_dataset_integrity)
         return train_loader, val_loader, test_loader, len(train_ds.classes)
 
     except RuntimeError:
@@ -307,6 +300,32 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     # Verify that eventually a dataset has been correctly loaded
     logging.error("No datasets have been loaded. Verify dataset folder location or dataset folder structure")
     sys.exit(-1)
+
+
+def _verify_dataset_integrity(dataset_folder, disable_dataset_integrity, enable_deep_dataset_integrity):
+    """
+    Verifies dataset integrity by looking at the footprint.json in the dataset folder.
+    In case the deep check is enable, the program will be stopped in case the check
+    is not passed.
+
+    Parameters
+    ----------
+    dataset_folder : string
+        Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
+    disable_dataset_integrity : boolean
+        Flag to enable or disable verifying the dataset integrity
+    enable_deep_dataset_integrity : boolean
+        Flag to enable or disable verifying the dataset integrity in a deep fashion (check the hashes of all files)
+    Returns
+    -------
+        None
+    """
+    if not disable_dataset_integrity:
+        if enable_deep_dataset_integrity:
+            if not verify_integrity_deep(dataset_folder):
+                sys.exit(-1)
+        else:
+            verify_integrity_quick(dataset_folder)
 
 
 def _load_mean_std_from_file(dataset_folder, inmem, workers):
