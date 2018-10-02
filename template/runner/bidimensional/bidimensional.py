@@ -25,8 +25,8 @@ from util.visualization.decision_boundaries import plot_decision_boundaries
 #######################################################################################################################
 class Bidimensional(ImageClassification):
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval,
-                   **kwargs):
+    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
+                   validation_interval, checkpoint_all_epochs, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -48,6 +48,8 @@ class Bidimensional(ImageClassification):
             Decay the lr flag
         validation_interval: int
             Run evaluation on validation set every N epochs
+        checkpoint_all_epochs : bool
+            If enabled, save checkpoint after every epoch.
 
         Returns
         -------
@@ -98,7 +100,8 @@ class Bidimensional(ImageClassification):
         # PLOT: decision boundary routine
         Bidimensional._evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
                                                            grid_resolution=grid_resolution, val_loader=val_loader,
-                                                           num_classes=num_classes, writer=writer, epoch=-1, epochs=epochs,
+                                                           num_classes=num_classes, writer=writer, epoch=-1,
+                                                           epochs=epochs,
                                                            **kwargs)
 
         val_value[-1] = Bidimensional._validate(val_loader, model, criterion, writer, -1, **kwargs)
@@ -109,18 +112,26 @@ class Bidimensional(ImageClassification):
 
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = Bidimensional._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = Bidimensional._train(train_loader, model, criterion, optimizer, writer, epoch,
+                                                      **kwargs)
             # Validate
             if epoch % validation_interval == 0:
                 val_value[epoch] = Bidimensional._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
-                adjust_learning_rate(lr, optimizer, epoch, decay_lr)
-            best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
+                adjust_learning_rate(lr=lr, optimizer=optimizer,
+                                     epoch=epoch, decay_lr_epochs=decay_lr)
+
+            best_value = checkpoint(epoch=epoch, new_value=val_value[epoch],
+                                    best_value=best_value, model=model,
+                                    optimizer=optimizer,
+                                    log_dir=current_log_folder,
+                                    checkpoint_all_epochs=checkpoint_all_epochs)
 
             # PLOT: decision boundary routine
             Bidimensional._evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
                                                                grid_resolution=grid_resolution, val_loader=val_loader,
-                                                               num_classes=num_classes, writer=writer, epoch=epoch, epochs=epochs,
+                                                               num_classes=num_classes, writer=writer, epoch=epoch,
+                                                               epochs=epochs,
                                                                **kwargs)
             # Add model parameters to Tensorboard
             for name, param in model.named_parameters():

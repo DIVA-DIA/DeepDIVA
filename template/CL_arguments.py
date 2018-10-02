@@ -168,8 +168,11 @@ def _training_options(parser):
     parser_train.add_argument('--validation-interval',
                               type=int,
                               default=1,
-                              help='Run evaluation on validation set every N epochs')
-
+                              help='run evaluation on validation set every N epochs')
+    parser_train.add_argument('--checkpoint-all-epochs',
+                              action='store_true',
+                              default=False,
+                              help='make a checkpoint after every epoch')
 
 def _apply_options(parser):
     """
