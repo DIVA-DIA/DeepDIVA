@@ -7,6 +7,7 @@ instead of hard-coding stuff.
 
 import logging
 import sys
+import os
 
 # Utils
 import numpy as np
@@ -92,6 +93,18 @@ class ImageClassification:
                                     optimizer=optimizer,
                                     log_dir=current_log_folder,
                                     checkpoint_all_epochs=checkpoint_all_epochs)
+
+
+        # Load the best model before evaluating on the test set.
+        logging.info('Loading the best model before evaluating on the '
+                     'test set.')
+        kwargs["load_model"] = os.path.join(current_log_folder,
+                                            'model_best.pth.tar')
+        model, _, _, _, _ = set_up_model(num_classes=num_classes,
+                                         model_name=model_name,
+                                         lr=lr,
+                                         train_loader=train_loader,
+                                         **kwargs)
 
         # Test
         test_value = ImageClassification._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
