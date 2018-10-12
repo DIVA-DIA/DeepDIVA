@@ -164,7 +164,8 @@ def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers):
         Class frequencies for the selected dataset, contained in the analytics.csv file.
     """
     csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
-    return csv_file.ix[2, 1:].as_matrix().astype(float)
+    class_frequencies_weights = csv_file.ix[2, 1:].as_matrix().astype(float)
+    return class_frequencies_weights[np.logical_not(np.isnan(class_frequencies_weights))]
 
 
 def _get_optimizer(optimizer_name, model, **kwargs):
