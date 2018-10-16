@@ -113,10 +113,18 @@ def _data_options(parser):
     parser_data.add_argument('--disable-databalancing',
                              default=False,
                              action='store_true',
-                             help='Supress data balancing')
+                             help='Suppress data balancing')
     parser_data.add_argument('--output-folder',
                              default='./output/',
                              help='where to save all output files.', )
+    parser_data.add_argument('--disable-dataset-integrity',
+                             default=False,
+                             action='store_true',
+                             help='Suppress the dataset integrity verification')
+    parser_data.add_argument('--enable-deep-dataset-integrity',
+                             default=False,
+                             action='store_true',
+                             help='Enable the deep dataset integrity verification')
 
 
 def _training_options(parser):
@@ -161,8 +169,11 @@ def _training_options(parser):
     parser_train.add_argument('--validation-interval',
                               type=int,
                               default=1,
-                              help='Run evaluation on validation set every N epochs')
-
+                              help='run evaluation on validation set every N epochs')
+    parser_train.add_argument('--checkpoint-all-epochs',
+                              action='store_true',
+                              default=False,
+                              help='make a checkpoint after every epoch')
 
 def _apply_options(parser):
     """

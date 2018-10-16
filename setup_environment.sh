@@ -4,10 +4,10 @@ source ~/.bashrc
 # return 1 if global command line program installed, else 0
 # example
 # echo "node: $(program_is_installed node)"
+mac=0
 if [[ "$OSTYPE" =~ ^darwin ]]; then
-    echo "Automated installation on MacOS not supported."
-    echo "Please read setup_environment.sh and install manually."
-    exit 1
+    echo "You use MacOS."
+    mac=1
 fi
 
 function program_is_installed {
@@ -22,34 +22,36 @@ function program_is_installed {
 
 if [ $(program_is_installed conda) == 1 ]; then
   echo "conda installed"
+  echo 'source ~/.bash_functions' >> ~/.bashrc
 else
   echo "installing conda"
-  wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-  chmod +x Miniconda3-latest-Linux-x86_64.sh
-  ./Miniconda3-latest-Linux-x86_64.sh
+  if [ $mac -eq 1 ]
+  then
+    curl https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -output Miniconda2-latest-MacOSX-x86_64.sh
+    chmod +x Miniconda2-latest-MacOSX-x86_64.sh
+    ./Miniconda2-latest-MacOSX-x86_64.sh
+  else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      chmod +x Miniconda3-latest-Linux-x86_64.sh
+      ./Miniconda3-latest-Linux-x86_64.sh
+  fi
+
   tail -n 1 ~/.bashrc >> ~/.bash_functions
   head -n -2 ~/.bashrc
   echo 'source ~/.bash_functions' >> ~/.bashrc
   source ~/.bash_functions
-
 fi
-# Create conda environment (https://conda.io/docs/user-guide/tasks/manage-pkgs.html#installing-packages)
-conda create --file conda_requirements.txt --name deepdiva
 
-# Activate the environment
-source activate deepdiva
-
-# Install missing packages from pip
-pip install tensorboardX
-pip install tensorflow
-pip install tqdm
-pip install sigopt
-pip install colorlog
-
-#pytorch
-conda install pytorch torchvision cuda91 -c pytorch
+# Create an environment
+if [ $mac -eq 1 ]
+then
+    conda env create -f environment_mac.yml
+else
+    conda env create -f environment.yml
+fi
 
 # Set up PYTHONPATH
+touch ~/.bash_functions
 echo 'export PYTHONPATH=$PWD:$PYTHONPATH' >> ~/.bash_functions
 
 # Congratulate user on success

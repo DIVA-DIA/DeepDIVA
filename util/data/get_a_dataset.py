@@ -185,7 +185,7 @@ if __name__ == "__main__":
                                      description='This script can be used to download some '
                                                  'datasets and prepare them in a standard format')
 
-    parser.add_argument('dataset',
+    parser.add_argument('--dataset',
                         help='name of the dataset',
                         type=str,
                         choices=downloadable_datasets)
