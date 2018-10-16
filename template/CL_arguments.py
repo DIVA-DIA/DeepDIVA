@@ -28,6 +28,7 @@ def parse_arguments(args=None):
     _optimizer_options(parser)
     _system_options(parser)
     _triplet_options(parser)
+    _semantic_segmentation_options(parser)
 
     ###############################################################################
     # Parse argument
@@ -53,7 +54,8 @@ def _general_parameters(parser):
     """
     # List of possible custom runner class. A runner class is defined as a module in template.runner
     runner_class_options = ["image_classification", "point_cloud", "triplet",
-                            "apply_model", "convolutional_auto_encoder"]
+                            "apply_model", "convolutional_auto_encoder",
+                            "semantic_segmentation"]
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_general.add_argument('--experiment-name',
@@ -282,3 +284,17 @@ def _triplet_options(parser):
                                 type=int,
                                 default=5, metavar='N',
                                 help='re-generate triplets every N epochs')
+
+
+def _semantic_segmentation_options(parser):
+    """
+    Triplet options
+
+    These parameters are used by the runner class template.runner.semantic_segmentation
+    """
+    semantic_segmentation = parser.add_argument_group('Semantic', 'Semantic Segmentation')
+    semantic_segmentation.add_argument('--input-patch-size',
+                                type=int,
+                                default=256, metavar='N',
+                                help='size of the square input patch e.g. with 32 the input will be re-sized to 32x32')
+

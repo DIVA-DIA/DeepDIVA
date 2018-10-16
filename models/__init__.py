@@ -11,6 +11,10 @@ from ._Inception_v3 import inception_v3
 from ._DenseNet import densenet121, densenet161, densenet169, densenet201
 from .CAE_basic import CAE_basic
 from .CAE_medium import CAE_medium
+from .FusionNet import FusionNet
+from .UNet import Unet
+
+
 """
 Formula to compute the output size of a conv. layer
 
