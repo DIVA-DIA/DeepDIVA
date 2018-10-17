@@ -14,13 +14,13 @@ import numpy as np
 # DeepDIVA
 import models
 # Delegated
-from template.runner.convolutional_auto_encoder import evaluate, train
+from template.runner.image_auto_encoding import evaluate, train
 from template.setup import set_up_dataloaders
 from .setup import set_up_model
 from util.misc import checkpoint, adjust_learning_rate
 
 
-class ConvolutionalAutoEncoder:
+class ImageAutoEncoding:
     @staticmethod
     def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr, validation_interval,
                    **kwargs):
@@ -57,7 +57,7 @@ class ConvolutionalAutoEncoder:
         """
         # Get the selected model input size
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
-        ConvolutionalAutoEncoder._validate_model_input_size(model_expected_input_size, model_name)
+        ImageAutoEncoding._validate_model_input_size(model_expected_input_size, model_name)
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
@@ -75,20 +75,20 @@ class ConvolutionalAutoEncoder:
         val_value = np.zeros((epochs + 1 - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
-        val_value[-1] = ConvolutionalAutoEncoder._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[-1] = ImageAutoEncoding._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = ConvolutionalAutoEncoder._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = ImageAutoEncoding._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
 
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = ConvolutionalAutoEncoder._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+                val_value[epoch] = ImageAutoEncoding._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
             best_value = checkpoint(epoch, val_value[epoch], best_value, model, optimizer, current_log_folder)
 
         # Test
-        test_value = ConvolutionalAutoEncoder._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        test_value = ImageAutoEncoding._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
         logging.info('Training completed')
 
         return train_value, val_value, test_value
