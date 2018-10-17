@@ -138,13 +138,17 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output',
                                           image=output[:1], global_step=epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input',
-                                          image=input_var[:1])
+                                          image=satel_image[:1])
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/target',
+                                          image=map_image[:1])
     else:
         # writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output_{}'.format(multi_run),
                                           image=output[:1], global_step=epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input_{}'.format(multi_run),
-                                          image=input_var[:1])
+                                          image=satel_image[:1])
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/target',
+                                          image=map_image[:1])
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '
