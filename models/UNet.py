@@ -18,8 +18,6 @@ class Unet(nn.Module):
 		self.num_filter = num_filter
 		act_fn = nn.LeakyReLU(0.2, inplace=True)
 
-		print("\n------Initiating U-Net------\n")
-
 		self.down_1 = conv_block_2(self.in_dim,self.num_filter,act_fn)
 		self.pool_1 = maxpool()
 		self.down_2 = conv_block_2(self.num_filter*1,self.num_filter*2,act_fn)
