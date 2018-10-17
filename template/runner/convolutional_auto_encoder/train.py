@@ -86,11 +86,10 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
                              Loss='{loss.avg:.4f}\t'.format(loss=loss_meter),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
-    logging.debug('Train epoch[{}]: '
-                  'Acc@1={loss_meter.avg:.3f}\t'
+    logging.debug('Train epoch[{}]: '    
                   'Loss={loss.avg:.4f}\t'
                   'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
-                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, loss_meter=loss_meter))
+                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter))
 
     return loss_meter.avg
 
