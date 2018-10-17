@@ -200,7 +200,57 @@ def get_all_files_in_folders_and_subfolders(root_dir=None):
     return paths
 
 
-def save_image_and_log_to_tensorboard(writer=None, tag=None, image_tensor=None, global_step=None):
+def tensor_to_image(image):
+    """
+    Tries to reshape, convert and do operations necessary to bring the image
+    in a format friendly to be saved and logged to Tensorboard by
+    save_image_and_log_to_tensorboard()
+
+    Parameters
+    ----------
+    image : ?
+        Image to be converted
+
+    Returns
+    -------
+    image : ndarray [W x H x C]
+        Image, as format friendly to be saved and logged to Tensorboard.
+
+    """
+    # Check if the data is still a Variable()
+    if 'variable' in str(type(image)):
+        image = image.data
+
+    # Check if the data is still on CUDA
+    if 'cuda' in str(type(image)):
+        image = image.cpu()
+
+    # Check if the data is still on a Tensor
+    if 'Tensor' in str(type(image)):
+        image = image.numpy()
+    assert ('ndarray' in str(type(image)))  # Its an ndarray
+
+    # Check that it does not have anymore the 4th dimension (from the mini-batch)
+    if len(image.shape) > 3:
+        assert (len(image.shape) == 4)
+        image = np.squeeze(image)
+    assert (len(image.shape) == 3)  # 3D matrix (W x H x C)
+
+    # Check that the last channel is of size 3 for RGB
+    if image.shape[2] != 3:
+        assert (image.shape[0] == 3)
+        image = np.transpose(image, (1, 2, 0))
+    assert (image.shape[2] == 3)  # Last channel is of size 3 for RGB
+
+    # Check that the range is [0:255]
+    if image.min() < 0:
+        image = (image - image.min()) / (image.max() - image.min())
+        image = image * 255
+    assert (image.min() >= 0)  # Data should be in range [0:255]
+
+    return image
+
+def save_image_and_log_to_tensorboard(writer=None, tag=None, image=None, global_step=None):
     """Utility function to save image in the output folder and also log it to Tensorboard.
 
     Parameters
@@ -209,7 +259,7 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image_tensor=None, 
         The writer object for Tensorboard
     tag : str
         Name of the image.
-    image_tensor : ndarray [H x W x C]
+    image : ndarray [W x H x C]
         Image to be saved and logged to Tensorboard.
     global_step : int
         Epoch/Mini-batch counter.
@@ -219,9 +269,11 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image_tensor=None, 
     None
 
     """
+    # Ensuring the data passed as parameter is healthy
+    image = tensor_to_image(image)
 
     # Log image to Tensorboard
-    writer.add_image(tag=tag, img_tensor=image_tensor, global_step=global_step)
+    writer.add_image(tag=tag, img_tensor=image, global_step=global_step)
 
     # Get output folder using the FileHandler from the logger.
     # (Assumes the file handler is the last one)
@@ -236,7 +288,8 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image_tensor=None, 
         os.makedirs(os.path.dirname(dest_filename))
 
     # Write image to output folder
-    cv2.imwrite(dest_filename, np.roll(image_tensor, 1, axis=-1))
+    cv2.imwrite(dest_filename, image)
+    #cv2.imwrite(dest_filename, np.roll(image_tensor, 1, axis=-1)) # We're not fully sure about removing the np.roll.
 
     return
 
