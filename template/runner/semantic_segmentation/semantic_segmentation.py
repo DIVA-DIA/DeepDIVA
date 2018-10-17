@@ -18,7 +18,8 @@ from torch import nn
 import models
 # Delegated
 from template.runner.semantic_segmentation import evaluate, train
-from template.setup import set_up_model, set_up_dataloaders
+from template.setup import set_up_model
+from .setup import set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 
 
@@ -64,7 +65,7 @@ class SemanticSegmentation:
         """
 
         # Setting up the dataloaders
-        train_loader, val_loader, test_loader, _ = set_up_dataloaders(input_patch_size, **kwargs)
+        train_loader, val_loader, test_loader = set_up_dataloaders(input_patch_size, **kwargs)
 
         # Setting up model, optimizer, criterion
         model, _, optimizer, best_value, start_epoch = set_up_model(num_classes=3, # In this case is the num dimension of the output

@@ -40,6 +40,8 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     top1.avg : float
         Accuracy of the model of the evaluated split
     """
+    # TODO All parts computing the accuracy are commented out. See the TODO in evaluate.py
+
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
     # Instantiate the counters
@@ -70,17 +72,17 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         input_var = torch.autograd.Variable(satel_image)
         target_var = torch.autograd.Variable(map_image)
 
-        acc, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, acc_meter)
+        loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, acc_meter)
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
             writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_accuracy', acc.cpu().numpy(), epoch * len(train_loader) + batch_idx)
+            # writer.add_scalar('train/mb_accuracy', acc.cpu().numpy(), epoch * len(train_loader) + batch_idx)
         else:
             writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
                               epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc.cpu().numpy(),
-                              epoch * len(train_loader) + batch_idx)
+            # writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc.cpu().numpy(),
+            #                   epoch * len(train_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -92,17 +94,17 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=loss_meter),
-                             Acc1='{acc_meter.avg:.3f}\t'.format(acc_meter=acc_meter),
+                             # Acc1='{acc_meter.avg:.3f}\t'.format(acc_meter=acc_meter),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Logging the epoch-wise accuracy
-    if multi_run is None:
-        writer.add_scalar('train/accuracy', acc_meter.avg, epoch)
-    else:
-        writer.add_scalar('train/accuracy_{}'.format(multi_run), acc_meter.avg, epoch)
+    # if multi_run is None:
+    #     writer.add_scalar('train/accuracy', acc_meter.avg, epoch)
+    # else:
+    #     writer.add_scalar('train/accuracy_{}'.format(multi_run), acc_meter.avg, epoch)
 
     logging.debug('Train epoch[{}]: '
-                  'Acc@1={acc_meter.avg:.3f}\t'
+                  # 'Acc@1={acc_meter.avg:.3f}\t'
                   'Loss={loss.avg:.4f}\t'
                   'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
                   .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, acc_meter=acc_meter))
@@ -146,8 +148,8 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
     loss_meter.update(loss.data[0], len(input_var))
 
     # Compute and record the accuracy
-    acc = accuracy(output.data, target_var.data, topk=(1,))[0]
-    acc_meter.update(acc[0], len(input_var))
+    # acc = accuracy(output.data, target_var.data, topk=(1,))[0]
+    # acc_meter.update(acc[0], len(input_var))
 
     # Reset gradient
     optimizer.zero_grad()
@@ -156,4 +158,5 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
     # Perform a step by updating the weights
     optimizer.step()
 
-    return acc, loss
+    # return acc, loss
+    return loss

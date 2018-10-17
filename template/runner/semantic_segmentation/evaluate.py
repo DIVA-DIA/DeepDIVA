@@ -2,17 +2,15 @@
 import logging
 import time
 import warnings
-
 import numpy as np
+
 # Torch related stuff
 import torch
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import classification_report
 from tqdm import tqdm
 
-from util.evaluation.metrics import accuracy
 # DeepDIVA
 from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard
-from util.visualization.confusion_matrix_heatmap import make_heatmap
 
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
@@ -53,6 +51,13 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     top1.avg : float
         Accuracy of the model of the evaluated split
     """
+    #TODO All parts computing the accuracy are commented out. It is necessary to
+    #TODO implement a 2D softmax and instead of regressing the output class have it
+    #TODO work with class labels. Notice that, however, it would be
+    #TODO of interest leaving open the possibility to work with soft labels
+    #TODO (e.g. the ground truth for pixel X,Y is an array of probabilities instead
+    #TODO of an integer.
+
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
     # Instantiate the counters
@@ -104,58 +109,54 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         # _ = [targets.append(item) for item in target.cpu().numpy()]
 
         # Add loss and accuracy to Tensorboard
-        # if multi_run is None:
-        #     writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + batch_idx)
-        #     writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(), epoch * len(data_loader) + batch_idx)
-        # else:
-        #     writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
-        #                       epoch * len(data_loader) + batch_idx)
-        #     writer.add_scalar(logging_label + '/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
-        #                       epoch * len(data_loader) + batch_idx)
+        if multi_run is None:
+            writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + batch_idx)
+           # writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(), epoch * len(data_loader) + batch_idx)
+        else:
+            writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(data_loader) + batch_idx)
+            # writer.add_scalar(logging_label + '/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
+            #                   epoch * len(data_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # if batch_idx % log_interval == 0:
-        #     pbar.set_description(logging_label +
-        #                          ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
-        #
-        #     pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
-        #                      Loss='{loss.avg:.4f}\t'.format(loss=losses),
-        #                      Acc1='{top1.avg:.3f}\t'.format(top1=top1),
-        #                      Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
+        if batch_idx % log_interval == 0:
+            pbar.set_description(logging_label +
+                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
 
-    # Make a confusion matrix
-    try:
-        cm = confusion_matrix(y_true=targets, y_pred=preds)
-        confusion_matrix_heatmap = make_heatmap(cm, data_loader.dataset.classes)
-    except ValueError:
-        logging.warning('Confusion Matrix did not work as expected')
+            pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
+                             Loss='{loss.avg:.4f}\t'.format(loss=losses),
+                             # Acc1='{top1.avg:.3f}\t'.format(top1=top1),
+                             Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
-        confusion_matrix_heatmap = np.zeros((10, 10, 3))
 
-    # Logging the epoch-wise accuracy and confusion matrix
+    # Logging the epoch-wise accuracy
     if multi_run is None:
-        writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
-                                          image_tensor=confusion_matrix_heatmap, global_step=epoch)
+        # writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output',
+                                          image_tensor=np.squeeze(output[:1].data.cpu()), global_step=epoch)
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input',
+                                          image_tensor=np.squeeze(input_var[:1].data.cpu()))
     else:
-        writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
-                                          image_tensor=confusion_matrix_heatmap, global_step=epoch)
+        # writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output_{}'.format(multi_run),
+                                          image_tensor=np.squeeze(output[:1].data.cpu()), global_step=epoch)
+        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input_{}'.format(multi_run),
+                                          image_tensor=np.squeeze(input_var[:1].data.cpu()))
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '
-                 'Acc@1={top1.avg:.3f}\t'
+                 # 'Acc@1={top1.avg:.3f}\t'
                  'Loss={loss.avg:.4f}\t'
                  'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
-
-    # Generate a classification report for each epoch
-    _log_classification_report(data_loader, epoch, preds, targets, writer)
-
-    return top1.avg
+    #
+    # # Generate a classification report for each epoch
+    # _log_classification_report(data_loader, epoch, preds, targets, writer)
+    #
+    # return top1.avg
 
 
 def _log_classification_report(data_loader, epoch, preds, targets, writer):

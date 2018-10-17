@@ -10,7 +10,7 @@ from datasets.image_folder_dataset import load_dataset
 from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
 
 
-def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, **kwargs):
+def set_up_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -47,8 +47,7 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     # Load the dataset splits as images
     train_ds, val_ds, test_ds = load_dataset(dataset_folder=dataset_folder,
                                              in_memory=inmem,
-                                             workers=workers,
-                                             num_triplets=n_triplets)
+                                             workers=workers)
 
 
     # Set up dataset transforms
