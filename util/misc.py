@@ -289,7 +289,7 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image=None, global_
 
     # Write image to output folder
     cv2.imwrite(dest_filename, image)
-    #cv2.imwrite(dest_filename, np.roll(image_tensor, 1, axis=-1)) # We're not fully sure about removing the np.roll.
+    #cv2.imwrite(dest_filename, np.roll(image, 1, axis=-1)) # We're not fully sure about removing the np.roll.
 
     return
 
