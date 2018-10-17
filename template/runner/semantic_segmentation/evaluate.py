@@ -10,7 +10,7 @@ from sklearn.metrics import classification_report
 from tqdm import tqdm
 
 # DeepDIVA
-from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard
+from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard, tensor_to_image
 
 
 def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
@@ -136,15 +136,15 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     if multi_run is None:
         # writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output',
-                                          image_tensor=np.squeeze(output[:1].data.cpu()), global_step=epoch)
+                                          image=output[:1], global_step=epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input',
-                                          image_tensor=np.squeeze(input_var[:1].data.cpu()))
+                                          image=input_var[:1])
     else:
         # writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output_{}'.format(multi_run),
-                                          image_tensor=np.squeeze(output[:1].data.cpu()), global_step=epoch)
+                                          image=output[:1], global_step=epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input_{}'.format(multi_run),
-                                          image_tensor=np.squeeze(input_var[:1].data.cpu()))
+                                          image=input_var[:1])
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '
