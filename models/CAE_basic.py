@@ -80,7 +80,7 @@ class CAE_basic(nn.Module):
 
         self.conv6 =nn.Sequential(
             nn.ConvTranspose2d(64, 3, kernel_size=3, stride=1, padding=1),
-            nn.Tanh(),
+            #nn.Tanh(),
         )
 
     def encoder(self, x):
