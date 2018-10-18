@@ -243,9 +243,8 @@ def tensor_to_image(image):
     assert (image.shape[2] == 3)  # Last channel is of size 3 for RGB
 
     # Check that the range is [0:255]
-    if image.min() < 0:
-        image = (image - image.min()) / (image.max() - image.min())
-        image = image * 255
+    image = (image - image.min()) / (image.max() - image.min())
+    image = image * 255
     assert (image.min() >= 0)  # Data should be in range [0:255]
 
     return image
@@ -269,9 +268,6 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image=None, global_
     None
 
     """
-    # Ensuring the data passed as parameter is healthy
-    image = tensor_to_image(image)
-
     # Log image to Tensorboard
     writer.add_image(tag=tag, img_tensor=image, global_step=global_step)
 
@@ -287,9 +283,11 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image=None, global_
     if not os.path.exists(os.path.dirname(dest_filename)):
         os.makedirs(os.path.dirname(dest_filename))
 
+    # Ensuring the data passed as parameter is healthy
+    image = tensor_to_image(image)
+
     # Write image to output folder
     cv2.imwrite(dest_filename, image)
-    #cv2.imwrite(dest_filename, np.roll(image, 1, axis=-1)) # We're not fully sure about removing the np.roll.
 
     return
 
