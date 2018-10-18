@@ -5,19 +5,18 @@ There are a lot of parameter which can be specified to modify the behaviour and 
 instead of hard-coding stuff.
 """
 
+# Utils
+import numpy as np
 import logging
 import sys
 
-# Utils
-import numpy as np
-
 # DeepDIVA
 import models
-# Delegated
 from template.runner.image_auto_encoding import evaluate, train
-from template.setup import set_up_dataloaders
-from .setup import set_up_model
+
+# Delegated
 from util.misc import checkpoint, adjust_learning_rate
+from .setup import set_up_model, set_up_dataloaders
 
 
 class ImageAutoEncoding:

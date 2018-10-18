@@ -106,12 +106,10 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
                              Loss='{loss.avg:.4f}\t'.format(loss=losses),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
     input_img = torchvision.utils.make_grid(input_var[:25].data.cpu(), nrow=5,
-                                            normalize=True, scale_each=True).permute(1,2,0).numpy()
+                                            normalize=False, scale_each=False).permute(1,2,0).numpy()
     output_img = torchvision.utils.make_grid(output[:25].data.cpu(), nrow=5,
-                                             normalize=True, scale_each=True).permute(1,2,0).numpy()
-    save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input_image',
-                                      image=input_img, global_step=epoch)
-    save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output_image',
-                                      image=output_img, global_step=epoch)
+                                             normalize=False, scale_each=False).permute(1,2,0).numpy()
+    save_image_and_log_to_tensorboard(writer, tag=logging_label + '/input_image', image=input_img)
+    save_image_and_log_to_tensorboard(writer, tag=logging_label + '/output_image', image=output_img, global_step=epoch)
 
     return losses.avg
