@@ -3,7 +3,7 @@ Convolutional Auto Encoder with 3 conv layers and a fully connected classificati
 """
 
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 class Flatten(nn.Module):
     """
@@ -12,6 +12,7 @@ class Flatten(nn.Module):
     Replaces the flattening line (view) often found into forward() methods of networks. This makes it
     easier to navigate the network with introspection
     """
+
     def forward(self, x):
         x = x.view(x.size()[0], -1)
         return x
@@ -25,16 +26,10 @@ class CAE_basic(nn.Module):
     ----------
     expected_input_size : tuple(int,int)
         Expected input size (width, height)
-    conv1 : torch.nn.Sequential
-    conv2 : torch.nn.Sequential
-    conv3 : torch.nn.Sequential
-        Convolutional layers of the network
-    fc : torch.nn.Linear
-        Final classification fully connected layer
-
     """
 
-    def __init__(self, input_channels=3, return_features=False, **kwargs):
+    def __init__(self, input_channels=3, output_channels=1,
+                 auto_encoder_mode=False, return_features=False, heads_count=1, **kwargs):
         """
         Creates an CNN_basic model from the scratch.
 
@@ -42,59 +37,114 @@ class CAE_basic(nn.Module):
         ----------
         input_channels : int
             Dimensionality of the input, typically 3 for RGB
+        output_channels : int
+            Number of neurons in the classification layers
         """
         super(CAE_basic, self).__init__()
 
+        self.auto_encoder_mode = auto_encoder_mode
+        self.heads_count = heads_count
         self.return_features = return_features
-        self.expected_input_size = (32, 32)
+        self.expected_input_size = (96, 96)
 
-        # Encoder layers
-        # First layer
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(input_channels, 128, kernel_size=3, stride=3, padding=0),
+        # Encoder layers ###############################################################################################
+        # In: 96x96 Out: 32x32
+        self.enc_conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=input_channels, out_channels=32,
+                      kernel_size=3, stride=3, padding=0),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(),
         )
-        # Second layer
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(128, 16, kernel_size=3, stride=3, padding=0),
+        # In: 32x32 Out: 32x32
+        self.enc_conv2 = nn.Sequential(
+            nn.Conv2d(in_channels=32, out_channels=64,
+                      kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(),
+        )
+        # In: 32x32 Out: 16x16
+        self.enc_conv3 = nn.Sequential(
+            nn.Conv2d(in_channels=64, out_channels=96,
+                      kernel_size=2, stride=2, padding=0),
+            nn.BatchNorm2d(96),
+            nn.LeakyReLU(),
+        )
+        # In: 16x16 Out: 8x8
+        self.enc_conv4 = nn.Sequential(
+            nn.Conv2d(in_channels=96, out_channels=128,
+                      kernel_size=2, stride=2, padding=0),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(),
+        )
+        # In: 8x8 Out: 4x4
+        self.enc_conv5 = nn.Sequential(
+            nn.Conv2d(in_channels=128, out_channels=32,
+                      kernel_size=2, stride=2, padding=0),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(),
         )
 
-        # Decoder layers
-        # Third layer
-        self.conv3 = nn.Sequential(
-            nn.ConvTranspose2d(16, 128, kernel_size=2, stride=2),
-            nn.LeakyReLU()
+        # Decoder layers # Encoder layers ##############################################################################
+        # In: 4x4 Out: 8x8
+        self.dec_conv1 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.Conv2d(in_channels=32, out_channels=128,
+                      kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(),
         )
-
-        self.conv4 = nn.Sequential(
-            nn.ConvTranspose2d(128, 256, kernel_size=3, stride=3, padding=0),
-            nn.LeakyReLU()
+        # In: 8x8 Out: 16x16
+        self.dec_conv2 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.Conv2d(in_channels=128, out_channels=96,
+                      kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(96),
+            nn.LeakyReLU(),
         )
-
-
-        self.conv5 = nn.Sequential(
-            nn.ConvTranspose2d(256, 64, kernel_size=2, stride=2, padding=2),
-            nn.LeakyReLU()
+        # In: 16x16 Out: 32x32
+        self.dec_conv3 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.Conv2d(in_channels=96, out_channels=64,
+                      kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(),
         )
-
-        self.conv6 =nn.Sequential(
-            nn.ConvTranspose2d(64, 3, kernel_size=3, stride=1, padding=1),
+        # In: 32x32 Out: 32x32
+        self.dec_conv4 = nn.Sequential(
+            nn.Conv2d(in_channels=64, out_channels=32,
+                      kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(),
             #nn.Tanh(),
+        )
+        # In: 32x32 Out: 96x96
+        self.dec_conv5 = nn.Sequential(
+            nn.Upsample(scale_factor=3, mode='nearest'),
+            nn.Conv2d(in_channels=32, out_channels=3,
+                      kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(3),
+            nn.LeakyReLU(),
+        )
+        # Hydra heads
+        self.hydra = nn.ModuleList(
+            [nn.Sequential(Flatten(), nn.Linear(4*4*32, output_channels)) for _ in range(self.heads_count)]
         )
 
     def encoder(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
+        x = self.enc_conv1(x)
+        x = self.enc_conv2(x)
+        x = self.enc_conv3(x)
+        x = self.enc_conv4(x)
+        x = self.enc_conv5(x)
         return x
 
     def decoder(self, x):
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        x = self.conv6(x)
+        x = self.dec_conv1(x)
+        x = self.dec_conv2(x)
+        x = self.dec_conv3(x)
+        x = self.dec_conv4(x)
+        x = self.dec_conv5(x)
         return x
-
 
     def forward(self, x):
         """
@@ -107,13 +157,28 @@ class CAE_basic(nn.Module):
 
         Returns
         -------
-        Variable
-            Activations of the fully connected layer
+        x : Variable
+            Activations of the heads or the reconstructed input
+        features : Variable
+            Features before the heads layers
         """
         x = self.encoder(x)
 
-        if self.return_features:
-            features = Flatten(x)
-            return self.decoder(x), features
+        # Store features
+        features = Flatten()(x)
+
+        if self.auto_encoder_mode:
+            # Reconstruct the input
+            x = self.decoder(x)
         else:
-            return self.decoder(x)
+            # Compute output for all heads
+            x = []
+            for head in self.hydra:
+                x.append(head(features))
+            if self.heads_count == 1:
+                x = x[0]
+
+        if self.return_features:
+            return x, features
+        else:
+            return x
