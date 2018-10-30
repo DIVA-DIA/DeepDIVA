@@ -137,11 +137,11 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     if multi_run is None:
         writer.add_scalar(logging_label + '/accuracy', top1.avg, epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
-                                          image=confusion_matrix_heatmap, global_step=epoch)
+                                          image_tensor=confusion_matrix_heatmap, global_step=epoch)
     else:
         writer.add_scalar(logging_label + '/accuracy_{}'.format(multi_run), top1.avg, epoch)
         save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
-                                          image=confusion_matrix_heatmap, global_step=epoch)
+                                          image_tensor=confusion_matrix_heatmap, global_step=epoch)
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '

@@ -28,7 +28,7 @@ def parse_arguments(args=None):
     _optimizer_options(parser)
     _system_options(parser)
     _triplet_options(parser)
-    _semantic_segmentation_options(parser)
+    _process_activation_options(parser)
 
     ###############################################################################
     # Parse argument
@@ -53,9 +53,7 @@ def _general_parameters(parser):
     General options
     """
     # List of possible custom runner class. A runner class is defined as a module in template.runner
-    runner_class_options = ["image_classification", "point_cloud", "triplet",
-                            "apply_model", "image_auto_encoding",
-                            "semantic_segmentation"]
+    runner_class_options = ["image_classification", "point_cloud", "triplet", "apply_model", "process_activation"]
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_general.add_argument('--experiment-name',
@@ -286,15 +284,25 @@ def _triplet_options(parser):
                                 help='re-generate triplets every N epochs')
 
 
-def _semantic_segmentation_options(parser):
+def _process_activation_options(parser):
     """
-    Triplet options
+    Process activation options
 
-    These parameters are used by the runner class template.runner.semantic_segmentation
+    These parameters are used by the runner class template.runner.triplet
     """
-    semantic_segmentation = parser.add_argument_group('Semantic', 'Semantic Segmentation')
-    semantic_segmentation.add_argument('--input-patch-size',
+    parser_process = parser.add_argument_group('PROCESS', 'Process Activation Options')
+    parser_process.add_argument('--train',
+                                action='store_true',
+                                help='Train the network and process the activation')
+    parser_process.add_argument('--save-images',
+                                action='store_true',
+                                default=False,
+                                help='Save image\'s input')
+    parser_process.add_argument('--process-size',
                                 type=int,
-                                default=256, metavar='N',
-                                help='size of the square input patch e.g. with 32 the input will be re-sized to 32x32')
-
+                                default=10,
+                                help='number of images processed')
+    parser_process.add_argument('--process-every',
+                                type=int,
+                                default=5,
+                                help='Epochs period where activation process is done')
