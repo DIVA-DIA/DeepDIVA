@@ -34,7 +34,6 @@ Example:
 import argparse
 import logging
 import os
-import sys
 from multiprocessing import Pool
 import cv2
 import numpy as np
@@ -84,8 +83,13 @@ def compute_mean_std(dataset_folder, inmem, workers):
     else:
         mean, std = cms_online(file_names, workers)
 
-    # Compute class frequencies weights
-    class_frequencies_weights = _get_class_frequencies_weights(train_ds, workers)
+    # Check if the dataset is a multi-label dataset
+    if not os.path.exists(os.path.join(traindir, 'labels.csv')):
+        # Use normal class frequency computation
+        class_frequencies_weights = _get_class_frequencies_weights(train_ds, workers)
+    else:
+        # Use multi-label class frequency computation
+        class_frequencies_weights = _get_class_frequencies_weights_multilabel(os.path.join(traindir, 'labels.csv'))
 
     # Save results as CSV file in the dataset folder
     df = pd.DataFrame([mean, std, class_frequencies_weights])
@@ -221,6 +225,44 @@ def _get_class_frequencies_weights(dataset, workers):
                  .format(class_frequencies=np.around(class_frequencies * 100, decimals=2)))
     # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
     return (1 / num_samples_per_class) / ((1 / num_samples_per_class).sum())
+
+
+def _get_class_frequencies_weights_multilabel(dataset_labels):
+    """
+    Get the weights proportional to the inverse of their class frequencies.
+    The vector sums up to 1.
+
+    Parameters
+    ----------
+    dataset_folder: torch.utils.data.dataloader.DataLoader
+        Path to a labels.csv file with labels for each training sample
+
+    Returns
+    -------
+    ndarray[double] of size (num_classes)
+        The weights vector as a 1D array normalized (sum up to 1)
+    """
+    logging.info('Begin computing class frequencies weights')
+
+    labels_df = pd.read_csv(dataset_labels)
+    classes = labels_df.columns
+    labels = labels_df.as_matrix()
+
+    # Replace all -1 with 0
+    labels[labels == -1] = 0
+
+    # Remove the filenames
+    labels = labels[:, 1:]
+
+    total_num_samples = np.sum(labels)
+    num_samples_per_class = np.sum(labels, axis=0)
+    class_frequencies = num_samples_per_class / total_num_samples
+    logging.info('Finished computing class frequencies weights')
+    logging.info('Class frequencies (rounded): {class_frequencies}'
+                 .format(class_frequencies=np.around(class_frequencies.astype(np.double) * 100, decimals=2)))
+    # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
+    inverted_class_frequencies = (1 / num_samples_per_class) / ((1 / num_samples_per_class).sum())
+    return inverted_class_frequencies
 
 
 if __name__ == "__main__":
