@@ -247,12 +247,13 @@ def miml(args):
 
 
     def _write_data_to_folder(data, labels, folder, classes):
+        dest = os.path.join(folder, 'images')
+        _make_folder_if_not_exists(dest)
         for image, label in zip(data, labels):
-            dest = folder
-            shutil.copy(image, folder)
+            shutil.copy(image, dest)
 
-        rows = np.column_stack(([os.path.basename(item) for item in data], labels))
-        rows = sorted(rows, key=lambda e: int(e[0].split('.')[0]))
+        rows = np.column_stack(([os.path.join('images',os.path.basename(item)) for item in data], labels))
+        rows = sorted(rows, key=lambda e: int(e[0].split('/')[1].split('.')[0]))
         output_csv = pd.DataFrame(rows)
         output_csv.to_csv(os.path.join(folder, 'labels.csv'), header=classes, index=False)
         return
