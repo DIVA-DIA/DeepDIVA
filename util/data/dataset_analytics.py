@@ -229,8 +229,8 @@ def _get_class_frequencies_weights(dataset, workers):
 
 def _get_class_frequencies_weights_multilabel(dataset_labels):
     """
-    Get the weights proportional to the inverse of their class frequencies.
-    The vector sums up to 1.
+    Computes the weights for each class (as required by torch.nn.BCEWithLogitsLoss).
+    The weight for each class is #neg_samples/#pos_samples.
 
     Parameters
     ----------
@@ -240,9 +240,9 @@ def _get_class_frequencies_weights_multilabel(dataset_labels):
     Returns
     -------
     ndarray[double] of size (num_classes)
-        The weights vector as a 1D array normalized (sum up to 1)
+        The weights vector as a 1D array
     """
-    logging.info('Begin computing class frequencies weights')
+    logging.info('Begin computing class weights')
 
     labels_df = pd.read_csv(dataset_labels)
     classes = labels_df.columns
@@ -254,15 +254,18 @@ def _get_class_frequencies_weights_multilabel(dataset_labels):
     # Remove the filenames
     labels = labels[:, 1:]
 
-    total_num_samples = np.sum(labels)
-    num_samples_per_class = np.sum(labels, axis=0)
-    class_frequencies = num_samples_per_class / total_num_samples
-    logging.info('Finished computing class frequencies weights')
-    logging.info('Class frequencies (rounded): {class_frequencies}'
-                 .format(class_frequencies=np.around(class_frequencies.astype(np.double) * 100, decimals=2)))
-    # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
-    inverted_class_frequencies = (1 / num_samples_per_class) / ((1 / num_samples_per_class).sum())
-    return inverted_class_frequencies
+    weights = []
+    for i in range(len(labels[0])):
+        pos = len(np.where(labels[:, i] == 1)[0])
+        neg = len(labels) - pos
+        weight = neg / pos
+        weights.append(weight)
+
+    weights = np.array(weights)
+
+    logging.info('Finished computing class weights')
+    logging.info('Class weights (rounded): {}'.format(np.around(weights, decimals=2)))
+    return weights
 
 
 if __name__ == "__main__":
