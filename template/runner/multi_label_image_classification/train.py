@@ -52,6 +52,10 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     # Switch to train mode (turn on dropout & stuff)
     model.train()
 
+    # Empty lists to store the predictions and target values
+    preds = []
+    targets = []
+
     # Iterate over whole training set
     end = time.time()
     pbar = tqdm(enumerate(train_loader), total=len(train_loader), unit='batch', ncols=150, leave=False)
@@ -69,7 +73,12 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
-        jss, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, jss_meter)
+        jss, loss, target_vals, pred_vals = train_one_mini_batch(model, criterion, optimizer, input_var, target_var,
+                                                             loss_meter, jss_meter)
+
+        # Store results of each minibatch
+        _ = [preds.append(item) for item in pred_vals]
+        _ = [targets.append(item) for item in target_vals]
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
@@ -94,21 +103,31 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
                              JSS='{jss_meter.avg:.3f}\t'.format(jss_meter=jss_meter),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
+    # Generate the epoch wise JSS
+    targets = np.array(targets).astype(np.int)
+    preds = np.array(preds).astype(np.int)
+    jss_epoch = compute_jss(targets, preds)
+    try:
+        np.testing.assert_approx_equal(jss_epoch, jss_meter.avg)
+    except:
+        logging.error('Computed JSS scores do not match')
+        logging.error('JSS: {} Avg: {}'.format(jss_epoch, jss_meter.avg))
+
     # Logging the epoch-wise accuracy
     if multi_run is None:
         writer.add_scalar('train/loss', loss_meter.avg, epoch)
-        writer.add_scalar('train/jaccard_similarity', jss_meter.avg, epoch)
+        writer.add_scalar('train/jaccard_similarity', jss_epoch, epoch)
     else:
         writer.add_scalar('train/loss_{}'.format(multi_run), loss_meter.avg, epoch)
-        writer.add_scalar('train/jaccard_similarity_{}'.format(multi_run), jss_meter.avg, epoch)
+        writer.add_scalar('train/jaccard_similarity_{}'.format(multi_run), jss_epoch, epoch)
 
     logging.debug('Train epoch[{}]: '
-                  'JSS={jss_meter.avg:.3f}\t'
+                  'JSS={jss_epoch:.3f}\t'
                   'Loss={loss.avg:.4f}\t'
                   'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
-                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, jss_meter=jss_meter))
+                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, jss_epoch=jss_epoch))
 
-    return jss_meter.avg
+    return jss_epoch
 
 
 def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, jss_meter):
@@ -151,7 +170,7 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
     target_vals = target_var.data.cpu().numpy().astype(np.int)
 
     # # Compute and record the Jaccard Similarity Score
-    jss = jaccard_similarity_score(target_vals, preds)
+    jss = compute_jss(target_vals, preds)
     jss_meter.update(jss, len(input_var))
 
     # Reset gradient
@@ -161,7 +180,7 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
     # Perform a step by updating the weights
     optimizer.step()
 
-    return jss, loss
+    return jss, loss, target_vals, preds
 
 
 def get_preds_from_minibatch(minibatch):
@@ -171,3 +190,13 @@ def get_preds_from_minibatch(minibatch):
         preds.append(tmp)
     preds = np.array(preds).astype(np.int)
     return preds
+
+
+def compute_jss(target, preds):
+    score = 0
+    num_classes = len(target[0])
+    for i in range(num_classes):
+        score += jaccard_similarity_score(target[:, i], preds[:, i])
+
+    score = score / num_classes
+    return score

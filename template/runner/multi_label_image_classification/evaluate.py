@@ -97,12 +97,12 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         squashed_output = torch.nn.Sigmoid()(output).data.cpu().numpy()
         target_vals = target.cpu().numpy().astype(np.int)
 
-        jss = jaccard_similarity_score(target_vals, get_preds_from_minibatch(squashed_output))
+        jss = compute_jss(target_vals, get_preds_from_minibatch(squashed_output))
         top1.update(jss, input.size(0))
 
         # Store results of each minibatch
-        # _ = [preds.append(item) for item in get_preds_from_minibatch(squashed_output)]
-        # _ = [targets.append(item) for item in target.cpu().numpy()]
+        _ = [preds.append(item) for item in get_preds_from_minibatch(squashed_output)]
+        _ = [targets.append(item) for item in target.cpu().numpy()]
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
@@ -127,22 +127,34 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
                              JSS='{top1.avg:.3f}\t'.format(top1=top1),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
+    # Generate a classification report for each epoch
+    targets = np.array(targets).astype(np.int)
+    preds = np.array(preds).astype(np.int)
+    _log_classification_report(data_loader, epoch, preds, targets, writer)
+    jss_epoch = compute_jss(targets, preds)
+    try:
+        np.testing.assert_approx_equal(jss_epoch, top1.avg)
+    except:
+        logging.error('Computed JSS scores do not match')
+        logging.error('JSS: {} Avg: {}'.format(jss_epoch, top1.avg))
+
     # # Logging the epoch-wise JSS
     if multi_run is None:
         writer.add_scalar(logging_label + '/loss', losses.avg, epoch)
-        writer.add_scalar(logging_label + '/jaccard_similarity', top1.avg, epoch)
+        writer.add_scalar(logging_label + '/jaccard_similarity', jss_epoch, epoch)
     else:
         writer.add_scalar(logging_label + '/loss_{}'.format(multi_run), losses.avg, epoch)
-        writer.add_scalar(logging_label + '/jaccard_similarity_{}'.format(multi_run), top1.avg, epoch)
+        writer.add_scalar(logging_label + '/jaccard_similarity_{}'.format(multi_run), jss_epoch, epoch)
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '
-                 'Acc@1={top1.avg:.3f}\t'
+                 'JSS={jss_epoch:.3f}\t'
                  'Loss={loss.avg:.4f}\t'
                  'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
-                 .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
+                 .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses, jss_epoch=jss_epoch))
 
-    return top1.avg
+
+    return jss_epoch
 
 
 def get_preds_from_minibatch(minibatch):
@@ -153,6 +165,15 @@ def get_preds_from_minibatch(minibatch):
     preds = np.array(preds).astype(np.int)
     return preds
 
+
+def compute_jss(target, preds):
+    score = 0
+    num_classes = len(target[0])
+    for i in range(num_classes):
+        score += jaccard_similarity_score(target[:,i], preds[:,i])
+
+    score = score/num_classes
+    return score
 
 def _log_classification_report(data_loader, epoch, preds, targets, writer):
     """
