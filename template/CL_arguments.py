@@ -26,6 +26,7 @@ def parse_arguments(args=None):
     _training_options(parser)
     _apply_options(parser)
     _optimizer_options(parser)
+    _criterion_options(parser)
     _system_options(parser)
     _triplet_options(parser)
 
@@ -52,7 +53,8 @@ def _general_parameters(parser):
     General options
     """
     # List of possible custom runner class. A runner class is defined as a module in template.runner
-    runner_class_options = ["image_classification", "point_cloud", "triplet", "apply_model"]
+    runner_class_options = ["image_classification", "point_cloud", "triplet", "apply_model",
+                            "multi_label_image_classification"]
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_general.add_argument('--experiment-name',
@@ -227,6 +229,20 @@ def _optimizer_options(parser):
                                   type=float,
                                   default=0,
                                   help='weight_decay coefficient, also known as L2 regularization')
+
+def _criterion_options(parser):
+    """
+    Options specific for optimizers
+    """
+    # List of possible optimizers already implemented in PyTorch
+    criterion_options = ['CrossEntropyLoss', 'BCEWithLogitsLoss']
+
+    parser_optimizer = parser.add_argument_group('CRITERION', 'Criterion Options')
+
+    parser_optimizer.add_argument('--criterion-name',
+                                  choices=criterion_options,
+                                  default='CrossEntropyLoss',
+                                  help='criterion to be used for training')
 
 
 def _system_options(parser):
