@@ -1,10 +1,11 @@
 # Utils
 import logging
 import time
-
+import numpy as np
+from tqdm import tqdm
+from sklearn.metrics import jaccard_similarity_score
 # Torch related stuff
 import torch
-from tqdm import tqdm
 
 # DeepDIVA
 from util.misc import AverageMeter
@@ -45,6 +46,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     # Instantiate the counters
     batch_time = AverageMeter()
     loss_meter = AverageMeter()
+    jss_meter = AverageMeter()
     data_time = AverageMeter()
 
     # Switch to train mode (turn on dropout & stuff)
@@ -67,13 +69,16 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
-        loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter)
+        jss, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, jss_meter)
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
             writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_jaccard_similarity', jss, epoch * len(train_loader) + batch_idx)
         else:
             writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_jaccard_similarity_{}'.format(multi_run), jss,
                               epoch * len(train_loader) + batch_idx)
 
         # Measure elapsed time
@@ -86,23 +91,27 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=loss_meter),
+                             JSS='{jss_meter.avg:.3f}\t'.format(jss_meter=jss_meter),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
         writer.add_scalar('train/loss', loss_meter.avg, epoch)
+        writer.add_scalar('train/jaccard_similarity', jss_meter.avg, epoch)
     else:
         writer.add_scalar('train/loss_{}'.format(multi_run), loss_meter.avg, epoch)
+        writer.add_scalar('train/jaccard_similarity_{}'.format(multi_run), jss_meter.avg, epoch)
 
     logging.debug('Train epoch[{}]: '
+                  'JSS={jss_meter.avg:.3f}\t'
                   'Loss={loss.avg:.4f}\t'
                   'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
-                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter))
+                  .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, jss_meter=jss_meter))
 
-    return loss_meter.avg
+    return jss_meter.avg
 
 
-def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter):
+def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, jss_meter):
     """
     This routing train the model passed as parameter for one mini-batch
 
@@ -120,6 +129,8 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
         The target data (labels) for the mini-batch
     loss_meter : AverageMeter
         Tracker for the overall loss
+    jss_meter : AverageMeter
+        Tracker for the overall Jaccard Similarity Score
 
 
     Returns
@@ -134,9 +145,14 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
     loss = criterion(output, target_var)
     loss_meter.update(loss.data[0], len(input_var))
 
-    # # Compute and record the accuracy
-    # acc = accuracy(output.data, target_var.data, topk=(1,))[0]
-    # acc_meter.update(acc[0], len(input_var))
+    # Apply sigmoid and take everything above a threshold of 0.5
+    squashed_output = torch.nn.Sigmoid()(output).data.cpu().numpy()
+    preds = get_preds_from_minibatch(squashed_output)
+    target_vals = target_var.data.cpu().numpy().astype(np.int)
+
+    # # Compute and record the Jaccard Similarity Score
+    jss = jaccard_similarity_score(target_vals, preds)
+    jss_meter.update(jss, len(input_var))
 
     # Reset gradient
     optimizer.zero_grad()
@@ -145,4 +161,13 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
     # Perform a step by updating the weights
     optimizer.step()
 
-    return loss
+    return jss, loss
+
+
+def get_preds_from_minibatch(minibatch):
+    preds = []
+    for row in minibatch:
+        tmp = [1 if item > 0.5 else 0 for item in row]
+        preds.append(tmp)
+    preds = np.array(preds).astype(np.int)
+    return preds

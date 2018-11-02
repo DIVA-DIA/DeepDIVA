@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 # Torch related stuff
 import torch
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, jaccard_similarity_score
 from tqdm import tqdm
 
 from util.evaluation.metrics import accuracy
@@ -58,6 +58,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     # Instantiate the counters
     batch_time = AverageMeter()
     losses = AverageMeter()
+    top1 = AverageMeter()
     data_time = AverageMeter()
 
     # Switch to evaluate mode (turn off dropout & such )
@@ -92,11 +93,25 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         loss = criterion(output, target_var)
         losses.update(loss.data[0], input.size(0))
 
+        # Apply sigmoid and take everything above a threshold of 0.5
+        squashed_output = torch.nn.Sigmoid()(output).data.cpu().numpy()
+        target_vals = target.cpu().numpy().astype(np.int)
+
+        jss = jaccard_similarity_score(target_vals, get_preds_from_minibatch(squashed_output))
+        top1.update(jss, input.size(0))
+
+        # Store results of each minibatch
+        # _ = [preds.append(item) for item in get_preds_from_minibatch(squashed_output)]
+        # _ = [targets.append(item) for item in target.cpu().numpy()]
+
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
             writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_jaccard_similarity', jss, epoch * len(data_loader) + batch_idx)
         else:
             writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
+                              epoch * len(data_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_jaccard_similarity_{}'.format(multi_run), jss,
                               epoch * len(data_loader) + batch_idx)
 
         # Measure elapsed time
@@ -109,22 +124,34 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=losses),
-                             # Acc1='{top1.avg:.3f}\t'.format(top1=top1),
+                             JSS='{top1.avg:.3f}\t'.format(top1=top1),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
-    # # Logging the epoch-wise accuracy and confusion matrix
+    # # Logging the epoch-wise JSS
     if multi_run is None:
         writer.add_scalar(logging_label + '/loss', losses.avg, epoch)
+        writer.add_scalar(logging_label + '/jaccard_similarity', top1.avg, epoch)
     else:
         writer.add_scalar(logging_label + '/loss_{}'.format(multi_run), losses.avg, epoch)
+        writer.add_scalar(logging_label + '/jaccard_similarity_{}'.format(multi_run), top1.avg, epoch)
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '
+                 'Acc@1={top1.avg:.3f}\t'
                  'Loss={loss.avg:.4f}\t'
                  'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
-                 .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses))
+                 .format(epoch, batch_time=batch_time, data_time=data_time, loss=losses, top1=top1))
 
-    return losses.avg
+    return top1.avg
+
+
+def get_preds_from_minibatch(minibatch):
+    preds = []
+    for row in minibatch:
+        tmp = [1 if item > 0.5 else 0 for item in row]
+        preds.append(tmp)
+    preds = np.array(preds).astype(np.int)
+    return preds
 
 
 def _log_classification_report(data_loader, epoch, preds, targets, writer):
