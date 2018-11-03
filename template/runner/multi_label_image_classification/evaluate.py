@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 # Torch related stuff
 import torch
-from sklearn.metrics import confusion_matrix, classification_report, jaccard_similarity_score
+from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
 from util.evaluation.metrics import accuracy
@@ -174,6 +174,19 @@ def compute_jss(target, preds):
 
     score = score/num_classes
     return score
+
+
+def jaccard_similarity_score(targets, preds):
+    assert len(targets) == len(preds)
+    assert len(targets.shape) == 1
+    assert len(preds.shape) == 1
+
+    locs_targets = set(np.where(targets == 1)[0])
+    preds_targets = set(np.where(preds == 1)[0])
+
+    score = len(locs_targets.intersection(preds_targets)) / len(targets)
+    return score
+
 
 def _log_classification_report(data_loader, epoch, preds, targets, writer):
     """

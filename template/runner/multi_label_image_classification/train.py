@@ -3,7 +3,7 @@ import logging
 import time
 import numpy as np
 from tqdm import tqdm
-from sklearn.metrics import jaccard_similarity_score
+# from sklearn.metrics import jaccard_similarity_score
 # Torch related stuff
 import torch
 
@@ -199,4 +199,16 @@ def compute_jss(target, preds):
         score += jaccard_similarity_score(target[:, i], preds[:, i])
 
     score = score / num_classes
+    return score
+
+
+def jaccard_similarity_score(targets, preds):
+    assert len(targets) == len(preds)
+    assert len(targets.shape) == 1
+    assert len(preds.shape) == 1
+
+    locs_targets = set(np.where(targets == 1)[0])
+    preds_targets = set(np.where(preds == 1)[0])
+
+    score = len(locs_targets.intersection(preds_targets)) / len(targets)
     return score
