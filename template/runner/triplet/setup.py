@@ -5,6 +5,7 @@ import logging
 import os
 
 # Torch
+import torch
 import torchvision.transforms as transforms
 
 # DeepDIVA
@@ -12,7 +13,8 @@ from datasets.image_folder_triplet import load_dataset
 from template.setup import _dataloaders_from_datasets, _load_mean_std_from_file
 
 
-def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, batch_size, workers, inmem, **kwargs):
+def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets,
+                      batch_size, workers, inmem, only_evaluate, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
@@ -31,6 +33,8 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     inmem : boolean
         Flag : if False, the dataset is loaded in an online fashion i.e. only file names are stored
         and images are loaded on demand. This is slower than storing everything in memory.
+    only_evaluate : boolean
+        Flag : if True, only the test set is loaded.
 
 
     Returns
@@ -45,34 +49,63 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets, bat
     dataset = os.path.basename(os.path.normpath(dataset_folder))
     logging.info('Loading {} from:{}'.format(dataset, dataset_folder))
 
-    ###############################################################################################
-    # Load the dataset splits as images
-    train_ds, val_ds, test_ds = load_dataset(dataset_folder=dataset_folder,
-                                             in_memory=inmem,
-                                             workers=workers,
-                                             num_triplets=n_triplets)
+    if only_evaluate:
+        # Load the dataset splits as images
+        _, _, test_ds = load_dataset(dataset_folder=dataset_folder,
+                                     in_memory=inmem,
+                                     workers=workers,
+                                     num_triplets=n_triplets,
+                                     only_evaluate=only_evaluate)
 
-    # Loads the analytics csv and extract mean and std
-    mean, std = _load_mean_std_from_file(dataset_folder=dataset_folder,
-                                         inmem=inmem,
-                                         workers=workers)
+        # Loads the analytics csv and extract mean and std
+        mean, std = _load_mean_std_from_file(dataset_folder=dataset_folder,
+                                             inmem=inmem,
+                                             workers=workers)
 
-    # Set up dataset transforms
-    logging.debug('Setting up dataset transforms')
+        # Set up dataset transforms
+        logging.debug('Setting up dataset transforms')
 
-    standard_transform = transforms.Compose([
-        transforms.Resize(size=model_expected_input_size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
-    ])
+        standard_transform = transforms.Compose([
+            transforms.Resize(size=model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
 
-    train_ds.transform = standard_transform
-    val_ds.transform = standard_transform
-    test_ds.transform = standard_transform
+        test_ds.transform = standard_transform
 
-    train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size=batch_size,
-                                                                       train_ds=train_ds,
-                                                                       val_ds=val_ds,
-                                                                       test_ds=test_ds,
-                                                                       workers=workers)
-    return train_loader, val_loader, test_loader
+        test_loader = torch.utils.data.DataLoader(test_ds,
+                                                  batch_size=batch_size,
+                                                  num_workers=workers,
+                                                  pin_memory=True)
+        return None, None, test_loader
+    else:
+        # Load the dataset splits as images
+        train_ds, val_ds, test_ds = load_dataset(dataset_folder=dataset_folder,
+                                                 in_memory=inmem,
+                                                 workers=workers,
+                                                 num_triplets=n_triplets)
+
+        # Loads the analytics csv and extract mean and std
+        mean, std = _load_mean_std_from_file(dataset_folder=dataset_folder,
+                                             inmem=inmem,
+                                             workers=workers)
+
+        # Set up dataset transforms
+        logging.debug('Setting up dataset transforms')
+
+        standard_transform = transforms.Compose([
+            transforms.Resize(size=model_expected_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+
+        train_ds.transform = standard_transform
+        val_ds.transform = standard_transform
+        test_ds.transform = standard_transform
+
+        train_loader, val_loader, test_loader = _dataloaders_from_datasets(batch_size=batch_size,
+                                                                           train_ds=train_ds,
+                                                                           val_ds=val_ds,
+                                                                           test_ds=test_ds,
+                                                                           workers=workers)
+        return train_loader, val_loader, test_loader

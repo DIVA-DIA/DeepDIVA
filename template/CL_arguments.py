@@ -194,6 +194,11 @@ def _apply_options(parser):
                               type=int,
                               default=None,
                               help='override the number of output channels for loading specific models')
+    parser_apply.add_argument('--ablate',
+                              action='store_true',
+                              default=False,
+                              help='remove the final layer of a given model. Useful to get the 2nd last layer of a '
+                                   'classification model')
 
 
 def _optimizer_options(parser):
@@ -297,3 +302,6 @@ def _triplet_options(parser):
                                 type=int,
                                 default=5, metavar='N',
                                 help='re-generate triplets every N epochs')
+    parser_triplet.add_argument('--only-evaluate',
+                                action='store_true',
+                                help='only evaluate on a test set')

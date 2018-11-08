@@ -140,11 +140,13 @@ class DenseNet(nn.Module):
     """
 
     def __init__(self, growth_rate=32, block_config=(6, 12, 24, 16),
-                 num_init_features=64, bn_size=4, drop_rate=0, output_channels=1000, **kwargs):
+                 num_init_features=64, bn_size=4, drop_rate=0, output_channels=1000,
+                 ablate=False, **kwargs):
 
         super(DenseNet, self).__init__()
 
         self.expected_input_size = (224, 224)
+        self.ablate = ablate
 
         # First convolution
         self.features = nn.Sequential(OrderedDict([
@@ -170,11 +172,15 @@ class DenseNet(nn.Module):
         self.features.add_module('norm5', nn.BatchNorm2d(num_features))
 
         # Linear layer
-        self.classifier = nn.Linear(num_features, output_channels)
+        if not self.ablate:
+            self.classifier = nn.Linear(num_features, output_channels)
 
     def forward(self, x):
         features = self.features(x)
         out = F.relu(features, inplace=True)
         out = F.avg_pool2d(out, kernel_size=7, stride=1).view(features.size(0), -1)
-        out = self.classifier(out)
-        return out
+        if self.ablate:
+            return out
+        else:
+            out = self.classifier(out)
+            return out

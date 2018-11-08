@@ -40,7 +40,7 @@ class Triplet:
     @staticmethod
     def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
                    margin, anchor_swap, validation_interval, regenerate_every,
-                   checkpoint_all_epochs, **kwargs):
+                   checkpoint_all_epochs, only_evaluate, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -68,6 +68,8 @@ class Triplet:
             Re-generate triplets every N epochs
         checkpoint_all_epochs : bool
             If enabled, save checkpoint after every epoch.
+        only_evaluate : boolean
+            Flag : if True, only the test set is loaded.
 
         Returns
         -------
@@ -85,59 +87,67 @@ class Triplet:
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
-        train_loader, val_loader, test_loader = setup_dataloaders(model_expected_input_size=model_expected_input_size,
-                                                                  **kwargs)
+        if only_evaluate:
+            _, _, test_loader = setup_dataloaders(
+                model_expected_input_size=model_expected_input_size,
+                only_evaluate=only_evaluate,
+                **kwargs)
+        else:
+            train_loader, val_loader, test_loader = setup_dataloaders(
+                model_expected_input_size=model_expected_input_size,
+                **kwargs)
 
         # Setting up model, optimizer, criterion
         model, _, optimizer, best_value, start_epoch = set_up_model(model_name=model_name,
                                                                     lr=lr,
-                                                                    train_loader=train_loader,
+                                                                    # train_loader=train_loader,
                                                                     **kwargs)
 
         # Set the special criterion for triplets
         criterion = nn.TripletMarginLoss(margin=margin, swap=anchor_swap)
 
-        # Core routine
-        logging.info('Begin training')
-        val_value = np.zeros((epochs - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
+        val_value = np.zeros((epochs - start_epoch))
 
-        Triplet._validate(val_loader, model, None, writer, -1, **kwargs)
-        for epoch in range(start_epoch, epochs):
-            # Train
-            train_value[epoch] = Triplet._train(train_loader=train_loader,
-                                                model=model,
-                                                criterion=criterion,
-                                                optimizer=optimizer,
-                                                writer=writer,
-                                                epoch=epoch,
-                                                **kwargs)
-            # Validate
-            if epoch % validation_interval == 0:
-                val_value[epoch] = Triplet._validate(val_loader=val_loader,
-                                                     model=model,
-                                                     criterion=criterion,
-                                                     writer=writer,
-                                                     epoch=epoch,
-                                                     **kwargs)
-            if decay_lr is not None:
-                adjust_learning_rate(lr, optimizer, epoch, epochs)
-            best_value = checkpoint(epoch=epoch,
-                                    new_value=val_value[epoch],
-                                    best_value=best_value,
-                                    model=model,
-                                    optimizer=optimizer,
-                                    log_dir=current_log_folder,
-                                    invert_best=True,
-                                    checkpoint_all_epochs=checkpoint_all_epochs)
+        if not only_evaluate:
+            # Core routine
 
-            # Generate new triplets every N epochs
-            if epoch % regenerate_every == 0:
-                train_loader.dataset.generate_triplets()
+            logging.info('Begin training')
+            Triplet._validate(val_loader, model, None, writer, -1, **kwargs)
+            for epoch in range(start_epoch, epochs):
+                # Train
+                train_value[epoch] = Triplet._train(train_loader=train_loader,
+                                                    model=model,
+                                                    criterion=criterion,
+                                                    optimizer=optimizer,
+                                                    writer=writer,
+                                                    epoch=epoch,
+                                                    **kwargs)
+                # Validate
+                if epoch % validation_interval == 0:
+                    val_value[epoch] = Triplet._validate(val_loader=val_loader,
+                                                         model=model,
+                                                         criterion=criterion,
+                                                         writer=writer,
+                                                         epoch=epoch,
+                                                         **kwargs)
+                if decay_lr is not None:
+                    adjust_learning_rate(lr, optimizer, epoch, epochs)
+                best_value = checkpoint(epoch=epoch,
+                                        new_value=val_value[epoch],
+                                        best_value=best_value,
+                                        model=model,
+                                        optimizer=optimizer,
+                                        log_dir=current_log_folder,
+                                        invert_best=True,
+                                        checkpoint_all_epochs=checkpoint_all_epochs)
+
+                # Generate new triplets every N epochs
+                if epoch % regenerate_every == 0:
+                    train_loader.dataset.generate_triplets()
+            logging.info('Training completed')
 
         # Test
-        logging.info('Training completed')
-
         test_value = Triplet._test(test_loader=test_loader,
                                    model=model,
                                    criterion=criterion,

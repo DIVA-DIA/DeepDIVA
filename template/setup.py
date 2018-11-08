@@ -32,7 +32,7 @@ from util.misc import get_all_files_in_folders_and_subfolders
 
 def set_up_model(output_channels, model_name, pretrained, optimizer_name, criterion_name, no_cuda, resume, load_model,
                  start_epoch, disable_databalancing, dataset_folder, inmem, workers, num_classes=None,
-                 **kwargs):
+                 ablate=False, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
@@ -67,6 +67,8 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, criter
         Number of workers to use for the dataloaders
     num_classes: int
         Number of classes for the model
+    ablate : boolean
+        If True, remove the final layer of the given model.
 
     Returns
     -------
@@ -88,7 +90,7 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, criter
     logging.info('Setting up model {}'.format(model_name))
 
     output_channels = output_channels if num_classes == None else num_classes
-    model = models.__dict__[model_name](output_channels=output_channels, pretrained=pretrained)
+    model = models.__dict__[model_name](output_channels=output_channels, pretrained=pretrained, ablate=ablate)
 
     # Get the optimizer created with the specified parameters in kwargs (such as lr, momentum, ... )
     optimizer = _get_optimizer(optimizer_name, model, **kwargs)

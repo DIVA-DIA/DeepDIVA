@@ -19,7 +19,8 @@ from PIL import Image
 from tqdm import trange
 from torchvision.datasets.folder import pil_loader
 
-def load_dataset(dataset_folder, num_triplets=None, in_memory=False, workers=1):
+
+def load_dataset(dataset_folder, num_triplets=None, in_memory=False, workers=1, only_evaluate=False):
     """
     Loads the dataset from file system and provides the dataset splits for train validation and test.
 
@@ -36,6 +37,8 @@ def load_dataset(dataset_folder, num_triplets=None, in_memory=False, workers=1):
         on demand. This is slower than storing everything in memory.
     workers: int
         Number of workers to use for the dataloaders
+    only_evaluate : boolean
+        Flag : if True, only the test set is loaded.
 
     Returns
     -------
@@ -44,29 +47,43 @@ def load_dataset(dataset_folder, num_triplets=None, in_memory=False, workers=1):
     test_ds : data.Dataset
         Train, validation and test splits
     """
-    # Get the splits folders
-    train_dir = os.path.join(dataset_folder, 'train')
-    val_dir = os.path.join(dataset_folder, 'val')
-    test_dir = os.path.join(dataset_folder, 'test')
+    if only_evaluate:
+        # Get the splits folders
+        test_dir = os.path.join(dataset_folder, 'test')
 
-    # Sanity check on the splits folders
-    if not os.path.isdir(train_dir):
-        logging.error("Train folder not found in the args.dataset_folder=" + dataset_folder)
-        sys.exit(-1)
-    if not os.path.isdir(val_dir):
-        logging.error("Val folder not found in the args.dataset_folder=" + dataset_folder)
-        sys.exit(-1)
-    if not os.path.isdir(test_dir):
-        logging.error("Test folder not found in the args.dataset_folder=" + dataset_folder)
-        sys.exit(-1)
+        # Sanity check on the splits folders
+        if not os.path.isdir(test_dir):
+            logging.error("Test folder not found in the args.dataset_folder=" + dataset_folder)
+            sys.exit(-1)
 
-    train_ds = ImageFolderTriplet(train_dir, train=True, num_triplets=num_triplets,
-                                  workers=workers,in_memory=in_memory)
-    val_ds = ImageFolderTriplet(val_dir, train=False, num_triplets=num_triplets,
-                                workers=workers, in_memory=in_memory)
-    test_ds = ImageFolderTriplet(test_dir, train=False, num_triplets=num_triplets,
-                                 workers=workers, in_memory=in_memory)
-    return train_ds, val_ds, test_ds
+        test_ds = ImageFolderTriplet(test_dir, train=False, num_triplets=num_triplets,
+                                     workers=workers, in_memory=in_memory)
+        return None, None, test_ds
+    else:
+
+        # Get the splits folders
+        train_dir = os.path.join(dataset_folder, 'train')
+        val_dir = os.path.join(dataset_folder, 'val')
+        test_dir = os.path.join(dataset_folder, 'test')
+
+        # Sanity check on the splits folders
+        if not os.path.isdir(train_dir):
+            logging.error("Train folder not found in the args.dataset_folder=" + dataset_folder)
+            sys.exit(-1)
+        if not os.path.isdir(val_dir):
+            logging.error("Val folder not found in the args.dataset_folder=" + dataset_folder)
+            sys.exit(-1)
+        if not os.path.isdir(test_dir):
+            logging.error("Test folder not found in the args.dataset_folder=" + dataset_folder)
+            sys.exit(-1)
+
+        train_ds = ImageFolderTriplet(train_dir, train=True, num_triplets=num_triplets,
+                                      workers=workers, in_memory=in_memory)
+        val_ds = ImageFolderTriplet(val_dir, train=False, num_triplets=num_triplets,
+                                    workers=workers, in_memory=in_memory)
+        test_ds = ImageFolderTriplet(test_dir, train=False, num_triplets=num_triplets,
+                                     workers=workers, in_memory=in_memory)
+        return train_ds, val_ds, test_ds
 
 
 class ImageFolderTriplet(data.Dataset):
