@@ -17,7 +17,7 @@ import torch.utils.data as data
 import torchvision
 from PIL import Image
 from tqdm import trange
-
+from torchvision.datasets.folder import pil_loader
 
 def load_dataset(dataset_folder, num_triplets=None, in_memory=False, workers=1):
     """
@@ -125,7 +125,8 @@ class ImageFolderTriplet(data.Dataset):
         if self.in_memory:
             # Load all samples
             with Pool(workers) as pool:
-                self.data = pool.map(self.cv2.imread, self.file_names)
+                # self.data = pool.map(self.cv2.imread, self.file_names)
+                self.data = pool.map(pil_loader, self.file_names)
 
     def generate_triplets(self):
         """
@@ -179,7 +180,8 @@ class ImageFolderTriplet(data.Dataset):
             if self.in_memory:
                 img_a = Image.fromarray(self.data[index])
             else:
-                img_a = Image.fromarray(cv2.imread(self.file_names[index]))
+                # img_a = Image.fromarray(cv2.imread(self.file_names[index]))
+                img_a = pil_loader(self.file_names[index])
 
             if self.transform is not None:
                 img_a = self.transform(img_a)
@@ -193,9 +195,12 @@ class ImageFolderTriplet(data.Dataset):
             img_p = Image.fromarray(self.data[p])
             img_n = Image.fromarray(self.data[n])
         else:
-            img_a = Image.fromarray(cv2.imread(self.file_names[a]))
-            img_p = Image.fromarray(cv2.imread(self.file_names[p]))
-            img_n = Image.fromarray(cv2.imread(self.file_names[n]))
+            # img_a = Image.fromarray(cv2.imread(self.file_names[a]))
+            # img_p = Image.fromarray(cv2.imread(self.file_names[p]))
+            # img_n = Image.fromarray(cv2.imread(self.file_names[n]))
+            img_a = pil_loader(self.file_names[a])
+            img_p = pil_loader(self.file_names[p])
+            img_n = pil_loader(self.file_names[n])
 
         if self.transform is not None:
             img_a = self.transform(img_a)
