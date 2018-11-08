@@ -83,12 +83,12 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
             writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_jaccard_similarity', jss, epoch * len(train_loader) + batch_idx)
+            # writer.add_scalar('train/mb_jaccard_similarity', jss, epoch * len(train_loader) + batch_idx)
         else:
             writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
                               epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_jaccard_similarity_{}'.format(multi_run), jss,
-                              epoch * len(train_loader) + batch_idx)
+            # writer.add_scalar('train/mb_jaccard_similarity_{}'.format(multi_run), jss,
+            #                   epoch * len(train_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -100,18 +100,18 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=loss_meter),
-                             JSS='{jss_meter.avg:.3f}\t'.format(jss_meter=jss_meter),
+                             # JSS='{jss_meter.avg:.3f}\t'.format(jss_meter=jss_meter),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Generate the epoch wise JSS
     targets = np.array(targets).astype(np.int)
     preds = np.array(preds).astype(np.int)
     jss_epoch = compute_jss(targets, preds)
-    try:
-        np.testing.assert_approx_equal(jss_epoch, jss_meter.avg)
-    except:
-        logging.error('Computed JSS scores do not match')
-        logging.error('JSS: {} Avg: {}'.format(jss_epoch, jss_meter.avg))
+    # try:
+    #     np.testing.assert_approx_equal(jss_epoch, jss_meter.avg)
+    # except:
+    #     logging.error('Computed JSS scores do not match')
+    #     logging.error('JSS: {} Avg: {}'.format(jss_epoch, jss_meter.avg))
 
     # Logging the epoch-wise accuracy
     if multi_run is None:
@@ -170,9 +170,9 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
     target_vals = target_var.data.cpu().numpy().astype(np.int)
 
     # # Compute and record the Jaccard Similarity Score
-    jss = compute_jss(target_vals, preds)
-    jss_meter.update(jss, len(input_var))
-
+    # jss = compute_jss(target_vals, preds)
+    # jss_meter.update(jss, len(input_var))
+    jss = None
     # Reset gradient
     optimizer.zero_grad()
     # Compute gradients
@@ -202,13 +202,18 @@ def compute_jss(target, preds):
     return score
 
 
+
 def jaccard_similarity_score(targets, preds):
     assert len(targets) == len(preds)
     assert len(targets.shape) == 1
     assert len(preds.shape) == 1
 
     locs_targets = set(np.where(targets == 1)[0])
-    preds_targets = set(np.where(preds == 1)[0])
+    locs_preds = set(np.where(preds == 1)[0])
 
-    score = len(locs_targets.intersection(preds_targets)) / len(targets)
+    try:
+        score = len(locs_targets.intersection(locs_preds)) / len(locs_targets.union(locs_preds))
+    except:
+        print('Exception!')
+
     return score

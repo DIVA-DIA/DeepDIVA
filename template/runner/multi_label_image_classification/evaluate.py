@@ -97,8 +97,8 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         squashed_output = torch.nn.Sigmoid()(output).data.cpu().numpy()
         target_vals = target.cpu().numpy().astype(np.int)
 
-        jss = compute_jss(target_vals, get_preds_from_minibatch(squashed_output))
-        top1.update(jss, input.size(0))
+        # jss = compute_jss(target_vals, get_preds_from_minibatch(squashed_output))
+        # top1.update(jss, input.size(0))
 
         # Store results of each minibatch
         _ = [preds.append(item) for item in get_preds_from_minibatch(squashed_output)]
@@ -107,12 +107,12 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
             writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_jaccard_similarity', jss, epoch * len(data_loader) + batch_idx)
+            # writer.add_scalar(logging_label + '/mb_jaccard_similarity', jss, epoch * len(data_loader) + batch_idx)
         else:
             writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
                               epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_jaccard_similarity_{}'.format(multi_run), jss,
-                              epoch * len(data_loader) + batch_idx)
+            # writer.add_scalar(logging_label + '/mb_jaccard_similarity_{}'.format(multi_run), jss,
+            #                   epoch * len(data_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -124,7 +124,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=losses),
-                             JSS='{top1.avg:.3f}\t'.format(top1=top1),
+                             # JSS='{top1.avg:.3f}\t'.format(top1=top1),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Generate a classification report for each epoch
@@ -132,11 +132,11 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     preds = np.array(preds).astype(np.int)
     _log_classification_report(data_loader, epoch, preds, targets, writer)
     jss_epoch = compute_jss(targets, preds)
-    try:
-        np.testing.assert_approx_equal(jss_epoch, top1.avg)
-    except:
-        logging.error('Computed JSS scores do not match')
-        logging.error('JSS: {} Avg: {}'.format(jss_epoch, top1.avg))
+    # try:
+    #     np.testing.assert_approx_equal(jss_epoch, top1.avg)
+    # except:
+    #     logging.error('Computed JSS scores do not match')
+    #     logging.error('JSS: {} Avg: {}'.format(jss_epoch, top1.avg))
 
     # # Logging the epoch-wise JSS
     if multi_run is None:
@@ -182,9 +182,13 @@ def jaccard_similarity_score(targets, preds):
     assert len(preds.shape) == 1
 
     locs_targets = set(np.where(targets == 1)[0])
-    preds_targets = set(np.where(preds == 1)[0])
+    locs_preds = set(np.where(preds == 1)[0])
 
-    score = len(locs_targets.intersection(preds_targets)) / len(targets)
+    try:
+        score = len(locs_targets.intersection(locs_preds)) / len(locs_targets.union(locs_preds))
+    except:
+        print('Exception!')
+
     return score
 
 
