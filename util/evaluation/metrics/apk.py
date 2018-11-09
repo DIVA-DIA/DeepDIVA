@@ -46,6 +46,11 @@ def apk(query, predicted, k='full'):
 
     predicted = np.array(predicted)
 
+    num_hits = len(np.where(predicted == query)[0])
+
+    # Divide by min(k, num_hits)
+    k_or_num_hits = min(k, num_hits)
+
     # Non-vectorized version.
     # score = 0.0  # The score is the precision@i integrated over i=1:k
     # num_hits = 0.0
@@ -55,7 +60,7 @@ def apk(query, predicted, k='full'):
     #         num_hits += 1.0
     #         score += num_hits / (i + 1.0)
     #
-    # return score / k
+    # return score / k_or_num_hits
 
     # Make an empty array for relevant queries.
     relevant = np.zeros(len(predicted))
@@ -73,7 +78,7 @@ def apk(query, predicted, k='full'):
     # Divide element-wise by [0/1,1/2,0/3,2/4,0/5,3/6] and sum the array.
     score = np.sum(np.divide(relevant, np.arange(1, relevant.shape[0] + 1)))
 
-    return score / k
+    return score / k_or_num_hits
 
 
 def mapk(query, predicted, k=None, workers=1):
@@ -154,7 +159,7 @@ def compute_mapk(distances, labels, k, workers=None):
 
     # Fetch the index of the lowest `max_count` (k) elements
     t = time.time()
-    ind = np.argpartition(distances, max_count)[:, :max_count]
+    ind = np.argpartition(distances, max_count - 1)[:, :max_count]
     # Find the sorting sequence according to the shortest distances selected from `ind`
     ssd = np.argsort(np.array(distances)[np.arange(distances.shape[0])[:, None], ind], axis=1)
     # Consequently sort `ind`
