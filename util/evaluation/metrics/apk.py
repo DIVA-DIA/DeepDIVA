@@ -33,23 +33,24 @@ def apk(query, predicted, k='full'):
         Average Precision@k
 
     """
-    if k == 'auto':
-        k = predicted.count(query)
-    elif k == 'full':
-        k = len(predicted)
+    assert (len(predicted) > 0)
 
-    if k == 0 or len(predicted) == 0:
+    # Count the number of relevant items that could be retrieved
+    num_hits = predicted.count(query)
+    if num_hits == 0:
         return 0
 
-    if len(predicted) > k:
-        predicted = predicted[:k]
+    # Resolve k in case is not a number
+    if k == 'auto':
+        k = num_hits
+    elif k == 'full':
+        k = len(predicted)
+    else:
+        assert isinstance(k, int)
+    assert (k > 0) and (k <= len(predicted))
 
-    predicted = np.array(predicted)
-
-    num_hits = len(np.where(predicted == query)[0])
-
-    # Divide by min(k, num_hits)
-    k_or_num_hits = min(k, num_hits)
+    # Truncate the list to the number of desired elements which gets taken into account
+    predicted = np.array(predicted[:k])
 
     # Non-vectorized version.
     # score = 0.0  # The score is the precision@i integrated over i=1:k
@@ -78,7 +79,7 @@ def apk(query, predicted, k='full'):
     # Divide element-wise by [0/1,1/2,0/3,2/4,0/5,3/6] and sum the array.
     score = np.sum(np.divide(relevant, np.arange(1, relevant.shape[0] + 1)))
 
-    return score / k_or_num_hits
+    return score / min(k, num_hits)
 
 
 def mapk(query, predicted, k=None, workers=1):
