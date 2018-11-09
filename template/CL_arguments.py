@@ -292,6 +292,7 @@ def _triplet_options(parser):
                                 default=2.0,
                                 help='the margin value for the triplet loss function')
     parser_triplet.add_argument('--no-anchor-swap',
+                                dest='anchor_swap',
                                 default=True,
                                 action='store_false',
                                 help='turns off anchor swap')
