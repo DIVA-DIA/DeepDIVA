@@ -7,7 +7,7 @@ import math
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
-__all__ = ['_ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
+__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
 
 model_urls = {
@@ -96,11 +96,11 @@ class _Bottleneck(nn.Module):
         return out
 
 
-class _ResNet(nn.Module):
+class ResNet(nn.Module):
 
     def __init__(self, block, layers, output_channels=1000):
         self.inplanes = 64
-        super(_ResNet, self).__init__()
+        super(ResNet, self).__init__()
 
         self.expected_input_size = (224, 224)
 
@@ -165,7 +165,7 @@ def resnet18(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = _ResNet(_BasicBlock, [2, 2, 2, 2], **kwargs)
+    model = ResNet(_BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
         try:
             model.load_state_dict(model_zoo.load_url(model_urls['resnet18']), strict=False)
@@ -180,7 +180,7 @@ def resnet34(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = _ResNet(_BasicBlock, [3, 4, 6, 3], **kwargs)
+    model = ResNet(_BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
         try:
             model.load_state_dict(model_zoo.load_url(model_urls['resnet34']), strict=False)
@@ -195,7 +195,7 @@ def resnet50(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = _ResNet(_Bottleneck, [3, 4, 6, 3], **kwargs)
+    model = ResNet(_Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
         try:
             model.load_state_dict(model_zoo.load_url(model_urls['resnet50']), strict=False)
@@ -210,7 +210,7 @@ def resnet101(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = _ResNet(_Bottleneck, [3, 4, 23, 3], **kwargs)
+    model = ResNet(_Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
         try:
             model.load_state_dict(model_zoo.load_url(model_urls['resnet101']), strict=False)
@@ -225,7 +225,7 @@ def resnet152(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = _ResNet(_Bottleneck, [3, 8, 36, 3], **kwargs)
+    model = ResNet(_Bottleneck, [3, 8, 36, 3], **kwargs)
     if pretrained:
         try:
             model.load_state_dict(model_zoo.load_url(model_urls['resnet152']), strict=False)

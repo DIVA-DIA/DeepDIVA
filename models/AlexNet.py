@@ -23,7 +23,7 @@ class Flatten(nn.Module):
         return x
 
 
-class _AlexNet(nn.Module):
+class AlexNet(nn.Module):
     r"""
     AlexNet model architecture from the `"One weird trick..." <https://arxiv.org/abs/1404.5997>`_ paper.
 
@@ -53,7 +53,7 @@ class _AlexNet(nn.Module):
         output_channels : int
             Number of neurons in the last layer
         """
-        super(_AlexNet, self).__init__()
+        super(AlexNet, self).__init__()
 
         self.expected_input_size = (227, 227)
 
@@ -133,7 +133,7 @@ def alexnet(pretrained=False, **kwargs):
     pretrained : bool
         If True, returns a model pre-trained on ImageNet
     """
-    model = _AlexNet(**kwargs)
+    model = AlexNet(**kwargs)
     if pretrained:
         try:
             model.load_state_dict(model_zoo.load_url(model_urls['alexnet']), strict=False)

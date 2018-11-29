@@ -210,8 +210,6 @@ def run_apidoc(_):
 
     argv = [
         "-f",
-        "-e",
-        "-M",
         "-o", "source",
         ".."
     ] + ignore_paths

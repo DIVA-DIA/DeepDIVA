@@ -1,7 +1,7 @@
 import math
 import torch.nn as nn
 
-__all__ = ['babyresnet18', 'babyresnet34', 'babyresnet50', 'babyresnet101', 'babyresnet152']
+__all__ = ['BabyResNet','babyresnet18', 'babyresnet34', 'babyresnet50', 'babyresnet101', 'babyresnet152']
 
 class Flatten(nn.Module):
     """
@@ -16,7 +16,7 @@ class Flatten(nn.Module):
         return x
 
 
-class _BabyResNet(nn.Module):
+class BabyResNet(nn.Module):
     r"""
     ResNet model architecture adapted from `<https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py>`
     It is better suited for smaller images as the expected input size is TODO
@@ -84,7 +84,7 @@ class _BabyResNet(nn.Module):
         output_channels : int
             Number of neurons in the last layer
         """
-        super(_BabyResNet, self).__init__()
+        super(BabyResNet, self).__init__()
 
         self.features = None
         self.num_input_filters = 128  # Attention: this gets updated after each convx layer creation!
@@ -302,7 +302,7 @@ def babyresnet18(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_BasicBlock, [0, 4, 2, 2], **kwargs)
+    return BabyResNet(_BasicBlock, [0, 4, 2, 2], **kwargs)
 
 
 def babyresnet34(**kwargs):
@@ -314,7 +314,7 @@ def babyresnet34(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_BasicBlock, [0, 7, 6, 3], **kwargs)
+    return BabyResNet(_BasicBlock, [0, 7, 6, 3], **kwargs)
 
 
 def babyresnet50(**kwargs):
@@ -326,7 +326,7 @@ def babyresnet50(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_Bottleneck, [0, 7, 6, 3], **kwargs)
+    return BabyResNet(_Bottleneck, [0, 7, 6, 3], **kwargs)
 
 
 def babyresnet101(**kwargs):
@@ -338,7 +338,7 @@ def babyresnet101(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_Bottleneck, [0, 7, 23, 3], **kwargs)
+    return BabyResNet(_Bottleneck, [0, 7, 23, 3], **kwargs)
 
 
 def babyresnet152(**kwargs):
@@ -350,4 +350,4 @@ def babyresnet152(**kwargs):
     torch.nn.Module
         The model of the network
     """
-    return _BabyResNet(_Bottleneck, [0, 11, 36, 3], **kwargs)
+    return BabyResNet(_Bottleneck, [0, 11, 36, 3], **kwargs)

@@ -183,16 +183,21 @@ def _main(args):
     features, preds, labels, filenames = results
 
     if args.tensorboard:
-        writer = SummaryWriter(log_dir=os.path.dirname(args.output_file))
+        if args.output.endwith('.png'):
+            output_loc = os.path.dirname(args.output)
+        else:
+            output_loc = args.output
+        writer = SummaryWriter(log_dir=output_loc)
         with Pool(16) as pool:
             images = pool.map(_load_thumbnail, filenames)
         writer.add_embedding(torch.from_numpy(features), metadata=torch.from_numpy(labels),
                              # label_img=torch.from_numpy(np.array(images)).unsqueeze(1))
                              label_img=None)
         return
-    viz_img = _make_embedding(features=features, labels=labels, embedding=args.embedding, three_d=args.three_d)
-    cv2.imwrite(args.output_file, viz_img)
-    return
+    else:
+        viz_img = _make_embedding(features=features, labels=labels, embedding=args.embedding, three_d=args.three_d)
+        cv2.imwrite(args.output_file, viz_img)
+        return
 
 
 if __name__ == "__main__":
@@ -209,7 +214,7 @@ if __name__ == "__main__":
                         help='which embedding to use for the features',
                         choices=embedding_options,
                         type=str)
-    parser.add_argument('--output-file',
+    parser.add_argument('--output',
                         type=str,
                         default='./output.png',
                         help='path to generate output image')
