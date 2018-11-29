@@ -38,6 +38,7 @@ def _main(args):
         args.num_results = len(features) - 1
     _ = [tmp.append('R{}'.format(i + 1)) for i in range(args.num_results)]
 
+    results = sorted(results, key=lambda e:e[0])
     dframe = DataFrame(results, columns=tmp)
     dframe.to_csv(args.output_file, index=False)
     print('Precision@1: {}'.format(np.average(avg_top_one)))

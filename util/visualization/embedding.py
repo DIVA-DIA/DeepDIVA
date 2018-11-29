@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 from sklearn.manifold import TSNE, Isomap, MDS
 from sklearn.decomposition import PCA
-
+from sklearn.preprocessing import LabelEncoder
 
 ########################################################################################################################
 def tsne(features, n_components=2):
@@ -126,6 +126,10 @@ def _make_embedding(features, labels, embedding, three_d=False):
 
     X = features
 
+    le = LabelEncoder()
+
+    labels = le.fit_transform(labels)
+
     cmap = plt.cm.get_cmap('jet', len(np.unique(labels)))
 
     if three_d:
@@ -163,6 +167,9 @@ def _load_thumbnail(path):
     img = cv2.resize(img, (16, 16))
     return img
 
+def _make_folder_if_not_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 def _main(args):
     """
@@ -182,11 +189,13 @@ def _main(args):
 
     features, preds, labels, filenames = results
 
+    _make_folder_if_not_exists(os.path.dirname(args.output_file))
+
     if args.tensorboard:
         writer = SummaryWriter(log_dir=os.path.dirname(args.output_file))
         with Pool(16) as pool:
             images = pool.map(_load_thumbnail, filenames)
-        writer.add_embedding(torch.from_numpy(features), metadata=torch.from_numpy(labels),
+        writer.add_embedding(torch.from_numpy(features), metadata=labels,
                              # label_img=torch.from_numpy(np.array(images)).unsqueeze(1))
                              label_img=None)
         return
