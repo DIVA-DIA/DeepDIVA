@@ -26,7 +26,7 @@ model_urls = {
 
 class VGG(nn.Module):
 
-    def __init__(self, features, output_channels=1000):
+    def __init__(self, features, output_channels=1000, **kwargs):
         super(VGG, self).__init__()
 
         self.expected_input_size = (224, 224)

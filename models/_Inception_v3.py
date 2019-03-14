@@ -38,7 +38,7 @@ def inception_v3(pretrained=False, **kwargs):
 
 class Inception3(nn.Module):
 
-    def __init__(self, output_channels=1000, aux_logits=True, transform_input=False):
+    def __init__(self, output_channels=1000, aux_logits=True, transform_input=False, **kwargs):
         super(Inception3, self).__init__()
 
         if self.training and aux_logits == False:
