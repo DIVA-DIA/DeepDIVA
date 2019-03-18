@@ -60,17 +60,16 @@ python template/RunMe.py --output-folder log --dataset-folder toy_dataset/MNIST 
 
 ## Citing us
 
-If you use our software, please cite our paper as (will be updated soon):
+If you use our software, please cite our paper as:
 
 ``` latex
 @inproceedings{albertipondenkandath2018deepdiva,
-    archivePrefix = {arXiv},
-    arxivId = {1805.00329},
-    eprint = {1805.00329},
-    author = {Alberti, Michele and Pondenkandath, Vinaychandran and Würsch, Marcel and Ingold, Rolf and Liwicki, Marcus},
-    title = {{DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments}},
-    year = {2018},
-    month = {apr},
+  title={{DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments}},
+  author={Alberti, Michele and Pondenkandath, Vinaychandran and W{\"u}rsch, Marcel and Ingold, Rolf and Liwicki, Marcus},
+  booktitle={2018 16th International Conference on Frontiers in Handwriting Recognition (ICFHR)},
+  pages={423--428},
+  year={2018},
+  organization={IEEE}
 }
 ```
 
