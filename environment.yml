@@ -7,6 +7,7 @@ dependencies:
   - asn1crypto=0.24.0=py35_0
   - attrs=17.4.0=py35_0
   - babel=2.5.3=py35_0
+  - blas=1.0=mkl
   - bzip2=1.0.6=h9a117a8_4
   - ca-certificates=2017.08.26=h1d4fec5_0
   - cairo=1.14.12=h77bcde2_0
@@ -122,6 +123,8 @@ dependencies:
     - humanfriendly==4.10
     - markdown==2.6.11
     - protobuf==3.5.2.post1
+    - pyyaml==5.1
+    - rarfile==3.0
     - sigopt==3.0.0
     - tensorboard==1.6.0
     - tensorboard-logger==0.1.0
@@ -132,5 +135,6 @@ dependencies:
     - torch==0.3.1.post2
     - tqdm==4.19.6
     - werkzeug==0.14.1
-prefix: /home/pondenka/.conda/envs/ddiva
+    - wget==3.2
+prefix: /home/test/.conda/envs/deepdiva
 
