@@ -5,9 +5,12 @@ source ~/.bashrc
 # example
 # echo "node: $(program_is_installed node)"
 mac=0
+mac_version=0
 if [[ "$OSTYPE" =~ ^darwin ]]; then
     echo "You use MacOS."
     mac=1
+    number=$(echo "$OSTYPE" | grep -o -E '[0-9]+\.?[0-9]*')
+    mac_version=${number%%.*}
 fi
 
 function program_is_installed {
@@ -45,7 +48,14 @@ fi
 # Create an environment
 if [ $mac -eq 1 ]
 then
-    conda env create -f environment_mac.yml
+    if [ $mac_version -eq 17 ]
+    then
+        conda env create -f environment_mac_17.yml
+    fi
+    if [ $mac_version -eq 18 ]
+    then 
+        conda env create -f environment_mac_18.yml
+    fi
 else
     conda env create -f environment.yml
 fi
