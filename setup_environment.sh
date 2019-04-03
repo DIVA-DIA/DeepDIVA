@@ -1,16 +1,9 @@
 #!/bin/bash
 source ~/.bashrc
-# Verify Conda installation: (https://conda.io/docs/user-guide/install/index.html)
-# return 1 if global command line program installed, else 0
-# example
-# echo "node: $(program_is_installed node)"
 mac=0
-mac_version=0
 if [[ "$OSTYPE" =~ ^darwin ]]; then
     echo "You use MacOS."
     mac=1
-    number=$(echo "$OSTYPE" | grep -o -E '[0-9]+\.?[0-9]*')
-    mac_version=${number%%.*}
 fi
 
 function program_is_installed {
@@ -22,47 +15,41 @@ function program_is_installed {
   echo "$return_"
 }
 
-
 if [ $(program_is_installed conda) == 1 ]; then
-  echo "conda installed"
-  echo 'source ~/.bash_functions' >> ~/.bashrc
+  echo "Conda installed."
 else
-  echo "installing conda"
+  echo "Installing Conda."
   if [ $mac -eq 1 ]
   then
-    curl https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -output Miniconda2-latest-MacOSX-x86_64.sh
-    chmod +x Miniconda2-latest-MacOSX-x86_64.sh
-    ./Miniconda2-latest-MacOSX-x86_64.sh
+    curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o miniconda.sh
   else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      chmod +x Miniconda3-latest-Linux-x86_64.sh
-      ./Miniconda3-latest-Linux-x86_64.sh
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh -q
   fi
 
-  tail -n 1 ~/.bashrc >> ~/.bash_functions
-  head -n -2 ~/.bashrc
-  echo 'source ~/.bash_functions' >> ~/.bashrc
-  source ~/.bash_functions
+  clear
+  chmod +x miniconda.sh
+  ./miniconda.sh -b -p $HOME/miniconda
+  export PATH="$HOME/miniconda/bin:$PATH"
+  echo "## DeepDIVA ##" >> $HOME/.bashrc
+  echo export PATH="$HOME/miniconda/bin:$PATH" >> $HOME/.bashrc
 fi
+
+clear
 
 # Create an environment
+echo "Installing packages. This will take some time."
 if [ $mac -eq 1 ]
 then
-    if [ $mac_version -eq 17 ]
-    then
-        conda env create -f environment_mac_17.yml
-    fi
-    if [ $mac_version -eq 18 ]
-    then 
-        conda env create -f environment_mac_18.yml
-    fi
+    conda env create -q -f environment_mac.yml
 else
-    conda env create -f environment.yml
+    conda env create -q -f environment.yml
 fi
 
-# Set up PYTHONPATH
-touch ~/.bash_functions
-echo 'export PYTHONPATH=$PWD:$PYTHONPATH' >> ~/.bash_functions
+clear
 
-# Congratulate user on success
-echo "You're the best! Everything worked!"
+# Set up PYTHONPATH
+echo 'export PYTHONPATH=$PWD:$PYTHONPATH' >> $HOME/.bashrc
+echo "## DeepDIVA ##" >> $HOME/.bashrc
+echo "Setup completed!"
+echo "Please run 'source ~/.bashrc' to refresh your environment"
+echo "You can activate the deepdiva environment with 'source activate deepdiva'"
