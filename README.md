@@ -49,7 +49,7 @@ source activate deepdiva
 Download the MNIST dataset:
 
 ``` shell
-python util/data/get_a_dataset.py mnist --output-folder toy_dataset
+python util/data/get_a_dataset.py --dataset mnist --output-folder toy_dataset
 ```
 
 Train a simple Convolutional Neural Network on the MNIST dataset using the command:
