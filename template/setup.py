@@ -640,6 +640,14 @@ def set_up_env(gpu_id, seed, multi_run, no_cuda, **kwargs):
     -------
         None
     """
+
+    # Check if GPU's are available
+    gpu_available = torch.cuda.is_available()
+    if not gpu_available and not no_cuda:
+        logging.warning('There are no GPUs available on this system.')
+        logging.warning('Switch to CPU only computation using --no-cuda.')
+        sys.exit(-1)
+
     # Set visible GPUs
     if gpu_id is not None:
         os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
