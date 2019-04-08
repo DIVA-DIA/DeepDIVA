@@ -35,7 +35,6 @@ import argparse
 import logging
 import os
 from multiprocessing import Pool
-import cv2
 import numpy as np
 import pandas as pd
 
@@ -43,6 +42,7 @@ import pandas as pd
 import torch
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+from util.misc import load_numpy_image
 
 
 def compute_mean_std(dataset_folder, inmem, workers):
@@ -99,17 +99,15 @@ def compute_mean_std(dataset_folder, inmem, workers):
 
 # Loads an image with OpenCV and returns the channel wise means of the image.
 def _return_mean(image_path):
-    # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
-    img = cv2.imread(image_path)
-    mean = np.array([np.mean(img[:, :, 2]), np.mean(img[:, :, 1]), np.mean(img[:, :, 0])]) / 255.0
+    img = load_numpy_image(image_path)
+    mean = np.array([np.mean(img[:, :, 0]), np.mean(img[:, :, 1]), np.mean(img[:, :, 2])]) / 255.0
     return mean
 
 
 # Loads an image with OpenCV and returns the channel wise std of the image.
 def _return_std(image_path, mean):
-    # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
-    img = cv2.imread(image_path) / 255.0
-    m2 = np.square(np.array([img[:, :, 2] - mean[0], img[:, :, 1] - mean[1], img[:, :, 0] - mean[2]]))
+    img = load_numpy_image(image_path)
+    m2 = np.square(np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]))
     return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
 
@@ -173,15 +171,14 @@ def cms_inmem(file_names):
     mean : double
     std : double
     """
-    img = np.zeros([file_names.size] + list(cv2.imread(file_names[0]).shape))
+    img = np.zeros([file_names.size] + list(load_numpy_image(file_names[0]).shape))
 
     # Load all samples
     for i, sample in enumerate(file_names):
-        img[i] = cv2.imread(sample)
+        img[i] = load_numpy_image(sample)
 
-    # NOTE: channels 0 and 2 are swapped because cv2 opens bgr
-    mean = np.array([np.mean(img[:, :, :, 2]), np.mean(img[:, :, :, 1]), np.mean(img[:, :, :, 0])]) / 255.0
-    std = np.array([np.std(img[:, :, :, 2]), np.std(img[:, :, :, 1]), np.std(img[:, :, :, 0])]) / 255.0
+    mean = np.array([np.mean(img[:, :, :, 0]), np.mean(img[:, :, :, 1]), np.mean(img[:, :, :, 2])]) / 255.0
+    std = np.array([np.std(img[:, :, :, 0]), np.std(img[:, :, :, 1]), np.std(img[:, :, :, 2])]) / 255.0
 
     return mean, std
 

@@ -15,12 +15,12 @@ import torch
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
-import cv2
 import numpy as np
 from sklearn.manifold import TSNE, Isomap, MDS
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
-
+from util.misc import load_numpy_image, save_numpy_image
+from PIL import Image
 ########################################################################################################################
 def tsne(features, n_components=2):
     """
@@ -163,8 +163,8 @@ def _load_thumbnail(path):
     img: numpy.ndarray
         resized image of size 16x16
     """
-    img = cv2.imread(path)
-    img = cv2.resize(img, (16, 16))
+    img = Image.open(path).thumbnail((16, 16))
+    img = np.array(img)
     return img
 
 def _make_folder_if_not_exists(path):
@@ -198,14 +198,14 @@ def _main(args):
             output_loc = args.output
         writer = SummaryWriter(log_dir=output_loc)
         with Pool(16) as pool:
-            images = pool.map(_load_thumbnail, filenames)
+        # images = pool.map(_load_thumbnail, filenames)
         writer.add_embedding(torch.from_numpy(features), metadata=labels,
                              # label_img=torch.from_numpy(np.array(images)).unsqueeze(1))
                              label_img=None)
         return
     else:
         viz_img = _make_embedding(features=features, labels=labels, embedding=args.embedding, three_d=args.three_d)
-        cv2.imwrite(args.output_file, viz_img)
+        save_numpy_image(args.output_file, viz_img)
         return
 
 

@@ -10,10 +10,10 @@ import os.path
 import shutil
 import string
 
-import cv2
+
 import numpy as np
 import torch
-
+from PIL import Image
 
 def _prettyprint_logging_label(logging_label):
     """Format the logging label in a pretty manner.
@@ -288,9 +288,21 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image=None, global_
     image = tensor_to_image(image)
 
     # Write image to output folder
-    cv2.imwrite(dest_filename, image)
+    save_numpy_image(dest_filename, image)
 
     return
+
+
+def save_numpy_image(dest_filename, image):
+    img = Image.fromarray(image)
+    img.save(dest_filename)
+    return
+
+
+def load_numpy_image(dest_filename):
+    img = Image.open(dest_filename).convert('RGB')
+    img = np.array(img)
+    return img
 
 def has_extension(filename, extensions):
     """Checks if a file is an allowed extension.

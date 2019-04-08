@@ -2,10 +2,9 @@ import argparse
 import os
 from multiprocessing import Pool
 
-import cv2
 import numpy as np
 
-from util.misc import get_all_files_in_folders_and_subfolders, has_extension
+from util.misc import get_all_files_in_folders_and_subfolders, has_extension, load_numpy_image, save_numpy_image
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
@@ -20,21 +19,21 @@ def get_list_images(dir):
 
 
 def remove_empty(img):
-    img = cv2.bitwise_not(img)
+    img = np.invert(img)
     x_locs = np.where(img.sum(axis=0).sum(axis=1) == 0)[0]
     y_locs = np.where(img.sum(axis=1).sum(axis=1) == 0)[0]
     img = np.delete(img, y_locs, axis=0)
     img = np.delete(img, x_locs, axis=1)
-    img = cv2.bitwise_not(img)
+    img = np.invert(img)
     return img
 
 
 def open_crop_save(path):
-    img = cv2.imread(path)
+    img = load_numpy_image(path)
     img = remove_empty(img)
     os.remove(path)
     path = path.split('.')[0] + '.png'
-    cv2.imwrite(path, img)
+    save_numpy_image(path, img)
     return
 
 

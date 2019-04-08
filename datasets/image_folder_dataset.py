@@ -7,13 +7,12 @@ import logging
 import os
 import sys
 from multiprocessing import Pool
-import cv2
 import numpy as np
 
 # Torch related stuff
 import torch.utils.data as data
 import torchvision
-from PIL import Image
+from torchvision.datasets.folder import pil_loader
 
 from util.misc import get_all_files_in_folders_and_subfolders, has_extension
 
@@ -143,7 +142,7 @@ class ImageFolderInMemory(data.Dataset):
 
         # Load all samples
         pool = Pool(workers)
-        self.data = pool.map(cv2.imread, file_names)
+        self.data = pool.map(pil_loader, file_names)
         pool.close()
 
         # Set expected class attributes
@@ -165,9 +164,6 @@ class ImageFolderInMemory(data.Dataset):
         """
 
         img, target = self.data[index], self.labels[index]
-
-        # Doing this so that it is consistent with all other datasets to return a PIL Image
-        img = Image.fromarray(img)
 
         if self.transform is not None:
             img = self.transform(img)
@@ -242,10 +238,7 @@ class ImageFolderApply(data.Dataset):
         filename : string
         """
 
-        # Weird way to open things due to issue https://github.com/python-pillow/Pillow/issues/835
-        with open(self.file_names[index], 'rb') as f:
-            img = Image.open(f)
-            img = img.convert('RGB')
+        img = pil_loader(self.file_names[index])
 
         target, filename = self.labels[index], self.file_names[index]
 

@@ -97,8 +97,6 @@ def main(args):
     img = img.resize(size=(1000, 1000), resample=Image.BICUBIC)
     img.save('/home/pondenka/output.png')
 
-    # cv2.imwrite('/home/pondenka/output.png', img)
-
     print(x.data.numpy().shape)
 
 

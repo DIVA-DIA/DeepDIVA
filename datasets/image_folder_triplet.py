@@ -9,13 +9,11 @@ import os
 import random
 import sys
 from multiprocessing import Pool
-import cv2
 import numpy as np
 import torch.utils.data as data
 
 # Torch related stuff
 import torchvision
-from PIL import Image
 from tqdm import trange
 from torchvision.datasets.folder import pil_loader
 
@@ -142,7 +140,6 @@ class ImageFolderTriplet(data.Dataset):
         if self.in_memory:
             # Load all samples
             with Pool(workers) as pool:
-                # self.data = pool.map(self.cv2.imread, self.file_names)
                 self.data = pool.map(pil_loader, self.file_names)
 
     def generate_triplets(self):
@@ -192,12 +189,10 @@ class ImageFolderTriplet(data.Dataset):
             Negative image (different class of anchor)
         """
         if not self.train:
-            # a, pn, l = self.matches[index]
             l = self.labels[index]
             if self.in_memory:
-                img_a = Image.fromarray(self.data[index])
+                img_a = self.data[index]
             else:
-                # img_a = Image.fromarray(cv2.imread(self.file_names[index]))
                 img_a = pil_loader(self.file_names[index])
 
             if self.transform is not None:
@@ -206,15 +201,11 @@ class ImageFolderTriplet(data.Dataset):
 
         a, p, n = self.triplets[index]
 
-        # Doing this so that it is consistent with all other datasets to return a PIL Image
         if self.in_memory:
-            img_a = Image.fromarray(self.data[a])
-            img_p = Image.fromarray(self.data[p])
-            img_n = Image.fromarray(self.data[n])
+            img_a = self.data[a]
+            img_p = self.data[p]
+            img_n = self.data[n]
         else:
-            # img_a = Image.fromarray(cv2.imread(self.file_names[a]))
-            # img_p = Image.fromarray(cv2.imread(self.file_names[p]))
-            # img_n = Image.fromarray(cv2.imread(self.file_names[n]))
             img_a = pil_loader(self.file_names[a])
             img_p = pil_loader(self.file_names[p])
             img_n = pil_loader(self.file_names[n])
