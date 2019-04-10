@@ -95,14 +95,14 @@ def svhn(args):
     torchvision.datasets.SVHN(root=args.output_folder, split='test', download=True)
 
     # Load the data into memory
-    train = scipy.io.loadmat(os.path.join(args.output_folder,
+    train = _loadmat(os.path.join(args.output_folder,
                                           'train_32x32.mat'))
     train_data, train_labels = train['X'], train['y'].astype(np.int64).squeeze()
     np.place(train_labels, train_labels == 10, 0)
     train_data = np.transpose(train_data, (3, 0, 1, 2))
 
-    test = scipy.io.loadmat(os.path.join(args.output_folder,
-                                         'test_32x32.mat'))
+    test = _loadmat(os.path.join(args.output_folder,
+                                 'test_32x32.mat'))
     test_data, test_labels = test['X'], test['y'].astype(np.int64).squeeze()
     np.place(test_labels, test_labels == 10, 0)
     test_data = np.transpose(test_data, (3, 0, 1, 2))
