@@ -152,9 +152,9 @@ def cifar10(args):
     cifar_test = torchvision.datasets.CIFAR10(root=args.output_folder, train=False, download=True)
 
     # Load the data into memory
-    train_data, train_labels = cifar_train.train_data, cifar_train.train_labels
+    train_data, train_labels = cifar_train.data, cifar_train.targets
 
-    test_data, test_labels = cifar_test.test_data, cifar_test.test_labels
+    test_data, test_labels = cifar_test.data, cifar_test.targets
 
     # Make output folders
     dataset_root = os.path.join(args.output_folder, 'CIFAR10')
