@@ -247,7 +247,7 @@ def tensor_to_image(image):
     image = image * 255
     assert (image.min() >= 0)  # Data should be in range [0:255]
 
-    return image
+    return image.astype(np.uint8)
 
 
 def save_image_and_log_to_tensorboard(writer=None, tag=None, image=None, global_step=None):
@@ -270,7 +270,7 @@ def save_image_and_log_to_tensorboard(writer=None, tag=None, image=None, global_
 
     """
     # Log image to Tensorboard
-    writer.add_image(tag=tag, img_tensor=image, global_step=global_step)
+    writer.add_image(tag=tag, img_tensor=image, global_step=global_step, dataformats='HWC')
 
     # Get output folder using the FileHandler from the logger.
     # (Assumes the file handler is the last one)
