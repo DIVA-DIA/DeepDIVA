@@ -159,7 +159,7 @@ def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers):
         Class frequencies for the selected dataset, contained in the analytics.csv file.
     """
     csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
-    return csv_file.ix[2, 1:].as_matrix().astype(float)
+    return csv_file.ix[2, 1:].values.astype(float)
 
 
 def _get_optimizer(optimizer_name, model, **kwargs):
@@ -385,8 +385,8 @@ def _load_mean_std_from_file(dataset_folder, inmem, workers):
     # Loads the analytics csv and extract mean and std
     try:
         csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
-        mean = np.asarray(csv_file.ix[0, 1:3])
-        std = np.asarray(csv_file.ix[1, 1:3])
+        mean = csv_file.ix[0, 1:3].values.astype(float)
+        std = csv_file.ix[1, 1:3].values.astype(float)
     except KeyError:
         import sys
         logging.error('analytics.csv located in {} incorrectly formed. '
@@ -644,7 +644,7 @@ def set_up_env(gpu_id, seed, multi_run, no_cuda, **kwargs):
     # Check if GPU's are available
     gpu_available = torch.cuda.is_available()
     if not gpu_available and not no_cuda:
-        logging.warning('There are no GPUs available on this system.')
+        logging.warning('There are no GPUs available on this system, or your NVIDIA drivers are outdated.')
         logging.warning('Switch to CPU only computation using --no-cuda.')
         sys.exit(-1)
 

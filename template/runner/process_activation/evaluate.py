@@ -79,8 +79,8 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
         # Moving data to GPU
         if not no_cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
+            input = input.cuda(non_blocking=True)
+            target = target.cuda(non_blocking=True)
 
         # Convert the input and its labels to Torch Variables
         input_var = torch.autograd.Variable(input, volatile=True)
