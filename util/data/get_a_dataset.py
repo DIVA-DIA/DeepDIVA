@@ -42,9 +42,11 @@ def mnist(args):
 
     # Load the data into memory
     train_data, train_labels = torch.load(os.path.join(args.output_folder,
+                                                       'MNIST',
                                                        'processed',
                                                        'training.pt'))
     test_data, test_labels = torch.load(os.path.join(args.output_folder,
+                                                     'MNIST',
                                                      'processed',
                                                      'test.pt'))
 
@@ -67,8 +69,8 @@ def mnist(args):
     _write_data_to_folder(train_data, train_labels, train_folder)
     _write_data_to_folder(test_data, test_labels, test_folder)
 
-    shutil.rmtree(os.path.join(args.output_folder, 'raw'))
-    shutil.rmtree(os.path.join(args.output_folder, 'processed'))
+    shutil.rmtree(os.path.join(args.output_folder, 'MNIST', 'raw'))
+    shutil.rmtree(os.path.join(args.output_folder, 'MNIST', 'processed'))
 
     split_dataset(dataset_folder=dataset_root, split=0.2, symbolic=False)
 
