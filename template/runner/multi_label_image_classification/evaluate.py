@@ -72,60 +72,62 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     targets = []
 
     pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
-    for batch_idx, (input, target) in pbar:
 
-        # Measure data loading time
-        data_time.update(time.time() - end)
+    with torch.no_grad():
+        for batch_idx, (input, target) in pbar:
 
-        # Moving data to GPU
-        if not no_cuda:
-            input = input.cuda(non_blocking=True)
-            target = target.cuda(non_blocking=True)
+            # Measure data loading time
+            data_time.update(time.time() - end)
 
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
+            # Moving data to GPU
+            if not no_cuda:
+                input = input.cuda(non_blocking=True)
+                target = target.cuda(non_blocking=True)
 
-        # Compute output
-        output = model(input_var)
+            # # Convert the input and its labels to Torch Variables
+            # input = torch.autograd.Variable(input, volatile=True)
+            # target = torch.autograd.Variable(target, volatile=True)
 
-        # Compute and record the loss
-        loss = criterion(output, target_var)
-        losses.update(loss.data[0], input.size(0))
+            # Compute output
+            output = model(input)
 
-        # Apply sigmoid and take everything above a threshold of 0.5
-        squashed_output = torch.nn.Sigmoid()(output).data.cpu().numpy()
-        target_vals = target.cpu().numpy().astype(np.int)
+            # Compute and record the loss
+            loss = criterion(output, target)
+            losses.update(loss.item(), input.size(0))
 
-        # jss = compute_jss(target_vals, get_preds_from_minibatch(squashed_output))
-        # top1.update(jss, input.size(0))
+            # Apply sigmoid and take everything above a threshold of 0.5
+            squashed_output = torch.nn.Sigmoid()(output).data.cpu().numpy()
+            target_vals = target.cpu().numpy().astype(np.int)
 
-        # Store results of each minibatch
-        _ = [preds.append(item) for item in get_preds_from_minibatch(squashed_output)]
-        _ = [targets.append(item) for item in target.cpu().numpy()]
+            # jss = compute_jss(target_vals, get_preds_from_minibatch(squashed_output))
+            # top1.update(jss, input.size(0))
 
-        # Add loss and accuracy to Tensorboard
-        if multi_run is None:
-            writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + batch_idx)
-            # writer.add_scalar(logging_label + '/mb_jaccard_similarity', jss, epoch * len(data_loader) + batch_idx)
-        else:
-            writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
-                              epoch * len(data_loader) + batch_idx)
-            # writer.add_scalar(logging_label + '/mb_jaccard_similarity_{}'.format(multi_run), jss,
-            #                   epoch * len(data_loader) + batch_idx)
+            # Store results of each minibatch
+            _ = [preds.append(item) for item in get_preds_from_minibatch(squashed_output)]
+            _ = [targets.append(item) for item in target.cpu().numpy()]
 
-        # Measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
+            # Add loss and accuracy to Tensorboard
+            if multi_run is None:
+                writer.add_scalar(logging_label + '/mb_loss', loss.item(), epoch * len(data_loader) + batch_idx)
+                # writer.add_scalar(logging_label + '/mb_jaccard_similarity', jss, epoch * len(data_loader) + batch_idx)
+            else:
+                writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.item(),
+                                  epoch * len(data_loader) + batch_idx)
+                # writer.add_scalar(logging_label + '/mb_jaccard_similarity_{}'.format(multi_run), jss,
+                #                   epoch * len(data_loader) + batch_idx)
 
-        if batch_idx % log_interval == 0:
-            pbar.set_description(logging_label +
-                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
+            # Measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
 
-            pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
-                             Loss='{loss.avg:.4f}\t'.format(loss=losses),
-                             # JSS='{top1.avg:.3f}\t'.format(top1=top1),
-                             Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
+            if batch_idx % log_interval == 0:
+                pbar.set_description(logging_label +
+                                     ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
+
+                pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
+                                 Loss='{loss.avg:.4f}\t'.format(loss=losses),
+                                 # JSS='{top1.avg:.3f}\t'.format(top1=top1),
+                                 Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
     # Generate a classification report for each epoch
     targets = np.array(targets).astype(np.int)

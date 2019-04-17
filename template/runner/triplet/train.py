@@ -81,7 +81,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
         # Compute and record the loss
         loss = criterion(out_p, out_a, out_n)
 
-        losses.update(loss.data[0], data_a.size(0))
+        losses.update(loss.item(), data_a.size(0))
 
         # Reset gradient
         optimizer.zero_grad()
@@ -101,9 +101,9 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
 
         # Add mb loss to Tensorboard
         if multi_run is None:
-            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss', loss.item(), epoch * len(train_loader) + batch_idx)
         else:
-            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.item(), epoch * len(train_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)

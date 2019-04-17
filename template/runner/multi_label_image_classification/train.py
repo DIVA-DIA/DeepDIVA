@@ -69,12 +69,8 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
 
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-
-        jss, loss, target_vals, pred_vals = train_one_mini_batch(model, criterion, optimizer, input_var, target_var,
-                                                             loss_meter, jss_meter)
+        jss, loss, target_vals, pred_vals = train_one_mini_batch(model, criterion, optimizer, input, target,
+                                                                 loss_meter, jss_meter)
 
         # Store results of each minibatch
         _ = [preds.append(item) for item in pred_vals]
@@ -82,10 +78,10 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
-            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss', loss.item(), epoch * len(train_loader) + batch_idx)
             # writer.add_scalar('train/mb_jaccard_similarity', jss, epoch * len(train_loader) + batch_idx)
         else:
-            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.item(),
                               epoch * len(train_loader) + batch_idx)
             # writer.add_scalar('train/mb_jaccard_similarity_{}'.format(multi_run), jss,
             #                   epoch * len(train_loader) + batch_idx)
@@ -130,7 +126,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
     return jss_epoch
 
 
-def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, jss_meter):
+def train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, jss_meter):
     """
     This routing train the model passed as parameter for one mini-batch
 
@@ -142,9 +138,9 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
         The loss function used to compute the loss of the model.
     optimizer : torch.optim
         The optimizer used to perform the weight update.
-    input_var : torch.autograd.Variable
+    input : torch.autograd.Variable
         The input data for the mini-batch
-    target_var : torch.autograd.Variable
+    target : torch.autograd.Variable
         The target data (labels) for the mini-batch
     loss_meter : AverageMeter
         Tracker for the overall loss
@@ -158,20 +154,20 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
         Loss for this mini-batch
     """
     # Compute output
-    output = model(input_var)
+    output = model(input)
 
     # Compute and record the loss
-    loss = criterion(output, target_var)
-    loss_meter.update(loss.data[0], len(input_var))
+    loss = criterion(output, target)
+    loss_meter.update(loss.item(), len(input))
 
     # Apply sigmoid and take everything above a threshold of 0.5
     squashed_output = torch.nn.Sigmoid()(output).data.cpu().numpy()
     preds = get_preds_from_minibatch(squashed_output)
-    target_vals = target_var.data.cpu().numpy().astype(np.int)
+    target_vals = target.data.cpu().numpy().astype(np.int)
 
     # # Compute and record the Jaccard Similarity Score
     # jss = compute_jss(target_vals, preds)
-    # jss_meter.update(jss, len(input_var))
+    # jss_meter.update(jss, len(input))
     jss = None
     # Reset gradient
     optimizer.zero_grad()
