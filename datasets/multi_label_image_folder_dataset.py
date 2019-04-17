@@ -121,10 +121,10 @@ class MultiLabelImageFolder(data.Dataset):
 
         df = pd.read_csv(os.path.join(self.dataset_folder, 'labels.csv'))
 
-        self.filenames = df.as_matrix()[:, 0]
+        self.filenames = df.values[:, 0]
         self.filenames = [os.path.join(self.dataset_folder, item) for item in self.filenames]
 
-        self.labels = df.as_matrix()[:, 1:]
+        self.labels = df.values[:, 1:]
 
         self.class_names = df.columns[1:]
         self.classes = np.arange(len(self.class_names))
