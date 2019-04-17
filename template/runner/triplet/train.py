@@ -67,9 +67,6 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
             data_a, data_p, data_n = data_a.cuda(non_blocking=True), data_p.cuda(non_blocking=True), data_n.cuda(
                 non_blocking=True)
 
-        # Convert the input and its labels to Torch Variables
-        data_a, data_p, data_n = Variable(data_a), Variable(data_p), Variable(data_n)
-
         # Compute output
         out_a, out_p, out_n = model(data_a), model(data_p), model(data_n)
 

@@ -84,10 +84,6 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
                 input = input.cuda(non_blocking=True)
                 target = target.cuda(non_blocking=True)
 
-            # # Convert the input and its labels to Torch Variables
-            # input = torch.autograd.Variable(input, volatile=True)
-            # target = torch.autograd.Variable(target, volatile=True)
-
             # Compute output
             output = model(input)
 
