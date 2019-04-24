@@ -1,4 +1,4 @@
-name: deepdiva1
+name: deepdiva
 channels:
   - conda-forge
   - pytorch
