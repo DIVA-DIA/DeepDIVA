@@ -64,10 +64,8 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
 
         # Moving data to GPU
         if not no_cuda:
-            data_a, data_p, data_n = data_a.cuda(async=True), data_p.cuda(async=True), data_n.cuda(async=True)
-
-        # Convert the input and its labels to Torch Variables
-        data_a, data_p, data_n = Variable(data_a), Variable(data_p), Variable(data_n)
+            data_a, data_p, data_n = data_a.cuda(non_blocking=True), data_p.cuda(non_blocking=True), data_n.cuda(
+                non_blocking=True)
 
         # Compute output
         out_a, out_p, out_n = model(data_a), model(data_p), model(data_n)
@@ -80,7 +78,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
         # Compute and record the loss
         loss = criterion(out_p, out_a, out_n)
 
-        losses.update(loss.data[0], data_a.size(0))
+        losses.update(loss.item(), data_a.size(0))
 
         # Reset gradient
         optimizer.zero_grad()
@@ -100,9 +98,9 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda, log
 
         # Add mb loss to Tensorboard
         if multi_run is None:
-            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss', loss.item(), epoch * len(train_loader) + batch_idx)
         else:
-            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.item(), epoch * len(train_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
