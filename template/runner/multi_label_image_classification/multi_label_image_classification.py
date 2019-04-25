@@ -71,7 +71,8 @@ class MultiLabelImageClassification:
         try:
             assert kwargs['criterion_name'] == 'BCEWithLogitsLoss'
         except AssertionError:
-            logging.error('Inappropriate criterion for Multi-Label classification! Specify with --criterion-name')
+            logging.error('Inappropriate criterion for Multi-Label classification! Please use an appropriate criterion '
+                          'such as BCEWithLogitsLoss by specifying --criterion-name BCEWithLogitsLoss')
             sys.exit(-1)
 
         # Setting up model, optimizer, criterion
