@@ -243,7 +243,7 @@ def _get_class_frequencies_weights_multilabel(dataset_labels):
 
     labels_df = pd.read_csv(dataset_labels)
     classes = labels_df.columns
-    labels = labels_df.as_matrix()
+    labels = labels_df.values
 
     # Replace all -1 with 0
     labels[labels == -1] = 0

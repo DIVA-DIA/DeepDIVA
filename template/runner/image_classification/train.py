@@ -61,21 +61,17 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
 
         # Moving data to GPU
         if not no_cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
+            input = input.cuda(non_blocking=True)
+            target = target.cuda(non_blocking=True)
 
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-
-        acc, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, acc_meter)
+        acc, loss = train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, acc_meter)
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
-            writer.add_scalar('train/mb_loss', loss.data[0], epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss', loss.item(), epoch * len(train_loader) + batch_idx)
             writer.add_scalar('train/mb_accuracy', acc.cpu().numpy(), epoch * len(train_loader) + batch_idx)
         else:
-            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.data[0],
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.item(),
                               epoch * len(train_loader) + batch_idx)
             writer.add_scalar('train/mb_accuracy_{}'.format(multi_run), acc.cpu().numpy(),
                               epoch * len(train_loader) + batch_idx)
@@ -105,10 +101,10 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
                   'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
                   .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, acc_meter=acc_meter))
 
-    return acc_meter.avg
+    return acc_meter.avg.item()
 
 
-def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, acc_meter):
+def train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, acc_meter):
     """
     This routing train the model passed as parameter for one mini-batch
 
@@ -120,9 +116,9 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
         The loss function used to compute the loss of the model.
     optimizer : torch.optim
         The optimizer used to perform the weight update.
-    input_var : torch.autograd.Variable
+    input : torch.autograd.Variable
         The input data for the mini-batch
-    target_var : torch.autograd.Variable
+    target : torch.autograd.Variable
         The target data (labels) for the mini-batch
     loss_meter : AverageMeter
         Tracker for the overall loss
@@ -137,15 +133,15 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var, los
         Loss for this mini-batch
     """
     # Compute output
-    output = model(input_var)
+    output = model(input)
 
     # Compute and record the loss
-    loss = criterion(output, target_var)
-    loss_meter.update(loss.data[0], len(input_var))
+    loss = criterion(output, target)
+    loss_meter.update(loss.item(), len(input))
 
     # Compute and record the accuracy
-    acc = accuracy(output.data, target_var.data, topk=(1,))[0]
-    acc_meter.update(acc[0], len(input_var))
+    acc = accuracy(output.data, target.data, topk=(1,))[0]
+    acc_meter.update(acc[0], len(input))
 
     # Reset gradient
     optimizer.zero_grad()

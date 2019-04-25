@@ -79,8 +79,8 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
         # Moving data to GPU
         if not no_cuda:
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
+            input = input.cuda(non_blocking=True)
+            target = target.cuda(non_blocking=True)
 
         # Convert the input and its labels to Torch Variables
         input_var = torch.autograd.Variable(input, volatile=True)
@@ -91,7 +91,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
         # Compute and record the loss
         loss = criterion(output, target_var)
-        losses.update(loss.data[0], input.size(0))
+        losses.update(loss.item(), input.size(0))
 
         # Compute and record the accuracy
         acc1 = accuracy(output.data, target, topk=(1,))[0]
@@ -103,10 +103,10 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
 
         # Add loss and accuracy to Tensorboard
         if multi_run is None:
-            writer.add_scalar(logging_label + '/mb_loss', loss.data[0], epoch * len(data_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_loss', loss.item(), epoch * len(data_loader) + batch_idx)
             writer.add_scalar(logging_label + '/mb_accuracy', acc1.cpu().numpy(), epoch * len(data_loader) + batch_idx)
         else:
-            writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.data[0],
+            writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), loss.item(),
                               epoch * len(data_loader) + batch_idx)
             writer.add_scalar(logging_label + '/mb_accuracy_{}'.format(multi_run), acc1.cpu().numpy(),
                               epoch * len(data_loader) + batch_idx)
