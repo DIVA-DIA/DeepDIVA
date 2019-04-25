@@ -101,7 +101,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, no_cuda=Fals
                   'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
                   .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, acc_meter=acc_meter))
 
-    return acc_meter.avg
+    return acc_meter.avg.item()
 
 
 def train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, acc_meter):

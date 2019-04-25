@@ -152,7 +152,7 @@ def _evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cu
     # Generate a classification report for each epoch
     _log_classification_report(data_loader, epoch, preds, targets, writer)
 
-    return top1.avg
+    return top1.avg.item()
 
 
 def _log_classification_report(data_loader, epoch, preds, targets, writer):
