@@ -7,7 +7,7 @@ from sklearn.metrics import pairwise_distances
 import numpy as np
 
 # Torch related stuff
-from torch.autograd import Variable
+import torch
 from tqdm import tqdm
 
 # DeepDIVA
@@ -67,34 +67,33 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
 
     # Iterate over whole evaluation set
     pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
-    for batch_idx, (data, label) in pbar:
+    with torch.no_grad():
+        for batch_idx, (data, label) in pbar:
 
-        # Check if data is provided in multi-crop form and process accordingly
-        if len(data.size()) == 5:
-            multi_crop = True
-            bs, ncrops, c, h, w = data.size()
-            data = data.view(-1, c, h, w)
+            # Check if data is provided in multi-crop form and process accordingly
+            if len(data.size()) == 5:
+                multi_crop = True
+                bs, ncrops, c, h, w = data.size()
+                data = data.view(-1, c, h, w)
 
-        if not no_cuda:
-            data = data.cuda()
+            if not no_cuda:
+                data = data.cuda()
 
-        data_a, label = Variable(data, volatile=True), Variable(label)
+            # Compute output
+            out = model(data)
 
-        # Compute output
-        out = model(data_a)
+            if multi_crop:
+                out = out.view(bs, ncrops, -1).mean(1)
 
-        if multi_crop:
-            out = out.view(bs, ncrops, -1).mean(1)
+            # Store output
+            outputs.append(out.data.cpu().numpy())
+            labels.append(label.data.cpu().numpy())
 
-        # Store output
-        outputs.append(out.data.cpu().numpy())
-        labels.append(label.data.cpu().numpy())
-
-        # Log progress to console
-        if batch_idx % log_interval == 0:
-            pbar.set_description(logging_label + ' Epoch: {} [{}/{} ({:.0f}%)]'.format(
-                epoch, batch_idx * len(data_a), len(data_loader.dataset),
-                       100. * batch_idx / len(data_loader)))
+            # Log progress to console
+            if batch_idx % log_interval == 0:
+                pbar.set_description(logging_label + ' Epoch: {} [{}/{} ({:.0f}%)]'.format(
+                    epoch, batch_idx * len(data), len(data_loader.dataset),
+                           100. * batch_idx / len(data_loader)))
 
     # Measure accuracy (FPR95)
     num_tests = len(data_loader.dataset.file_names)

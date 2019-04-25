@@ -89,7 +89,7 @@ class Bidimensional(data.Dataset):
         self.target_transform = target_transform
 
         # Read data from the csv file
-        self.data = pandas.read_csv(self.path).as_matrix()
+        self.data = pandas.read_csv(self.path).values
 
         # Shuffle the data once (otherwise you get clusters of samples of same class in each minibatch for val and test)
         np.random.shuffle(self.data)

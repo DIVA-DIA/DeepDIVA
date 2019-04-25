@@ -14,7 +14,7 @@ import torchvision.datasets as datasets
 from sklearn.model_selection import train_test_split
 
 
-def split_dataset(dataset_folder, split, symbolic):
+def split_dataset(dataset_folder, split, symbolic, debug=False):
     """
     Partition a dataset into train/val splits on the filesystem.
 
@@ -26,6 +26,8 @@ def split_dataset(dataset_folder, split, symbolic):
         Specifies how much of the training set should be converted into the validation set.
     symbolic : bool
         Does not make a copy of the data, but only symbolic links to the original data
+    debug : bool
+        Prints additional debug statements
 
     Returns
     -------
@@ -58,13 +60,14 @@ def split_dataset(dataset_folder, split, symbolic):
                                                       random_state=42,
                                                       stratify=labels)
 
-    # Print number of elements for each class
-    for c in train_ds.classes:
-        print("labels ({}) {}".format(c, np.size(np.where(y_train == train_ds.class_to_idx[c]))))
-    for c in train_ds.classes:
-        print("split_train ({}) {}".format(c, np.size(np.where(y_train == train_ds.class_to_idx[c]))))
-    for c in train_ds.classes:
-        print("split_val ({}) {}".format(c, np.size(np.where(y_val == train_ds.class_to_idx[c]))))
+    if debug:
+        # Print number of elements for each class
+        for c in train_ds.classes:
+            print("labels ({}) {}".format(c, np.size(np.where(y_train == train_ds.class_to_idx[c]))))
+        for c in train_ds.classes:
+            print("split_train ({}) {}".format(c, np.size(np.where(y_train == train_ds.class_to_idx[c]))))
+        for c in train_ds.classes:
+            print("split_val ({}) {}".format(c, np.size(np.where(y_val == train_ds.class_to_idx[c]))))
 
     # Create the folder structure to accommodate the two new splits
     split_train_dir = os.path.join(dataset_folder, "train")
@@ -130,6 +133,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--symbolic',
                         help='Make symbolic links instead of copies.',
+                        action='store_true',
+                        default=False)
+
+    parser.add_argument('--debug',
+                        help='Print additional debug statements.',
                         action='store_true',
                         default=False)
 

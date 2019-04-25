@@ -95,7 +95,7 @@ class Bidimensional(ImageClassification):
         coords = torch.autograd.Variable(torch.from_numpy(coords).type(torch.FloatTensor))
 
         if not kwargs['no_cuda']:
-            coords = coords.cuda(async=True)
+            coords = coords.cuda(non_blocking=True)
 
         # PLOT: decision boundary routine
         Bidimensional._evaluate_and_plot_decision_boundary(model=model, val_coords=val_coords, coords=coords,
