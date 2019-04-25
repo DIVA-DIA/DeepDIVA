@@ -570,6 +570,10 @@ def set_up_logging(parser, experiment_name, output_folder, quiet, args_dict, deb
     with open(os.path.join(log_folder, 'args.txt'), 'w') as f:
         f.write(json.dumps(args_dict))
 
+    # Save all environment packages to logs_folder
+    environment_yml = os.path.join(log_folder, 'environment.yml')
+    subprocess.call('conda env export > {}'.format(environment_yml), shell=True)
+
     # Define Tensorboard SummaryWriter
     logging.info('Initialize Tensorboard SummaryWriter')
 
