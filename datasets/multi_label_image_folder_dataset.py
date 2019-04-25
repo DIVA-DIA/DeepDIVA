@@ -27,7 +27,7 @@ def load_dataset(dataset_folder, in_memory=False, workers=1):
 
     Example:
 
-        dataset_folder = "~/../../data/cifar"
+        dataset_folder = "~/../../data/dataset_folder"
 
     which contains the splits sub-folders as follow:
 
@@ -35,21 +35,30 @@ def load_dataset(dataset_folder, in_memory=False, workers=1):
         'dataset_folder'/val
         'dataset_folder'/test
 
-    In each of the three splits (train, val, test) should have different classes in a separate folder
-    with the class name. The file name can be arbitrary i.e. it does not have to be 0-* for classes 0
-    of MNIST.
+    Each of the three splits (train, val, test) should contain a folder called 'images' containing all of the
+    images (the file names of the images can be arbitrary). The split folder should also contain a csv file
+    called 'labels.csv' formatted so:
+
+    filename,class_0,class_1,...,class_n
+    images/img_1.png,1,-1,-1,...,1
+
+    where the filename is the relative path to the image file from the split folder and 1/-1 to indicate
+    presence/absence of a particular label.
 
     Example:
 
-        train/dog/whatever.png
-        train/dog/you.png
-        train/dog/like.png
+        train/image/whatever.png
+        train/image/you.png
+        train/image/like.png
+        train/labels.csv
 
-        train/cat/123.png
-        train/cat/nsdf3.png
-        train/cat/asd932_.png
+    and the labels.csv would contain: 
 
-        train/"class_name"/*.png
+        filename,cat,dog,elephant
+        image/whatever.png,1,1,-1
+        image/you.png,1,-1,-1
+        image/like.png,-1,1,1
+
 
     Parameters
     ----------
@@ -102,7 +111,7 @@ class MultiLabelImageFolder(data.Dataset):
 
     def __init__(self, path, transform=None, target_transform=None, workers=1):
         """
-        Load the data in memory and prepares it as a dataset.
+        Load the data and prepares it as a dataset.
 
         Parameters
         ----------
