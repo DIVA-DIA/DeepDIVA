@@ -1,7 +1,6 @@
 import math
 import torch.nn as nn
-
-__all__ = ['BabyResNet', 'babyresnet18', 'babyresnet34', 'babyresnet50', 'babyresnet101', 'babyresnet152']
+from models.registry import Model
 
 class Flatten(nn.Module):
     """
@@ -293,6 +292,7 @@ class _Bottleneck(nn.Module):
         return x
 
 
+@Model
 def babyresnet18(**kwargs):
     """
     Constructs a _BabyResNet-18 model.
@@ -305,6 +305,7 @@ def babyresnet18(**kwargs):
     return BabyResNet(_BasicBlock, [0, 4, 2, 2], **kwargs)
 
 
+@Model
 def babyresnet34(**kwargs):
     """
     Constructs a _BabyResNet-34 model.
@@ -317,6 +318,7 @@ def babyresnet34(**kwargs):
     return BabyResNet(_BasicBlock, [0, 7, 6, 3], **kwargs)
 
 
+@Model
 def babyresnet50(**kwargs):
     """
     Constructs a _BabyResNet-50 model.
@@ -329,6 +331,7 @@ def babyresnet50(**kwargs):
     return BabyResNet(_Bottleneck, [0, 7, 6, 3], **kwargs)
 
 
+@Model
 def babyresnet101(**kwargs):
     """
     Constructs a _BabyResNet-101 model.
@@ -341,6 +344,7 @@ def babyresnet101(**kwargs):
     return BabyResNet(_Bottleneck, [0, 7, 23, 3], **kwargs)
 
 
+@Model
 def babyresnet152(**kwargs):
     """
     Constructs a _BabyResNet-152 model.

@@ -1,12 +1,8 @@
-import torch
 import torch.nn as nn
-import torch.utils as utils
-import torch.nn.init as init
-import torch.utils.data as data
-import torchvision.utils as v_utils
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-from torch.autograd import Variable
+from models.registry import Model
+import torch.nn as nn
+
+from models.registry import Model
 
 
 class Conv_residual_conv(nn.Module):
@@ -29,6 +25,7 @@ class Conv_residual_conv(nn.Module):
         return conv_3
 
 
+@Model
 class FusionNet(nn.Module):
 
     def __init__(self, input_nc, output_nc, ngf, **kwargs):

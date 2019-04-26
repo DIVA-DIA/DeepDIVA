@@ -7,8 +7,7 @@ import math
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
-__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
-           'resnet152']
+from models.registry import Model
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -163,6 +162,7 @@ class ResNet(nn.Module):
             return x
 
 
+@Model
 def resnet18(pretrained=False, **kwargs):
     """Constructs a _ResNet-18 model.
 
@@ -178,6 +178,7 @@ def resnet18(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def resnet34(pretrained=False, **kwargs):
     """Constructs a _ResNet-34 model.
 
@@ -193,6 +194,7 @@ def resnet34(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def resnet50(pretrained=False, **kwargs):
     """Constructs a _ResNet-50 model.
 
@@ -208,6 +210,7 @@ def resnet50(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def resnet101(pretrained=False, **kwargs):
     """Constructs a _ResNet-101 model.
 
@@ -223,6 +226,7 @@ def resnet101(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def resnet152(pretrained=False, **kwargs):
     """Constructs a _ResNet-152 model.
 

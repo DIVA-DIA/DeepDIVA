@@ -1,14 +1,8 @@
 import torch
 import torch.nn as nn
-import torch.utils as utils
-import torch.nn.init as init
-import torch.utils.data as data
-import torchvision.utils as v_utils
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-from torch.autograd import Variable
+from models.registry import Model
 
-
+@Model
 class Unet(nn.Module):
 
     def __init__(self, input_channels=3, output_channels=3, num_filter=64, **kwargs):

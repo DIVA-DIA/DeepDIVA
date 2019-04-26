@@ -7,10 +7,7 @@ import math
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
-__all__ = [
-    'VGG', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
-    'vgg19_bn', 'vgg19',
-]
+from models.registry import Model
 
 model_urls = {
     'vgg11': 'https://download.pytorch.org/models/vgg11-bbd30ac9.pth',
@@ -88,6 +85,7 @@ cfg = {
 }
 
 
+@Model
 def vgg11(pretrained=False, **kwargs):
     """VGG 11-layer model (configuration "A")
 
@@ -103,6 +101,7 @@ def vgg11(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def vgg11_bn(pretrained=False, **kwargs):
     """VGG 11-layer model (configuration "A") with batch normalization
 
@@ -118,6 +117,7 @@ def vgg11_bn(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def vgg13(pretrained=False, **kwargs):
     """VGG 13-layer model (configuration "B")
 
@@ -133,6 +133,7 @@ def vgg13(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def vgg13_bn(pretrained=False, **kwargs):
     """VGG 13-layer model (configuration "B") with batch normalization
 
@@ -148,6 +149,7 @@ def vgg13_bn(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def vgg16(pretrained=False, **kwargs):
     """VGG 16-layer model (configuration "D")
 
@@ -163,6 +165,7 @@ def vgg16(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def vgg16_bn(pretrained=False, **kwargs):
     """VGG 16-layer model (configuration "D") with batch normalization
 
@@ -178,6 +181,7 @@ def vgg16_bn(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def vgg19(pretrained=False, **kwargs):
     """VGG 19-layer model (configuration "E")
 
@@ -193,6 +197,7 @@ def vgg19(pretrained=False, **kwargs):
     return model
 
 
+@Model
 def vgg19_bn(pretrained=False, **kwargs):
     """VGG 19-layer model (configuration 'E') with batch normalization
 

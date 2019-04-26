@@ -3,8 +3,7 @@ Convolutional Auto Encoder with 3 conv layers and a fully connected classificati
 """
 
 import torch.nn as nn
-import torch.nn.functional as F
-
+from models.registry import Model
 
 class Flatten(nn.Module):
     """
@@ -19,6 +18,7 @@ class Flatten(nn.Module):
         return x
 
 
+@Model
 class CAE_medium(nn.Module):
     """
     Simple convolutional auto-encoder neural network

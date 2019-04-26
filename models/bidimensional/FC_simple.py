@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+from models.registry import Model
 
 class Flatten(nn.Module):
     """
@@ -13,7 +13,8 @@ class Flatten(nn.Module):
         return x
 
 
-class FC_medium(nn.Module):
+@Model
+class FC_simple(nn.Module):
     """
     Simple feed forward neural network
 
@@ -22,51 +23,36 @@ class FC_medium(nn.Module):
     expected_input_size : int
         Expected input size
     fc1 : torch.nn.Sequential
-    fc2 : torch.nn.Sequential
-    fc3 : torch.nn.Sequential
-        Fully connected layers of the network
+        Fully connected layer of the network
     cl : torch.nn.Linear
         Final classification fully connected layer
     """
 
-    def __init__(self, output_channels=10, **kwargs):
+    def __init__(self, output_channels=5, **kwargs):
         """
-        Creates an FC_medium model from the scratch.
+        Creates an FC_simple model from the scratch.
 
         Parameters
         ----------
         output_channels : int
             Number of neurons in the last layer
         """
-        super(FC_medium, self).__init__()
+        super(FC_simple, self).__init__()
+
         self.expected_input_size = 2
 
-        first_layer = 8
-        second_layer = 8
-        third_layer = 8
+        hidden = 20
 
         # First layer
         self.fc1 = nn.Sequential(
             Flatten(),
-            nn.Linear(self.expected_input_size, first_layer),
-            nn.Tanh(),
-        )
-
-        # Second layer
-        self.fc2 = nn.Sequential(
-            nn.Linear(first_layer, second_layer),
-            nn.Tanh(),
-        )
-
-        # Third layer
-        self.fc3 = nn.Sequential(
-            nn.Linear(second_layer, third_layer),
+            nn.Linear(self.expected_input_size, hidden),
             nn.Tanh(),
         )
 
         # Classification layer
-        self.cl = nn.Sequential(
-            nn.Linear(third_layer, output_channels)
+        self.fc2 = nn.Sequential(
+            nn.Linear(hidden, output_channels)
         )
 
     def forward(self, x):
@@ -85,6 +71,5 @@ class FC_medium(nn.Module):
         """
         x = self.fc1(x)
         x = self.fc2(x)
-        x = self.fc3(x)
-        x = self.cl(x)
+
         return x
