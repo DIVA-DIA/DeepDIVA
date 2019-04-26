@@ -58,7 +58,7 @@ def mnist(args):
     _make_folder_if_not_exists(test_folder)
 
     def _write_data_to_folder(arr, labels, folder):
-        for i, (img, label) in enumerate(zip(arr, labels)):
+        for i, (img, label) in enumerate(zip(arr, labels.detach().numpy())):
             dest = os.path.join(folder, str(label))
             _make_folder_if_not_exists(dest)
             Image.fromarray(img.numpy(), mode='L').save(os.path.join(dest, str(i) + '.png'))
