@@ -1,17 +1,7 @@
 """
 This file is the template for the boilerplate of train/test of a triplet network.
-This code has initially been adapted to our purposes from:
-
-        PyTorch training code for TFeat shallow convolutional patch descriptor:
-        http://www.iis.ee.ic.ac.uk/%7Evbalnt/shallow_descr/TFeat_paper.pdf
-
-        The code reproduces *exactly* it's lua anf TF version:
-        https://github.com/vbalnt/tfeat
-
-        2017 Edgar Riba
-
-There are a lot of parameter which can be specified to modify the behaviour
-and they should be used instead of hard-coding stuff.
+This code has initially been adapted to our purposes from
+http://www.iis.ee.ic.ac.uk/%7Evbalnt/shallow_descr/TFeat_paper.pdf
 """
 
 # Utils
