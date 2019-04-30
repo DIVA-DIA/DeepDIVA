@@ -6,6 +6,5 @@ DeepDIVA
 
    datasets
    models
-   prepare_wzis
    template
    util

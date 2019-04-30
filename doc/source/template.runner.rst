@@ -9,6 +9,7 @@ Subpackages
     template.runner.apply_model
     template.runner.bidimensional
     template.runner.image_classification
+    template.runner.multi_label_image_classification
     template.runner.process_activation
     template.runner.triplet
 

@@ -44,6 +44,14 @@ util.data.get\_a\_dataset module
     :undoc-members:
     :show-inheritance:
 
+util.data.remove\_whitespace module
+-----------------------------------
+
+.. automodule:: util.data.remove_whitespace
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 util.data.shuffle\_labels module
 --------------------------------
 

@@ -28,6 +28,14 @@ datasets.image\_folder\_triplet module
     :undoc-members:
     :show-inheritance:
 
+datasets.multi\_label\_image\_folder\_dataset module
+----------------------------------------------------
+
+.. automodule:: datasets.multi_label_image_folder_dataset
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
