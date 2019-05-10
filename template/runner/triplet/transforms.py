@@ -8,32 +8,36 @@ class MultiCrop(object):
     """
     Crop the given PIL Image into multiple random crops
 
-    .. Note::
-         This transform returns a tuple of images and there may be a mismatch in the number of
-         inputs and targets your Dataset returns. See below for an example of how to deal with
-         this.
+    Parameters
+    ----------
+    size : tuple or int
+        Desired output size of the crop. If size is an ``int`` instead of
+        sequence like (h, w), a square crop of size (size, size) is made.
 
-    Args:
-         size (sequence or int): Desired output size of the crop. If size is an ``int``
-            instead of sequence like (h, w), a square crop of size (size, size) is made.
+    n_crops : int
+        The number of crops to be generated from a page.
 
-    Example:
-        MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
-        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
-        transforms.Lambda(lambda items: torch.stack([transforms.Normalize(mean=mean, std=std)(item) for item in items]))
+    Returns
+    -------
+    None
 
-    Example:
-         >>> transform = Compose([
-         >>>    FiveCrop(size), # this is a list of PIL Images
-         >>>    Lambda(lambda crops: torch.stack([ToTensor()(crop) for crop in crops])) # returns a 4D tensor
-         >>> ])
-         >>> #In your test loop you can do the following:
-         >>> input, target = batch # input is a 5d tensor, target is 2d
-         >>> bs, ncrops, c, h, w = input.size()
-         >>> result = model(input.view(-1, c, h, w)) # fuse batch size and ncrops
-         >>> result_avg = result.view(bs, ncrops, -1).mean(1) # avg over crops
+    Example
+    -------
+        >>> MultiCrop(size=model_expected_input_size, n_crops=multi_crop),
+        >>> transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+        >>> transforms.Lambda(lambda items: torch.stack([transforms.Normalize(mean=mean, std=std)(item) for item in items]))
+
+        >>> transform = Compose([
+        >>> MultiCrop(size), # this is a list of PIL Images
+        >>> Lambda(lambda crops: torch.stack([ToTensor()(crop) for crop in crops])) # returns a 4D tensor
+        >>> ])
+        >>> #In your test loop you can do the following:
+        >>> input, target = batch # input is a 5d tensor, target is 2d
+        >>> bs, ncrops, c, h, w = input.size()
+        >>> result = model(input.view(-1, c, h, w)) # fuse batch size and ncrops
+        >>> result_avg = result.view(bs, ncrops, -1).mean(1) # avg over crops
+
     """
-
     def __init__(self, size, n_crops):
         # TODO: DOES NOT PLAY WELL WITH SEEDS. Figure out why!
         self.size = size
@@ -52,17 +56,21 @@ def multi_crop(img, size, n_crops):
     """
     Crop the given PIL Image into multiple random crops.
 
-    .. Note::
-        This transform returns a tuple of images and there may be a
-        mismatch in the number of inputs and targets your ``Dataset`` returns.
+    Parameters
+    ----------
+    img : PIL.Image
+        The Image to be processed.
+    size : tuple or int
+        Desired output size of the crop. If size is an ``int`` instead of
+        sequence like (h, w), a square crop of size (size, size) is made.
+    n_crops : int
+        The number of crops to be generated from a page.
 
-    Args:
-       size (sequence or int): Desired output size of the crop. If size is an
-           int instead of sequence like (h, w), a square crop (size, size) is
-           made.
-    Returns:
-        tuple: tuple (tl, tr, bl, br, center) corresponding top left,
-            top right, bottom left, bottom right and center crop.
+    Returns
+    -------
+    crops : list of PIL.Images
+        A list of PIL.Images which are the crops from the page.
+
     """
     if isinstance(size, numbers.Number):
         size = (int(size), int(size))
