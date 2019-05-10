@@ -125,7 +125,10 @@ class RunMe:
             experiment = conn.experiments().create(
                 name=args.experiment_name,
                 parameters=parameters,
+                observation_budget=args.sig_opt_runs,
+                project=args.sig_opt_project,
             )
+
             logging.info("Created experiment: https://sigopt.com/experiment/" + experiment.id)
             for i in range(args.sig_opt_runs):
                 # Get suggestion from SigOpt

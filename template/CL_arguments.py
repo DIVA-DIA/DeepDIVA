@@ -90,6 +90,10 @@ def _general_parameters(parser):
                                 type=int,
                                 default=100,
                                 help='number of updates of SigOpt required')
+    parser_general.add_argument('--sig-opt-project',
+                                type=str,
+                                default=None,
+                                help='place your SigOpt project name ere.')
     parser_general.add_argument('--runner-class',
                                 choices=runner_class_options,
                                 default="image_classification",
