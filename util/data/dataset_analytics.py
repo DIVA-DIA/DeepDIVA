@@ -106,7 +106,7 @@ def _return_mean(image_path):
 
 # Loads an image with OpenCV and returns the channel wise std of the image.
 def _return_std(image_path, mean):
-    img = load_numpy_image(image_path)
+    img = load_numpy_image(image_path) / 255.0
     m2 = np.square(np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]))
     return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
