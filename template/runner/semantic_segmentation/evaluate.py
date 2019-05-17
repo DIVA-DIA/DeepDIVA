@@ -10,7 +10,7 @@ import matplotlib
 
 # Torch related stuff
 import torch
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
 # DeepDIVA
@@ -23,8 +23,8 @@ from template.setup import _load_class_frequencies_weights_from_file
 from .setup import one_hot_to_np_rgb, one_hot_to_full_output
 from datasets.custom_transform_library.functional import gt_to_one_hot_hisdb as gt_to_one_hot
 
-def validate(data_loader, model, criterion, writer, epoch, class_encodings, dataset_folder, inmem, workers, runner_class,
-             no_val_conf_matrix, no_cuda=False, log_interval=10, myclone_env=False, **kwargs):
+
+def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_val_conf_matrix, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
@@ -76,7 +76,7 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, data
     pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
         # convert 3D one-hot encoded matrix to 2D matrix with class numbers (for CrossEntropy())
-        target_argmax = torch.LongTensor(np.array([np.argmax(a, axis=0) for a in target.numpy()]))
+        # target = torch.LongTensor(np.array([np.argmax(a, axis=0) for a in target.numpy()]))
 
         # Measure data loading time
         data_time.update(time.time() - end)
@@ -85,31 +85,26 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, data
         if not no_cuda:
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
-            target_argmax = target_argmax.cuda(non_blocking=True)
 
         # Convert the input and its labels to Torch Variables
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
-        target_argmax_var = torch.autograd.Variable(target_argmax)
 
         # Compute output
         output = model(input_var)
         output_argmax = np.array([np.argmax(o, axis=0) for o in output.data.cpu().numpy()])
 
         # Compute and record the loss
-        loss = criterion(output, target_argmax_var)
-        try:
-            losses.update(loss.item(), input.size(0))
-        except AttributeError:
-            losses.update(loss.data[0], input.size(0))
+        loss = criterion(output, target_var)
+        losses.update(loss.item(), input.size(0))
 
         # Compute and record the accuracy TODO check with Vinay & Michele if correct
-        acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target_argmax.cpu().numpy(), output_argmax, num_classes)
+        acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target_var.cpu().numpy(), output_argmax, num_classes)
         meanIU.update(mean_iu, input.size(0))
 
         # Get the predictions
         _ = [preds.append(item) for item in output_argmax]
-        _ = [targets.append(item) for item in target_argmax.cpu().numpy()]
+        _ = [targets.append(item) for item in target_var.cpu().numpy()]
 
         # Add loss and accuracy to Tensorboard
         try:
@@ -247,12 +242,6 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
     for batch_idx, (input, target) in pbar:
         input, top_left_coordinates, test_img_names = input
 
-        # if not all('' == s or s.isspace() for s in test_img_names):
-        #     print(test_img_names)
-
-        # convert 3D one-hot encoded matrix to 2D matrix with class numbers (for CrossEntropy())
-        target_argmax = torch.LongTensor(np.array([np.argmax(a, axis=0) for a in target.numpy()]))
-
         # Measure data loading time
         data_time.update(time.time() - end)
 
@@ -260,26 +249,21 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
         if not no_cuda:
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
-            target_argmax = target_argmax.cuda(non_blocking=True)
 
         # Convert the input and its labels to Torch Variables
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
-        target_argmax_var = torch.autograd.Variable(target_argmax)
 
         # Compute output
         output = model(input_var)
         output_argmax = np.array([np.argmax(o, axis=0) for o in output.data.cpu().numpy()])
 
         # Compute and record the loss
-        loss = criterion(output, target_argmax_var)
-        try:
-            losses.update(loss.item(), input.size(0))
-        except AttributeError:
-            losses.update(loss.data[0], input.size(0))
+        loss = criterion(output, target_var)
+        losses.update(loss.item(), input.size(0))
 
         # Compute and record the batch meanIU TODO check with Vinay & Michele if correct
-        acc_batch, acc_cls_batch, mean_iu_batch, fwavacc_batch = accuracy_segmentation(target_argmax.cpu().numpy(), output_argmax, num_classes)
+        acc_batch, acc_cls_batch, mean_iu_batch, fwavacc_batch = accuracy_segmentation(target_var.cpu().numpy(), output_argmax, num_classes)
 
         # Add loss and accuracy to Tensorboard
         try:

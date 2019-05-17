@@ -15,7 +15,7 @@ import pandas as pd
 
 import models
 # Delegated
-from template.runner.semantic_segmentation import evaluate, train
+from . import evaluate, train
 from template.setup import set_up_model
 from .setup import set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate

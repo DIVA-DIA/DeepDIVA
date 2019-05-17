@@ -74,59 +74,41 @@ class ToTensorTwinImage(object):
         Returns:
             Tensor: Converted image.
         """
-        return F.to_tensor(img), F_custom.to_tensor(gt)
+        return F.to_tensor(img), F.to_tensor(gt)
+
+
+class OneHotToPixelLabelling(object):
+    def __call__(self, tensor):
+        return F_custom.argmax_onehot(tensor)
 
 
 class OneHotEncoding(object):
-    """Crop the given PIL Image at a random location.
-
-    Args:
-        size (sequence or int): Desired output size of the crop. If size is an
-            int instead of sequence like (h, w), a square crop (size, size) is
-            made.
-        padding (int or sequence, optional): Optional padding on each border
-            of the image. Default is 0, i.e no padding. If a sequence of length
-            4 is provided, it is used to pad left, top, right, bottom borders
-            respectively.
-    """
     def __init__(self, class_encodings):
         self.class_encodings = class_encodings
 
     def __call__(self, gt):
         """
         Args:
-            img (PIL Image): Image to be cropped.
 
         Returns:
-            PIL Image: Cropped image.
+
         """
         return F_custom.gt_to_one_hot(gt, self.class_encodings)
 
 
 class OneHotEncodingDIVAHisDB(object):
-    """Crop the given PIL Image at a random location.
-
-    Args:
-        size (sequence or int): Desired output size of the crop. If size is an
-            int instead of sequence like (h, w), a square crop (size, size) is
-            made.
-        padding (int or sequence, optional): Optional padding on each border
-            of the image. Default is 0, i.e no padding. If a sequence of length
-            4 is provided, it is used to pad left, top, right, bottom borders
-            respectively.
-    """
     def __init__(self, class_encodings):
         self.class_encodings = class_encodings
 
     def __call__(self, gt):
         """
         Args:
-            img (PIL Image): Image to be cropped.
 
         Returns:
-            PIL Image: Cropped image.
+
         """
         return F_custom.gt_to_one_hot_hisdb(gt, self.class_encodings)
+
 
 class RandomTwinCrop(object):
     """Crop the given PIL Image at a random location.

@@ -30,6 +30,7 @@ def parse_arguments(args=None):
     _system_options(parser)
     _triplet_options(parser)
     _process_activation_options(parser)
+    _semantic_segmentation_options(parser)
 
     ###############################################################################
     # Parse argument
@@ -55,7 +56,7 @@ def _general_parameters(parser):
     """
     # List of possible custom runner class. A runner class is defined as a module in template.runner
     runner_class_options = ["image_classification", "point_cloud", "triplet", "apply_model",
-                            "multi_label_image_classification", "process_activation"]
+                            "multi_label_image_classification", "process_activation", "semantic_segmentation"]
 
     parser_general = parser.add_argument_group('GENERAL', 'General Options')
     parser_general.add_argument('--experiment-name',
@@ -240,6 +241,7 @@ def _optimizer_options(parser):
                                   default=0,
                                   help='weight_decay coefficient, also known as L2 regularization')
 
+
 def _criterion_options(parser):
     """
     Options specific for optimizers
@@ -334,3 +336,56 @@ def _process_activation_options(parser):
                                 type=int,
                                 default=5,
                                 help='Epochs period where activation process is done')
+
+def _semantic_segmentation_options(parser):
+    """
+    Triplet options
+
+    These parameters are used by the runner class template.runner.semantic_segmentation
+    """
+    semantic_segmentation = parser.add_argument_group('Semantic', 'Semantic Segmentation')
+
+    semantic_segmentation.add_argument('--input-patch-size',
+                                type=int,
+                                default=128, metavar='N',
+                                help='size of the square input patch e.g. with 32 the input will be re-sized to 32x32')
+
+    semantic_segmentation.add_argument('--no-val-conf-matrix',
+                             default=False,
+                             action='store_true',
+                             help='Confusion matrix is not made for validation phase, only for test phase')
+
+    # parameters for HisDB
+    semantic_segmentation.add_argument('--imgs-in-memory',
+                                       type=int,
+                                       default=4, metavar='N',
+                                       help='number of pages that are loaded into RAM and learned on')
+    semantic_segmentation.add_argument('--crop-size',
+                                       type=int,
+                                       default=128, metavar='N',
+                                       help='size of each crop taken (default 32x32)')
+    semantic_segmentation.add_argument('--crops-per-image',
+                                       type=int,
+                                       default=50, metavar='N',
+                                       help='number of crops per iterations per page')
+
+    semantic_segmentation.add_argument('--use-boundary-pixel',
+                             default=False,
+                             action='store_true',
+                             help='Take boundary pixel into account for the accuracy computation')
+
+    semantic_segmentation.add_argument('--path-pretrained-model',
+                               default=None,
+                               help='path to pre-trained model')
+
+    # parameter for DeepLabV3 if you want to use cityscapes pre-trained model
+    semantic_segmentation.add_argument('--cityscapes',
+                                       default=False,
+                                       action='store_true',
+                                       help='set if you want to use the cityscapes pre-trained model for DeepLabV3')
+
+    # parameters for COCO
+    semantic_segmentation.add_argument('--resize-coco',
+                                       type=int,
+                                       default=None, metavar='size',
+                                       help='size you want coco input to be resized to')

@@ -98,6 +98,50 @@ def compute_mean_std(dataset_folder, inmem, workers):
     df.to_csv(os.path.join(dataset_folder, 'analytics.csv'), header=False)
 
 
+def compute_mean_std_segmentation(dataset_folder, inmem, workers):
+    """
+    Computes mean and std of a dataset for semantic segmentation. Saves the results as CSV file in the dataset folder.
+
+    Parameters
+    ----------
+    dataset_folder : String (path)
+        Path to the dataset folder (see above for details)
+    inmem : Boolean
+        Specifies whether is should be computed i nan online of offline fashion.
+    workers : int
+        Number of workers to use for the mean/std computation
+
+    Returns
+    -------
+        None
+    """
+
+    # Getting the train dir
+    traindir = os.path.join(dataset_folder, 'train')
+
+    # Load the dataset file names
+    train_ds = datasets.ImageFolder(traindir, transform=transforms.Compose([transforms.ToTensor()]))
+
+    # Extract the actual file names and labels as entries
+    file_names_all = np.asarray([item[0] for item in train_ds.imgs])
+    file_names_gt = np.asarray([f for f in file_names_all if '/gt/' in f])
+    file_names_data = np.asarray([f for f in file_names_all if '/data/' in f])
+
+    # Compute mean and std
+    if inmem:
+        mean, std = cms_inmem(file_names_data)
+    else:
+        mean, std = cms_online(file_names_data, workers)
+
+    # Compute class frequencies weights
+    class_frequencies_weights, class_ints = _get_class_frequencies_weights_segmentation(file_names_gt)
+    # print(class_frequencies_weights)
+    # Save results as CSV file in the dataset folder
+    df = pd.DataFrame([mean, std, class_frequencies_weights, class_ints])
+    df.index = ['mean[RGB]', 'std[RGB]', 'class_frequencies_weights[num_classes]', 'class_encodings']
+    df.to_csv(os.path.join(dataset_folder, 'analytics.csv'), header=False)
+
+
 # Loads an image with OpenCV and returns the channel wise means of the image.
 def _return_mean(image_path):
     img = load_numpy_image(image_path)

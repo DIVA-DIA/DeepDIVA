@@ -123,6 +123,11 @@ def load_dataset(dataset_folder, workers, in_memory=False, **kwargs):
     test_ds : data.Dataset
         Train, validation and test splits
     """
+    # Sanity check on the splits folders
+    if not os.path.isdir(dataset_folder):
+        logging.error("Dataset folder not found at " + dataset_folder)
+        sys.exit(-1)
+
     # Get the splits folders
     train_dir = os.path.join(dataset_folder, 'train')
     val_dir = os.path.join(dataset_folder, 'val')
@@ -439,7 +444,7 @@ class ImageFolder(data.Dataset):
 
         self.img_and_updates[os.path.basename(data_path)] = self.img_and_updates[os.path.basename(data_path)] + 1
         #logging.info("**********{}: page udpates {}".format(os.getpid(), self.img_and_updates))
-        print(os.getpid(), os.path.basename(data_path))
+        # print(os.getpid(), os.path.basename(data_path))
 
         # update index of next image
         self.next_image_index = (self.next_image_index + 1) % self.total_number_of_images

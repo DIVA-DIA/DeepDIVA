@@ -13,8 +13,9 @@ from tqdm import tqdm
 from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard
 from util.evaluation.metrics.accuracy import accuracy_segmentation
 
-def train(train_loader, model, criterion, optimizer, writer, epoch, class_names, no_cuda=False, log_interval=25,
-          myclone_env=False, **kwargs):
+
+def train(train_loader, model, criterion, optimizer, writer, epoch, class_names, no_cuda=False,
+          log_interval=25, **kwargs):
     """
     Training routine
 
@@ -57,51 +58,30 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_names,
     # Iterate over whole training set
     end = time.time()
     pbar = tqdm(enumerate(train_loader), total=len(train_loader), unit='batch', ncols=150, leave=False)
-    for batch_idx, (input, target_argmax) in pbar:
-        # convert 3D one-hot encoded matrix to 2D matrix with class numbers (for CrossEntropy())
-        target_argmax = torch.LongTensor(np.array([np.argmax(a, axis=0) for a in target_argmax.numpy()]))
-
+    for batch_idx, (input, target) in pbar:
         # Measure data loading time
         data_time.update(time.time() - end)
 
         # Moving data to GPU
         if not no_cuda:
             input = input.cuda(non_blocking=True)
-<<<<<<< HEAD:template/runner/semantic_segmentation_hisdb/train.py
-            target_argmax = target_argmax.cuda(non_blocking=True)
+            target = target.cuda(non_blocking=True)
 
         # Convert the input and its labels to Torch Variables
         input_var = torch.autograd.Variable(input)
-        target_var_argmax = torch.autograd.Variable(target_argmax)
+        target_var = torch.autograd.Variable(target)
 
-        mean_iu, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var_argmax, loss_meter, meanIU, num_classes, myclone_env)
-=======
-            target = target.cuda(non_blocking=True)
-
-        acc, loss = train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, acc_meter)
->>>>>>> develop:template/runner/image_classification/train.py
+        mean_iu, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, meanIU, num_classes)
 
         # Add loss and accuracy to Tensorboard
-        try:
-            log_loss = loss.item()
-        except AttributeError:
-            log_loss = loss.data[0]
+        log_loss = loss.item()
 
         if multi_run is None:
-<<<<<<< HEAD:template/runner/semantic_segmentation_hisdb/train.py
-            writer.add_scalar('train/mb_loss',log_loss, epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss', log_loss, epoch * len(train_loader) + batch_idx)
             writer.add_scalar('train/mb_meanIU', mean_iu, epoch * len(train_loader) + batch_idx)
         else:
-            writer.add_scalar('train/mb_loss_{}'.format(multi_run), log_loss,
-=======
-            writer.add_scalar('train/mb_loss', loss.item(), epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_accuracy', acc.cpu().numpy(), epoch * len(train_loader) + batch_idx)
-        else:
-            writer.add_scalar('train/mb_loss_{}'.format(multi_run), loss.item(),
->>>>>>> develop:template/runner/image_classification/train.py
-                              epoch * len(train_loader) + batch_idx)
-            writer.add_scalar('train/mb_meanIU_{}'.format(multi_run), mean_iu,
-                              epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_loss_{}'.format(multi_run), log_loss, epoch * len(train_loader) + batch_idx)
+            writer.add_scalar('train/mb_meanIU_{}'.format(multi_run), mean_iu, epoch * len(train_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -135,43 +115,29 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_names,
     #              'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
     #              .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, meanIU=meanIU))
 
-<<<<<<< HEAD:template/runner/semantic_segmentation_hisdb/train.py
     return meanIU.avg
 
 
-def train_one_mini_batch(model, criterion, optimizer, input_var, target_var_argmax, loss_meter, meanIU_meter, num_classes, myclone_env):
-=======
-    return acc_meter.avg.item()
-
-
-def train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, acc_meter):
->>>>>>> develop:template/runner/image_classification/train.py
+def train_one_mini_batch(model, criterion, optimizer, input_var, target_var_argmax, loss_meter, meanIU_meter, num_classes):
     """
     This routing train the model passed as parameter for one mini-batch
-
     Parameters
     ----------
     num_classes:
-
     model : torch.nn.module
         The network model being used.
     criterion : torch.nn.loss
         The loss function used to compute the loss of the model.
     optimizer : torch.optim
         The optimizer used to perform the weight update.
-    input : torch.autograd.Variable
+    input_var : torch.autograd.Variable
         The input data for the mini-batch
-<<<<<<< HEAD:template/runner/semantic_segmentation/train.py
     target_var_argmax : torch.autograd.Variable
-=======
-    target : torch.autograd.Variable
->>>>>>> develop:template/runner/image_classification/train.py
         The target data (labels) for the mini-batch
     loss_meter : AverageMeter
         Tracker for the overall loss
     meanIU_meter : AverageMeter
         Tracker for the overall meanIU
-
     Returns
     -------
     acc : float
@@ -180,10 +146,9 @@ def train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter,
         Loss for this mini-batch
     """
     # Compute output
-    output = model(input)
+    output = model(input_var)
 
     # Compute and record the loss
-<<<<<<< HEAD:template/runner/semantic_segmentation_hisdb/train.py
     loss = criterion(output, target_var_argmax)
     try:
         loss_meter.update(loss.item(), len(input_var))
@@ -196,14 +161,6 @@ def train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter,
     # Compute and record the accuracy
     acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target_argmax, output_argmax, num_classes)
     meanIU_meter.update(mean_iu, input_var.size(0))
-=======
-    loss = criterion(output, target)
-    loss_meter.update(loss.item(), len(input))
-
-    # Compute and record the accuracy
-    acc = accuracy(output.data, target.data, topk=(1,))[0]
-    acc_meter.update(acc[0], len(input))
->>>>>>> develop:template/runner/image_classification/train.py
 
     # Reset gradient
     optimizer.zero_grad()

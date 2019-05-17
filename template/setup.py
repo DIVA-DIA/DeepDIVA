@@ -25,7 +25,7 @@ from tensorboardX import SummaryWriter
 # DeepDIVA
 import models
 from datasets import image_folder_dataset, bidimensional_dataset
-from util.data.dataset_analytics import compute_mean_std, compute_mean_std_segmentation, compute_mean_std_coco
+from util.data.dataset_analytics import compute_mean_std, compute_mean_std_segmentation
 from util.data.dataset_integrity import verify_integrity_quick, verify_integrity_deep
 from util.misc import get_all_files_in_folders_and_subfolders
 
@@ -414,8 +414,8 @@ def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class):
     # Loads the analytics csv and extract mean and std
     try:
         csv_file = _load_analytics_csv(dataset_folder, inmem, workers, runner_class)
-        mean = np.asarray(csv_file.ix[0, 1:3])
-        std = np.asarray(csv_file.ix[1, 1:3])
+        mean = csv_file.ix[0, 1:3].values.astype(float)
+        std = csv_file.ix[1, 1:3].values.astype(float)
     except KeyError:
         import sys
         logging.error('analytics.csv located in {} incorrectly formed. '
@@ -450,9 +450,7 @@ def _load_analytics_csv(dataset_folder, inmem, workers, runner_class, **kwargs):
         logging.warning('Missing analytics.csv file for dataset located at {}'.format(dataset_folder))
         try:
             logging.warning('Attempt creating analytics.csv file for dataset located at {}'.format(dataset_folder))
-            if 'coco' in runner_class:
-                compute_mean_std_coco(dataset_folder=dataset_folder, inmem=inmem, workers=workers, **kwargs)
-            elif 'segmentation' in runner_class:
+            if 'segmentation' in runner_class:
                 compute_mean_std_segmentation(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
             else:
                 compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)

@@ -85,7 +85,7 @@ def gt_to_one_hot(matrix, class_encodings):
         im_np = np_array[2, :, :].astype(np.uint8)
 
     integer_encoded = np.array([i for i in range(num_classes)])
-    onehot_encoder = OneHotEncoder(sparse=False)
+    onehot_encoder = OneHotEncoder(sparse=False, categories='auto')
     integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
     onehot_encoded = onehot_encoder.fit_transform(integer_encoded).astype(np.int8)
 
@@ -131,7 +131,7 @@ def gt_to_one_hot_hisdb(matrix, class_encodings):
     im_np[border_mask] = 1
 
     integer_encoded = np.array([i for i in range(num_classes)])
-    onehot_encoder = OneHotEncoder(sparse=False)
+    onehot_encoder = OneHotEncoder(sparse=False, categories='auto')
     integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
     onehot_encoded = onehot_encoder.fit_transform(integer_encoded).astype(np.int8)
 
@@ -144,6 +144,20 @@ def gt_to_one_hot_hisdb(matrix, class_encodings):
         np.uint8)
 
     return torch.LongTensor(one_hot_matrix.transpose((2, 0, 1)))
+
+
+def argmax_onehot(tensor):
+    """
+
+    Parameters
+    ----------
+    tensor
+
+    Returns
+    -------
+
+    """
+    return torch.LongTensor(np.array(np.argmax(tensor.numpy(), axis=0)))
 
 
 def annotation_to_argmax(input_shape, annotations, name_onehotindex, category_id_name):
