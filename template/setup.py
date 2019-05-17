@@ -25,7 +25,7 @@ from tensorboardX import SummaryWriter
 # DeepDIVA
 import models
 from datasets import image_folder_dataset, bidimensional_dataset
-from util.data.dataset_analytics import compute_mean_std
+from util.data.dataset_analytics import compute_mean_std, compute_mean_std_segmentation, compute_mean_std_coco
 from util.data.dataset_integrity import verify_integrity_quick, verify_integrity_deep
 from util.misc import get_all_files_in_folders_and_subfolders
 
@@ -90,12 +90,12 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, criter
     logging.info('Setting up model {}'.format(model_name))
 
     output_channels = output_channels if num_classes == None else num_classes
-    model = models.__dict__[model_name](output_channels=output_channels, pretrained=pretrained, ablate=ablate)
+    model = models.__dict__[model_name](output_channels=output_channels, pretrained=pretrained, ablate=ablate, **kwargs)
 
     # Get the optimizer created with the specified parameters in kwargs (such as lr, momentum, ... )
     optimizer = _get_optimizer(optimizer_name, model, **kwargs)
 
-    criterion = _get_criterion(criterion_name, disable_databalancing, dataset_folder, inmem, workers)
+    criterion = _get_criterion(criterion_name, disable_databalancing, dataset_folder, inmem, workers, **kwargs)
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -139,7 +139,7 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, criter
     return model, criterion, optimizer, best_value, start_epoch
 
 
-def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers):
+def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, runner_class, **kwargs):
     """
     This function simply recovers class_frequencies_weights from the analytics.csv file
 
@@ -152,15 +152,41 @@ def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers):
         on demand. This is slower than storing everything in memory.
     workers : int
         Number of workers to use for the mean/std computation
+    runner_class: string
+        specifies the runner class (mean and std have to be computed differently for the semantic segmentation)
 
     Returns
     -------
     ndarray[double]
         Class frequencies for the selected dataset, contained in the analytics.csv file.
     """
-    csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
+    csv_file = _load_analytics_csv(dataset_folder, inmem, workers, runner_class, **kwargs)
     return csv_file.ix[2, 1:].values.astype(float)
 
+
+def class_encodings(dataset_folder, inmem, workers, runner_class, **kwargs):
+    """
+    This function simply recovers class_encodings from the analytics.csv file
+
+    Parameters
+    ----------
+    dataset_folder : string
+        Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
+    inmem : boolean
+        Flag: if False, the dataset is loaded in an online fashion i.e. only file names are stored and images are loaded
+        on demand. This is slower than storing everything in memory.
+    workers : int
+        Number of workers to use for the mean/std computation
+    runner_class: string
+        specifies the runner class (mean and std have to be computed differently for the semantic segmentation)
+
+    Returns
+    -------
+    ndarray[double]
+        Class encodings for the selected dataset, contained in the analytics.csv file.
+    """
+    csv_file = _load_analytics_csv(dataset_folder, inmem, workers, runner_class, **kwargs)
+    return csv_file.ix[3, 1:].values.astype(int)
 
 def _get_optimizer(optimizer_name, model, **kwargs):
     """
@@ -194,7 +220,7 @@ def _get_optimizer(optimizer_name, model, **kwargs):
     return torch.optim.__dict__[optimizer_name](model.parameters(), **params)
 
 
-def _get_criterion(criterion_name, disable_databalancing, dataset_folder, inmem, workers):
+def _get_criterion(criterion_name, disable_databalancing, dataset_folder, inmem, workers, **kwargs):
     """
     This function serves as an interface between the command line and the criterion.
 
@@ -227,7 +253,7 @@ def _get_criterion(criterion_name, disable_databalancing, dataset_folder, inmem,
     if not disable_databalancing:
         try:
             logging.info('Loading weights for data balancing')
-            weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers)
+            weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, **kwargs)
             criterion.weight = torch.from_numpy(weights).type(torch.FloatTensor)
         except:
             logging.warning('Unable to load information for data balancing. Using normal criterion')
@@ -305,7 +331,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
 
         # Loads the analytics csv and extract mean and std
         # TODO: update bidimensional to work with new load_mean_std functions
-        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
+        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers, kwargs['runner_class'])
 
         # Bring mean and std into range [0:1] from original domain
         mean = np.divide((mean - train_ds.min_coords), np.subtract(train_ds.max_coords, train_ds.min_coords))
@@ -363,7 +389,7 @@ def _verify_dataset_integrity(dataset_folder, disable_dataset_integrity, enable_
             verify_integrity_quick(dataset_folder)
 
 
-def _load_mean_std_from_file(dataset_folder, inmem, workers):
+def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class):
     """
     This function simply recovers mean and std from the analytics.csv file
 
@@ -376,6 +402,9 @@ def _load_mean_std_from_file(dataset_folder, inmem, workers):
         on demand. This is slower than storing everything in memory.
     workers : int
         Number of workers to use for the mean/std computation
+    runner_class: string
+        specifies the runner class (mean and std have to be computed differently for the semantic segmentation)
+
 
     Returns
     -------
@@ -384,9 +413,9 @@ def _load_mean_std_from_file(dataset_folder, inmem, workers):
     """
     # Loads the analytics csv and extract mean and std
     try:
-        csv_file = _load_analytics_csv(dataset_folder, inmem, workers)
-        mean = csv_file.ix[0, 1:3].values.astype(float)
-        std = csv_file.ix[1, 1:3].values.astype(float)
+        csv_file = _load_analytics_csv(dataset_folder, inmem, workers, runner_class)
+        mean = np.asarray(csv_file.ix[0, 1:3])
+        std = np.asarray(csv_file.ix[1, 1:3])
     except KeyError:
         import sys
         logging.error('analytics.csv located in {} incorrectly formed. '
@@ -395,7 +424,7 @@ def _load_mean_std_from_file(dataset_folder, inmem, workers):
     return mean, std
 
 
-def _load_analytics_csv(dataset_folder, inmem, workers):
+def _load_analytics_csv(dataset_folder, inmem, workers, runner_class, **kwargs):
     """
     This function loads the analytics.csv file and attempts creating it, if it is missing
 
@@ -408,6 +437,8 @@ def _load_analytics_csv(dataset_folder, inmem, workers):
         on demand. This is slower than storing everything in memory.
     workers : int
         Number of workers to use for the mean/std computation
+    runner_class: string
+        specifies the runner class (mean and std have to be computed differently for the semantic segmentation)
 
     Returns
     -------
@@ -419,7 +450,12 @@ def _load_analytics_csv(dataset_folder, inmem, workers):
         logging.warning('Missing analytics.csv file for dataset located at {}'.format(dataset_folder))
         try:
             logging.warning('Attempt creating analytics.csv file for dataset located at {}'.format(dataset_folder))
-            compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
+            if 'coco' in runner_class:
+                compute_mean_std_coco(dataset_folder=dataset_folder, inmem=inmem, workers=workers, **kwargs)
+            elif 'segmentation' in runner_class:
+                compute_mean_std_segmentation(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
+            else:
+                compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
             logging.warning('Created analytics.csv file for dataset located at {} '.format(dataset_folder))
         except:
             logging.error('Creation of analytics.csv failed.')

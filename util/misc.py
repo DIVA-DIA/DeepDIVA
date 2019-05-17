@@ -9,6 +9,7 @@ import os
 import os.path
 import shutil
 import string
+import colorsys
 
 
 import numpy as np
@@ -323,4 +324,102 @@ def has_extension(filename, extensions):
     filename_lower = filename.lower()
     return any(filename_lower.endswith(ext) for ext in extensions)
 
+def pil_loader(path):
+    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+    with open(path, 'rb') as f:
+        with Image.open(f) as img:
+            return img.convert('RGB')
 
+# functions added for HisDB classification
+def int_to_one_hot(x, n_classes):
+    """
+    Read out class encoding from blue channel bit-encoding (1 to [0,0,0,1] -> length determined by the number of classes)
+
+    Parameters
+    ----------
+    x: int
+        (pixel value of Blue channel from RGB image)
+    n_classes: int
+        number of class labels
+    Returns
+    -------
+    list
+        (multi) one-hot encoded list for integer
+    """
+    s = '{0:0' + str(n_classes) + 'b}'
+    return list(map(int, list(s.format(x))))
+
+
+def multi_label_img_to_multi_hot(np_array):
+    """
+    TODO: There must be a faster way of doing this + ajust to correct input format (see gt_tensor_to_one_hot)
+    Convert ground truth label image to multi-one-hot encoded matrix of size image height x image width x #classes
+
+    Parameters
+    -------
+    np_array: numpy array
+        RGB image [W x H x C]
+    Returns
+    -------
+    numpy array of size [#C x W x H]
+        sparse one-hot encoded multi-class matrix, where #C is the number of classes
+    """
+    im_np = np_array[:, :, 2].astype(np.int8)
+    nb_classes = len(int_to_one_hot(im_np.max(), ''))
+
+    class_dict = {x: int_to_one_hot(x, nb_classes) for x in np.unique(im_np)}
+    # create the one hot matrix
+    one_hot_matrix = np.asanyarray(
+        [[class_dict[im_np[i, j]] for j in range(im_np.shape[1])] for i in range(im_np.shape[0])])
+
+    return np.rollaxis(one_hot_matrix.astype(np.uint8), 2, 0)
+
+
+def multi_one_hot_to_output(matrix):
+    """
+    This function converts the multi-one-hot encoded matrix to an image like it was provided in the ground truth
+
+    Parameters
+    -------
+    tensor of size [#C x W x H]
+        sparse one-hot encoded multi-class matrix, where #C is the number of classes
+    Returns
+    -------
+    np_array: numpy array
+        RGB image [C x W x H]
+    """
+    # TODO: fix input and output dims (see one_hot_to_output)
+    # create RGB
+    matrix = np.rollaxis(np.char.mod('%d', matrix.numpy()), 0, 3)
+    zeros = (32 - matrix.shape[2]) * '0'
+    B = np.array([[int('{}{}'.format(zeros, ''.join(matrix[i][j])), 2) for j in range(matrix.shape[1])] for i in
+                  range(matrix.shape[0])])
+
+    RGB = np.dstack((np.zeros(shape=(matrix.shape[0], matrix.shape[1], 2), dtype=np.int8), B))
+
+    return RGB
+
+
+def HSVToRGB(h, s, v):
+    (r, g, b) = colorsys.hsv_to_rgb(h, s, v)
+    return (int(255 * r), int(255 * g), int(255 * b))
+
+
+def get_distinct_colors(n):
+    huePartition = 1.0 / (n + 1)
+    return [HSVToRGB(huePartition * value, 1.0, 1.0) for value in range(0, n)]
+
+
+def make_colour_legend_image(img_name, colour_encoding):
+    import matplotlib.pyplot as plt
+
+    labels = sorted(colour_encoding.keys())
+    colors = [tuple(np.array(colour_encoding[k])/255) for k in labels]
+    f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
+    handles = [f("s", c) for c in colors]
+    legend = plt.legend(handles, labels, loc=3, framealpha=1, frameon=False)
+
+    fig = legend.figure
+    fig.canvas.draw()
+    bbox = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    fig.savefig(img_name, dpi=1000, bbox_inches=bbox)
