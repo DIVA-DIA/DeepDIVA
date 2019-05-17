@@ -1,11 +1,30 @@
 import torch
 import torch.nn as nn
+import logging
+import os
 from models.registry import Model
 
-@Model
-class Unet(nn.Module):
 
-    def __init__(self, input_channels=3, output_channels=3, num_filter=64, **kwargs):
+@Model
+def unet(output_channels=8, pretrained=False, path_pretrained_model=None, **kwargs):
+    model = Unet(output_channels=output_channels)
+
+    if pretrained:
+        if os.path.isfile(path_pretrained_model):
+            model_dict = torch.load(path_pretrained_model)
+            logging.info('Loading a saved model')
+            try:
+                model.load_state_dict(model_dict['state_dict'], strict=False)
+            except Exception as exp:
+                logging.warning(exp)
+        else:
+            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+
+    return model
+
+
+class Unet(nn.Module):
+    def __init__(self, input_channels=3, output_channels=3, num_filter=64):
         super(Unet, self).__init__()
         self.in_dim = input_channels
         self.out_dim = output_channels
