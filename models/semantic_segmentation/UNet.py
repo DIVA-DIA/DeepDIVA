@@ -6,10 +6,10 @@ from models.registry import Model
 
 
 @Model
-def unet(output_channels=8, pretrained=False, path_pretrained_model=None, **kwargs):
+def unet(output_channels=8, path_pretrained_model=None, **kwargs):
     model = Unet(output_channels=output_channels)
 
-    if pretrained:
+    if path_pretrained_model:
         if os.path.isfile(path_pretrained_model):
             model_dict = torch.load(path_pretrained_model)
             logging.info('Loading a saved model')

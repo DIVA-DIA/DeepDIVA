@@ -17,10 +17,11 @@ from tqdm import tqdm
 from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard, get_distinct_colors, \
     make_colour_legend_image
 from util.visualization.confusion_matrix_heatmap import make_heatmap
+from util.visualization.DIVAHisDB_layout_analysis_tool_visualization import generate_layout_analysis_output
 from util.evaluation.metrics.accuracy import accuracy_segmentation
 from template.setup import _load_class_frequencies_weights_from_file
 from .setup import one_hot_to_np_rgb, one_hot_to_full_output
-from datasets.custom_transform_library.functional import gt_to_one_hot
+from datasets.custom_transform_library.functional import gt_to_one_hot_hisdb as gt_to_one_hot
 
 
 def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_val_conf_matrix, no_cuda=False, log_interval=10, **kwargs):
@@ -395,7 +396,7 @@ def _save_test_img_output(img_to_save, one_hot, multi_run, dataset_folder, loggi
     np_rgb = one_hot_to_np_rgb(one_hot, class_encodings)
     # add full image to predictions
     pred = np.argmax(one_hot, axis=0)
-    # open full ground truth image TODO add image extension
+    # open full ground truth image
     gt_img_path = os.path.join(dataset_folder, logging_label, "gt", img_to_save)
 
     with open(gt_img_path, 'rb') as f:
@@ -404,6 +405,11 @@ def _save_test_img_output(img_to_save, one_hot, multi_run, dataset_folder, loggi
 
     # get the ground truth mapping
     target = np.argmax(gt_to_one_hot(ground_truth, class_encodings).numpy(), axis=0)
+
+    # border pixels can be classified as background or foreground -> set to the same in pred and target
+    if use_boundary_pixel:
+        border_mask = ground_truth[:, :, 0].astype(np.uint8) != 0
+        pred[border_mask] = target[border_mask]
 
     # Compute and record the meanIU of the whole image TODO check with Vinay & Michele if correct
     acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target, pred, num_classes)
@@ -519,5 +525,21 @@ def save_image_and_log_to_tensorboard_segmentation(class_encodings, writer=None,
 
         result = Image.fromarray(img_overlay.astype(np.uint8))
         result.save(dest_filename)
+
+    # 4. Layout analysis evaluation
+    # Output image as described in https://github.com/DIVA-DIA/DIVA_Layout_Analysis_Evaluator
+    if gt_image is not None:
+        img_la = np.copy(image)
+        tag_la = "layout_analysis_evaluation_" + tag
+        # Get output folder using the FileHandler from the logger.
+        # (Assumes the file handler is the last one)
+        output_folder = os.path.dirname(logging.getLogger().handlers[-1].baseFilename)
+
+        if global_step is not None:
+            dest_filename = tag_la + '_{}'.format(global_step)
+        else:
+            dest_filename = tag_la
+
+        generate_layout_analysis_output(os.path.join(output_folder, 'images'), gt_image, img_la, dest_filename, legend=True)
 
     return

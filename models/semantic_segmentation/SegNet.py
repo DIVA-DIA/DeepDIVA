@@ -2,12 +2,31 @@
 
 import torch
 from torch import nn
+import os
+import logging
 import torch.utils.model_zoo as model_zoo
 
 from models.registry import Model
 from models.image_classification.VGG import vgg19_bn, model_urls
 
 @Model
+def segnet(output_channels=8, path_pretrained_model=None, **kwargs):
+    model = SegNet(output_channels, **kwargs)
+
+    if path_pretrained_model:
+        if os.path.isfile(path_pretrained_model):
+            model_dict = torch.load(path_pretrained_model)
+            logging.info('Loading a saved model')
+            try:
+                model.load_state_dict(model_dict['state_dict'], strict=False)
+            except Exception as exp:
+                logging.warning(exp)
+        else:
+            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+
+    return model
+
+
 class SegNet(nn.Module):
     def __init__(self, output_channels, pretrained=False, **kwargs):
         super(SegNet, self).__init__()
@@ -80,7 +99,7 @@ def initialize_weights(*models):
     for model in models:
         for module in model.modules():
             if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
-                nn.init.kaiming_normal(module.weight)
+                nn.init.kaiming_normal_(module.weight)
                 if module.bias is not None:
                     module.bias.data.zero_()
             elif isinstance(module, nn.BatchNorm2d):

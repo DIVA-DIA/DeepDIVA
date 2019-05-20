@@ -6,7 +6,6 @@ from models.registry import Model
 
 
 class Conv_residual_conv(nn.Module):
-
     def __init__(self, in_dim, out_dim, act_fn):
         super(Conv_residual_conv, self).__init__()
         self.in_dim = in_dim

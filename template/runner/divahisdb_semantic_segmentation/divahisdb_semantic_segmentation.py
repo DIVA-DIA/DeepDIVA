@@ -11,7 +11,9 @@ import os
 
 # Utils
 import numpy as np
+import pandas as pd
 
+import models
 # Delegated
 from . import evaluate, train
 from template.setup import set_up_model
@@ -19,7 +21,7 @@ from .setup import set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 
 
-class SemanticSegmentation:
+class DivahisdbSemanticSegmentation:
     @staticmethod
     def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
                    validation_interval, checkpoint_all_epochs,
@@ -81,15 +83,15 @@ class SemanticSegmentation:
         val_value = np.zeros((epochs + 1 - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
-        val_value[-1] = SemanticSegmentation._validate(val_loader, model, criterion, writer, -1, class_encoding, **kwargs)
+        val_value[-1] = DivahisdbSemanticSegmentation._validate(val_loader, model, criterion, writer, -1, class_encoding, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = SemanticSegmentation._train(train_loader, model, criterion, optimizer, writer, epoch, class_encoding,
+            train_value[epoch] = DivahisdbSemanticSegmentation._train(train_loader, model, criterion, optimizer, writer, epoch, class_encoding,
                                                              **kwargs)
 
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = SemanticSegmentation._validate(val_loader, model, criterion, writer, epoch, class_encoding, **kwargs)
+                val_value[epoch] = DivahisdbSemanticSegmentation._validate(val_loader, model, criterion, writer, epoch, class_encoding, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
             # TODO best model is not saved if epoch = 1
@@ -112,7 +114,7 @@ class SemanticSegmentation:
                                          **kwargs)
 
         # Test
-        test_value = SemanticSegmentation._test(test_loader, model, criterion, writer, epochs - 1, class_encoding,
+        test_value = DivahisdbSemanticSegmentation._test(test_loader, model, criterion, writer, epochs - 1, class_encoding,
                                                 img_names_sizes_dict, **kwargs)
         logging.info('Training completed')
 

@@ -74,7 +74,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
     # TODO: make the argmax a transform (as not all criterion will want this)
     gt_transform = transforms.Compose([
         # transforms the gt image into a one-hot encoded matrix
-        custom_transforms.OneHotEncoding(class_encodings=train_ds.class_encodings),
+        custom_transforms.OneHotEncodingDIVAHisDB(class_encodings=train_ds.class_encodings),
         # transforms the one hot encoding to argmax labels -> for the cross-entropy criterion
         custom_transforms.OneHotToPixelLabelling()])
 

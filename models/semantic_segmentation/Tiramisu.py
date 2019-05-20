@@ -30,13 +30,13 @@ def fcdensenet57(output_channels=8, pretrained=False, path_pretrained_model=None
     return model
 
 @Model
-def fcdensenet67(output_channels=8, pretrained=False, path_pretrained_model=None, **kwargs):
+def fcdensenet67(output_channels=8, path_pretrained_model=None, **kwargs):
     model = FCDenseNet(
         in_channels=3, down_blocks=(5, 5, 5, 5, 5),
         up_blocks=(5, 5, 5, 5, 5), bottleneck_layers=5,
         growth_rate=16, out_chans_first_conv=48, output_channels=output_channels)
 
-    if pretrained:
+    if path_pretrained_model:
         if os.path.isfile(path_pretrained_model):
             model_dict = torch.load(path_pretrained_model)
             logging.info('Loading a saved model')

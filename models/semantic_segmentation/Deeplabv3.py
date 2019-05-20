@@ -10,20 +10,76 @@ import urllib
 import os
 
 from models.registry import Model
-from models.semantic_segmentation.deeplabv3_resnet import ResNet18_OS16, ResNet34_OS16, ResNet50_OS16, ResNet101_OS16, ResNet152_OS16, ResNet18_OS8, ResNet34_OS8
+from models.semantic_segmentation.deeplabv3_resnet import ResNet18_OS16, ResNet34_OS16, ResNet50_OS16, ResNet101_OS16, \
+    ResNet152_OS16, ResNet18_OS8, ResNet34_OS8
 from models.semantic_segmentation.deeplabv3_aspp import ASPP, ASPP_Bottleneck
+
+CLASS_NAMES = {"deeplabv3_resnet18_os16": ResNet18_OS16,
+               "deeplabv3_resnet34_os16": ResNet34_OS16,
+               "deeplabv3_resnet50_os16": ResNet50_OS16,
+               "deeplabv3_resnet101_os16": ResNet101_OS16,
+               "deeplabv3_resnet152_os16": ResNet152_OS16,
+               "deeplabv3_resnet18_os8": ResNet18_OS8,
+               "deeplabv3_resnet34_os8": ResNet34_OS8,
+               }
 
 
 @Model
-def deeplabv3(output_channels, pretrained=False, cityscapes=False, **kwargs):
-    """VGG 11-layer model (configuration "A")
+def deeplabv3(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3', output_channels, **kwargs)
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = DeepLabV3(pretrained, output_channels, **kwargs)
+@Model
+def deeplabv3_resnet18_os16(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3_resnet18_os16', output_channels, **kwargs)
 
-    if cityscapes:
+@Model
+def deeplabv3_resnet34_os16(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3_resnet34_os16', output_channels, **kwargs)
+
+@Model
+def deeplabv3_resnet50_os16(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3_resnet50_os16', output_channels, **kwargs)
+
+@Model
+def deeplabv3_resnet101_os16(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3_resnet101_os16', output_channels, **kwargs)
+
+@Model
+def deeplabv3_resnet152_os16(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3_resnet152_os16', output_channels, **kwargs)
+
+@Model
+def deeplabv3_resnet18_os8(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3_resnet18_os8', output_channels, **kwargs)
+
+@Model
+def deeplabv3_resnet34_os8(output_channels, **kwargs):
+    return deeplabv3_builder('deeplabv3_resnet34_os8', output_channels, **kwargs)
+
+# *********************************************************************************
+
+
+def deeplabv3_builder(model_name, output_channels, pretrained=False, path_pretrained_model=None, cityscapes=False, **kwargs):
+    if model_name=='deeplabv3':
+        logging.info('ResNet type not specified, running "deeplabv3_resnet18_os8". (choose from {})'.format(", ".join(CLASS_NAMES.keys())))
+        model = DeepLabV3("deeplabv3_resnet18_os8", pretrained, output_channels, **kwargs)
+    else:
+        model = DeepLabV3(model_name, pretrained, output_channels, **kwargs)
+
+    # load a pre-trained model from a path
+    if path_pretrained_model:
+        if os.path.isfile(path_pretrained_model):
+            model_dict = torch.load(path_pretrained_model)
+            logging.info('Loading a saved model')
+            try:
+                model.load_state_dict(model_dict['state_dict'], strict=False)
+            except Exception as exp:
+                logging.warning(exp)
+        else:
+            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+
+    # load the weights pre-trained on cityscapes dataset (only possible for current "deeplabv3_resnet18_os8" set-up)
+    if "deeplabv3_resnet18_os8" and cityscapes:
         try:
             path = get_cityscapes_model_path(**kwargs)
             model.load_state_dict(torch.load(path), strict=False)
@@ -35,14 +91,16 @@ def deeplabv3(output_channels, pretrained=False, cityscapes=False, **kwargs):
 
 
 class DeepLabV3(nn.Module):
-    def __init__(self, pretrained, num_classes, **kwargs):
+    def __init__(self, model_name, pretrained, num_classes, **kwargs):
         super(DeepLabV3, self).__init__()
 
         self.num_classes = num_classes
 
-        # TODO: make different functions for different models
-        self.resnet = ResNet18_OS8(pretrained) # NOTE! specify the type of ResNet here
-        self.aspp = ASPP(num_classes=self.num_classes) # NOTE! if you use ResNet50-152, set self.aspp = ASPP_Bottleneck(num_classes=self.num_classes) instead
+        self.resnet = CLASS_NAMES[model_name](pretrained) # NOTE! specify the type of ResNet here
+        if 'resnet18' in model_name or 'resnet34' in model_name:
+            self.aspp = ASPP(num_classes=self.num_classes) # NOTE! if you use ResNet50-152, set self.aspp = ASPP_Bottleneck(num_classes=self.num_classes) instead
+        else:
+            self.aspp = ASPP_Bottleneck(num_classes=self.num_classes)
 
     def forward(self, x):
         # (x has shape (batch_size, 3, h, w))
@@ -54,7 +112,7 @@ class DeepLabV3(nn.Module):
 
         output = self.aspp(feature_map) # (shape: (batch_size, num_classes, h/16, w/16))
 
-        output = F.upsample(output, size=(h, w), mode="bilinear") # (shape: (batch_size, num_classes, h, w))
+        output = torch.nn.functional.interpolate(output, size=(h, w), mode="bilinear", align_corners=True) # (shape: (batch_size, num_classes, h, w))
 
         return output
 
