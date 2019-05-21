@@ -27,7 +27,7 @@ from sklearn.model_selection import train_test_split as _train_test_split
 
 from util.data.dataset_splitter import split_dataset, split_dataset_writerIdentification
 from util.misc import get_all_files_in_folders_and_subfolders \
-    as _get_all_files_in_folders_and_subfolders
+    as _get_all_files_in_folders_and_subfolders, pil_loader
 
 
 def mnist(args):
@@ -822,6 +822,129 @@ def miml(args):
     shutil.rmtree(path_to_output)
     print('All done!')
     return
+
+
+def glas(args):
+    """
+    Fetches and prepares (in a DeepDIVA friendly format) the tubule dataset (from the GlaS challenge) for semantic
+    segmentation to the location specified on the file system
+
+    See also: https://github.com/choosehappy/public/tree/master/DL%20tutorial%20Code/3-tubule
+
+    Output folder structure: ../HisDB/GlaS/train
+                             ../HisDB/GlaS/val
+                             ../HisDB/GlaS/test
+
+                             ../HisDB/GlaS/test/data -> images
+                             ../HisDB/GlaS/test/gt   -> pixel-wise annotated ground truth
+
+    Parameters
+    ----------
+    args : dict
+        List of arguments necessary to run this routine. In particular its necessary to provide
+        output_folder as String containing the path where the dataset will be downloaded
+
+    Returns
+    -------
+        None
+    """
+
+    def groupby_patient(list_to_group, index=3):
+        """
+        split images by patient
+        :param list_to_group: list of image names
+        :param index: position of split by '-' in the image name to obtain patient ID
+        :return:  dictionary where keys are patient IDs and values are lists of images that are from that patient
+        """
+        return {
+            '-'.join(filename.split('-')[:index]): [file for file in list_to_group if '-'.join(file.split('-')[:index])
+                                                    == '-'.join(filename.split('-')[:index])] for filename in
+            list_to_group}
+
+    def convert_gt(img_path):
+        img = pil_loader(img_path)
+
+        out_img = np.zeros((*img.shape, 3), dtype=np.uint8)
+        out_img[:, :, 2] = 1  # set everything to background in blue channel
+        out_img[:, :, 2][img != 0] = 2  # set glands to 2 in blue channel
+
+        out = Image.fromarray(out_img)
+        out.save(img_path)
+
+    # make the root folder
+    output_folder = args.output_folder
+    dataset_root = os.path.join(output_folder, 'GlaS')
+    _make_folder_if_not_exists(dataset_root)
+
+    # links to HisDB data sets
+    link_tubules = urllib.parse.urlparse(
+        'http://andrewjanowczyk.com/wp-static/tubule.tgz')
+
+    download_path_tubules = os.path.join(dataset_root, link_tubules.geturl().rsplit('/', 1)[-1])
+
+    # download files
+    print('Downloading {}...'.format(link_tubules.geturl()))
+    urllib.request.urlretrieve(link_tubules.geturl(), download_path_tubules)
+
+    print('Download complete. Unpacking files...')
+
+    # unpack tubule folder that contains images, annotations and text files with lists of benign and malignant samples
+    tar_file = tarfile.open(download_path_tubules)
+    tar_file.extractall(path=dataset_root)
+
+    sets_dict = {}
+    # 20 benign + 20 malignant images
+    train_ids_b = ['09-1339-01',
+                   '09-16566-03',
+                   '09-21631-03',
+                   '09-23232-02',
+                   'm9_10741F-12T2N0', '10-13799-05']  # 4*5
+
+    train_ids_m = ['09-322-02',
+                   '09-16566-02',
+                   '10-13799-06',
+                   '10-15247-02',
+                   'm6_10719 T3N2a', 'm17_1421 IE-11 T3N2a', 'm18_1421 IE-11 1-86', 'm39_10-1273']  # 5*4
+
+    sets_dict['train'] = train_ids_b + train_ids_m
+
+    # validation has 29 images
+    val_ids_b = ['10-12813-05',
+                 '10-13799-02',
+                 'm2_10449-11E-T3N1b']  # 2*4 + 1 = 9
+
+    val_ids_m = ['09-1339-02',
+                 '09-1339-05',
+                 '09-1646-01',
+                 '09-1646-02',
+                 '09-23757-01']  # 5*4 = 20
+
+    sets_dict['val'] = val_ids_b + val_ids_m
+
+    # test has equal mal and ben and 16 img
+
+    test_ids_m = ['09-1646-03', '09-1646-05']  # 2*4 = 8
+    test_ids_b = ['10-12813-01', '10-13799-01']  # 2*4 = 8
+
+    sets_dict['test'] = test_ids_b + test_ids_m
+
+    print('Splitting the dataset into train, val and test')
+    for s in ['train', 'test', 'val']:
+        _make_folder_if_not_exists(os.path.join(dataset_root, s, 'gt'))
+        _make_folder_if_not_exists(os.path.join(dataset_root, s, 'data'))
+
+        print('CREATING {} SET'.format(s))
+        for patient in sets_dict[s]:
+            for img_file in os.listdir(dataset_root):
+                if patient in img_file:
+                    if 'anno' in img_file:
+                        # convert gt into correct data format
+                        convert_gt(os.path.join(dataset_root, img_file))
+                        out_file = os.path.join('gt', img_file.replace('_anno', ''))
+                    else:
+                        out_file = os.path.join('data', img_file)
+
+                    shutil.move(os.path.join(dataset_root, img_file), os.path.join(dataset_root, s, out_file))
 
 
 def _make_folder_if_not_exists(path):

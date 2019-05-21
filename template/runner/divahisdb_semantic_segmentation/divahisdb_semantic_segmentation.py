@@ -94,7 +94,6 @@ class DivahisdbSemanticSegmentation:
                 val_value[epoch] = DivahisdbSemanticSegmentation._validate(val_loader, model, criterion, writer, epoch, class_encoding, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
-            # TODO best model is not saved if epoch = 1
             best_value = checkpoint(epoch=epoch, new_value=val_value[epoch],
                                     best_value=best_value, model=model,
                                     optimizer=optimizer,
@@ -106,7 +105,6 @@ class DivahisdbSemanticSegmentation:
         logging.info('Loading the best model before evaluating on the test set.')
         kwargs["load_model"] = os.path.join(current_log_folder, 'model_best.pth.tar')
 
-        # TODO: add weights to kwargs
         model, _, _, _, _ = set_up_model(num_classes=len(class_encoding),
                                          model_name=model_name,
                                          lr=lr,

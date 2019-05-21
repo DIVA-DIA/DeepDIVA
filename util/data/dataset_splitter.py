@@ -14,6 +14,7 @@ import random
 # Torch related stuff
 import torchvision.datasets as datasets
 from sklearn.model_selection import train_test_split
+from .get_a_dataset import _make_folder_if_not_exists
 
 
 def split_dataset(dataset_folder, split, symbolic, debug=False):
@@ -256,6 +257,96 @@ def split_dataset_writerIdentification(dataset_folder, split):
     return
 
 
+def split_dataset_segmentation(dataset_folder, split, symbolic, test=False, debug=False):
+    """
+    Partition a dataset into train/val(/test) splits on the filesystem for segmentation datasets organized
+    as dataset/data with the images and dataset/gt for the ground truth. The corresponding images need to have the same
+    name.
+
+    Parameters
+    ----------
+    dataset_folder : str
+        Path to the dataset folder (see datasets.image_folder_dataset.load_dataset for details).
+    split : float
+        Specifies how much of the training set should be converted into the validation set.
+    symbolic : bool
+        Does not make a copy of the data, but only symbolic links to the original data
+    test: bool
+        If true, the validation set is split again (1:1) into a val and test set. Default false.
+    debug : bool
+        Prints additional debug statements
+
+    Returns
+    -------
+        None
+    """
+    # Getting the train dir
+    orig_dir = os.path.join(dataset_folder, 'train')
+
+    # Rename the original train dir
+    shutil.move(orig_dir, os.path.join(dataset_folder, 'original_train'))
+    orig_dir = os.path.join(dataset_folder, 'original_train')
+
+    # Sanity check on the training folder
+    if not os.path.isdir(orig_dir):
+        print("Train folder not found in the args.dataset_folder={}".format(dataset_folder))
+        sys.exit(-1)
+
+    # get the dataset splits
+    path_data = os.path.join(orig_dir, "data")
+    path_gt = os.path.join(orig_dir, "gt")
+
+    file_names_data = sorted(
+        [f for f in os.listdir(path_data) if os.path.isfile(os.path.join(path_data, f))])
+    file_names_gt = sorted(
+        [f for f in os.listdir(path_gt) if os.path.isfile(os.path.join(path_gt, f))])
+
+    file_names = [(data, gt) for data, gt in zip(file_names_data, file_names_gt)]
+
+    # Split the data into two sets
+    filenames_train, filenames_val, _, _ = train_test_split(file_names, file_names,
+                                                            test_size=split,
+                                                            random_state=42)
+
+    if test:
+        # Split the data into two sets
+        filenames_val, filenames_test, _, _ = train_test_split(filenames_val, filenames_val,
+                                                               test_size=0.5,
+                                                               random_state=42)
+
+    # Make output folders
+    dataset_root = os.path.join(dataset_folder)
+    train_folder = os.path.join(dataset_root, 'train')
+    val_folder = os.path.join(dataset_root, 'val')
+
+    _make_folder_if_not_exists(dataset_root)
+    _make_folder_if_not_exists(train_folder)
+    _make_folder_if_not_exists(val_folder)
+
+    if test:
+        test_folder = os.path.join(dataset_root, 'test')
+        _make_folder_if_not_exists(test_folder)
+
+    folders = [train_folder, val_folder, test_folder] if test else [train_folder, val_folder]
+    file_splits = [filenames_train, filenames_val, filenames_test] if test else [filenames_train, filenames_val]
+
+    # Copying the splits into their folders
+    for folder, split_files in zip(folders, file_splits):
+        _make_folder_if_not_exists(os.path.join(folder, 'data'))
+        _make_folder_if_not_exists(os.path.join(folder, 'gt'))
+
+        for fdata, fgt in split_files:
+            if symbolic:
+                os.symlink(os.path.join(path_data, fdata), os.path.join(folder, 'data', fdata))
+                os.symlink(os.path.join(path_gt, fgt), os.path.join(folder, 'gt', fgt))
+
+            else:
+                shutil.copy(os.path.join(path_data, fdata), os.path.join(folder, 'data', fdata))
+                shutil.copy(os.path.join(path_gt, fgt), os.path.join(folder, 'gt', fgt))
+
+    return
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description='This script creates train/val splits '
@@ -278,6 +369,11 @@ if __name__ == "__main__":
                         action='store_true',
                         default=False)
 
+    parser.add_argument('--test',
+                        help='Split val set into half to make a test set.',
+                        action='store_true',
+                        default=False)
+
     parser.add_argument('--debug',
                         help='Print additional debug statements.',
                         action='store_true',
@@ -286,6 +382,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     split_dataset(dataset_folder=args.dataset_folder, split=args.split, symbolic=args.symbolic)
+
+    split_dataset_segmentation(dataset_folder=args.dataset_folder, split=args.split, symbolic=args.symbolic, test=args.test)
 
     split_dataset_writerIdentification(dataset_folder=args.dataset_folder, split=args.split)
 
