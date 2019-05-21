@@ -7,7 +7,9 @@ import argparse
 import os
 import shutil
 import sys
+import re
 import numpy as np
+import random
 
 # Torch related stuff
 import torchvision.datasets as datasets
@@ -114,6 +116,146 @@ def split_dataset(dataset_folder, split, symbolic, debug=False):
     return
 
 
+def _get_file_with_parents(filepath, levels=1):
+    common = filepath
+    for i in range(levels + 1):
+        common = os.path.dirname(common)
+    return os.path.relpath(filepath, common)
+
+
+def split_dataset_writerIdentification(dataset_folder, split):
+    """
+    Partition a dataset into train/val splits on the filesystem.
+
+    Parameters
+    ----------
+    dataset_folder : str
+        Path to the dataset folder (see datasets.image_folder_dataset.load_dataset for details).
+    split : float
+        Specifies how much of the training set should be converted into the validation set.
+    symbolic : bool
+        Does not make a copy of the data, but only symbolic links to the original data
+
+    Returns
+    -------
+        None
+    """
+    print("Data Splitting for Writer Identification\n")
+    # Getting the train dir
+    binarized_dataset = os.path.join(dataset_folder, "BinarizedDataset")
+    colored_dataset = os.path.join(dataset_folder, "ColoredDataset")
+    binarized_traindir = os.path.join(binarized_dataset, 'train')
+    colored_traindir = os.path.join(colored_dataset, 'train')
+
+    # Rename the original train dir
+    shutil.move(binarized_traindir, os.path.join(binarized_dataset, 'original_train'))
+    shutil.move(colored_traindir, os.path.join(colored_dataset, 'original_train'))
+
+    binarized_traindir = os.path.join(binarized_dataset, 'original_train')
+    colored_traindir = os.path.join(colored_dataset, 'original_train')
+    # Sanity check on the training folder
+    if not os.path.isdir(binarized_traindir):
+        print("Train folder not found in the args.dataset_folder={}".format(binarized_dataset))
+        sys.exit(-1)
+    if not os.path.isdir(colored_traindir):
+        print("Train folder not found in the args.dataset_folder={}".format(colored_dataset))
+        sys.exit(-1)
+
+    # Load the dataset file names
+    print("Loading dataset filenames\n")
+    fileNames = os.listdir(binarized_traindir)
+    print("Training set size: :" + str(len(fileNames)))
+    validation_size = int(len(fileNames)*split)
+    print("Validation set size: " + str(validation_size))
+    random.seed(42)
+    random.shuffle(fileNames)
+    validation_files = random.sample(fileNames, validation_size)
+    training_files = [file for file in fileNames if file not in validation_files]
+
+    # Print number of elements for each class
+    ''''
+    for c in train_binarized_ds.classes:
+        print("labels ({}) {}".format(c, np.size(np.where(y_train == train_binarized_ds.class_to_idx[c]))))
+    for c in train_binarized_ds.classes:
+        print("split_train ({}) {}".format(c, np.size(np.where(y_train == train_binarized_ds.class_to_idx[c]))))
+    for c in train_binarized_ds.classes:
+        print("split_val ({}) {}".format(c, np.size(np.where(y_val == train_binarized_ds.class_to_idx[c]))))
+    '''
+
+    # Create the folder structure to accommodate the two new splits for binarized dataset
+    split_train_binarized_dir = os.path.join(binarized_dataset, "train")
+    if os.path.exists(split_train_binarized_dir):
+        shutil.rmtree(split_train_binarized_dir)
+    os.makedirs(split_train_binarized_dir)
+
+    split_train_color_dir = os.path.join(colored_dataset, "train")
+    if os.path.exists(split_train_color_dir):
+        shutil.rmtree(split_train_color_dir)
+    os.makedirs(split_train_color_dir)
+
+    print("Copying files to train folder\n")
+    for tf in training_files:
+        path_binarized = os.path.join(split_train_binarized_dir, tf)
+        path_color = os.path.join(split_train_color_dir, tf)
+        if os.path.exists(path_binarized):
+            shutil.rmtree(path_binarized)
+        os.makedirs(path_binarized)
+        if os.path.exists(path_color):
+            shutil.rmtree(path_color)
+        os.makedirs(path_color)
+
+        binarized_file_path = os.path.join(binarized_traindir, tf)
+        subfiles_binarized = os.listdir(binarized_file_path)
+        colored_file_path = os.path.join(colored_traindir, tf)
+        subfiles_colored = os.listdir(colored_file_path)
+        for i in range(len(subfiles_binarized)):
+            file = os.path.join(binarized_file_path, subfiles_binarized[i])
+            shutil.copy(file, path_binarized)
+        for i in range(len(subfiles_colored)):
+            file = os.path.join(colored_file_path, subfiles_colored[i])
+            shutil.copy(file, path_color)
+
+    split_val_binarized_dir = os.path.join(binarized_dataset, "val")
+    if os.path.exists(split_val_binarized_dir):
+        shutil.rmtree(split_val_binarized_dir)
+    os.makedirs(split_val_binarized_dir)
+
+    split_val_color_dir = os.path.join(colored_dataset, "val")
+    if os.path.exists(split_val_color_dir):
+        shutil.rmtree(split_val_color_dir)
+    os.makedirs(split_val_color_dir)
+
+    print("Copying files to val folder\n")
+    for vf in validation_files:
+
+        path_binarized = os.path.join(split_val_binarized_dir, vf)
+        path_color = os.path.join(split_val_color_dir, vf)
+
+        if os.path.exists(path_binarized):
+            shutil.rmtree(path_binarized)
+        os.makedirs(path_binarized)
+        if os.path.exists(path_color):
+            shutil.rmtree(path_color)
+        os.makedirs(path_color)
+
+        binarized_file_path = os.path.join(binarized_traindir, vf)
+        subfiles_binarized = os.listdir(binarized_file_path)
+        colored_file_path = os.path.join(colored_traindir, vf)
+        subfiles_colored = os.listdir(colored_file_path)
+
+        for i in range(len(subfiles_binarized)):
+            file = os.path.join(binarized_file_path, subfiles_binarized[i])
+            shutil.copy(file, path_binarized)
+
+        for i in range(len(subfiles_colored)):
+            file = os.path.join(colored_file_path, subfiles_colored[i])
+            shutil.copy(file, path_color)
+
+    print("Splitting is done!")
+
+    return
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description='This script creates train/val splits '
@@ -144,3 +286,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     split_dataset(dataset_folder=args.dataset_folder, split=args.split, symbolic=args.symbolic)
+
+    split_dataset_writerIdentification(dataset_folder=args.dataset_folder, split=args.split)
+
+

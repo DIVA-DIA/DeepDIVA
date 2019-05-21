@@ -25,7 +25,7 @@ import scipy
 from scipy.io import loadmat as _loadmat
 from sklearn.model_selection import train_test_split as _train_test_split
 
-from util.data.dataset_splitter import split_dataset
+from util.data.dataset_splitter import split_dataset, split_dataset_writerIdentification
 from util.misc import get_all_files_in_folders_and_subfolders \
     as _get_all_files_in_folders_and_subfolders
 
