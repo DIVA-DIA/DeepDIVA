@@ -27,7 +27,7 @@ from sklearn.model_selection import train_test_split as _train_test_split
 
 from util.data.dataset_splitter import split_dataset, split_dataset_writerIdentification
 from util.misc import get_all_files_in_folders_and_subfolders \
-    as _get_all_files_in_folders_and_subfolders, pil_loader
+    as _get_all_files_in_folders_and_subfolders, pil_loader, make_folder_if_not_exists
 
 
 def mnist(args):
@@ -63,14 +63,14 @@ def mnist(args):
     train_folder = os.path.join(dataset_root, 'train')
     test_folder = os.path.join(dataset_root, 'test')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(test_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(test_folder)
 
     def _write_data_to_folder(arr, labels, folder):
         for i, (img, label) in enumerate(zip(arr, labels.detach().numpy())):
             dest = os.path.join(folder, str(label))
-            _make_folder_if_not_exists(dest)
+            make_folder_if_not_exists(dest)
             Image.fromarray(img.numpy(), mode='L').save(os.path.join(dest, str(i) + '.png'))
 
     # Write the images to the folders
@@ -120,14 +120,14 @@ def svhn(args):
     train_folder = os.path.join(dataset_root, 'train')
     test_folder = os.path.join(dataset_root, 'test')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(test_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(test_folder)
 
     def _write_data_to_folder(arr, labels, folder):
         for i, (img, label) in enumerate(zip(arr, labels)):
             dest = os.path.join(folder, str(label))
-            _make_folder_if_not_exists(dest)
+            make_folder_if_not_exists(dest)
             Image.fromarray(img).save(os.path.join(dest, str(i) + '.png'))
 
     # Write the images to the folders
@@ -169,14 +169,14 @@ def cifar10(args):
     train_folder = os.path.join(dataset_root, 'train')
     test_folder = os.path.join(dataset_root, 'test')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(test_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(test_folder)
 
     def _write_data_to_folder(arr, labels, folder):
         for i, (img, label) in enumerate(zip(arr, labels)):
             dest = os.path.join(folder, str(label))
-            _make_folder_if_not_exists(dest)
+            make_folder_if_not_exists(dest)
             Image.fromarray(img).save(os.path.join(dest, str(i) + '.png'))
 
     # Write the images to the folders
@@ -214,7 +214,7 @@ def diva_hisdb(args):
     """
     # make the root folder
     dataset_root = os.path.join(args.output_folder, 'HisDB')
-    _make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(dataset_root)
 
     # links to HisDB data sets
     link_public = urllib.parse.urlparse(
@@ -241,7 +241,7 @@ def diva_hisdb(args):
     for data_file, gt_file in data_gt_zip.items():
         dataset_name = data_file.split('-')[-1][:-4]
         dataset_folder = os.path.join(dataset_root, dataset_name)
-        _make_folder_if_not_exists(dataset_folder)
+        make_folder_if_not_exists(dataset_folder)
 
         for file in [data_file, gt_file]:
             zip_file.extract(file, dataset_folder)
@@ -253,7 +253,7 @@ def diva_hisdb(args):
         # create folder structure
         for partition in ['train', 'val', 'test', 'test-public']:
             for folder in ['data', 'gt']:
-                _make_folder_if_not_exists(os.path.join(dataset_folder, partition, folder))
+                make_folder_if_not_exists(os.path.join(dataset_folder, partition, folder))
 
     # move the files to the correct place
     for folder in dataset_folders:
@@ -288,7 +288,7 @@ def diva_hisdb(args):
 
         # create folder structure
         for folder in ['data', 'gt']:
-            _make_folder_if_not_exists(os.path.join(dataset_folder, 'test', folder))
+            make_folder_if_not_exists(os.path.join(dataset_folder, 'test', folder))
 
         for old, new in {'pixel-level-gt': 'gt', 'img': 'data'}.items():
             current_path = os.path.join(dataset_folder, "{}-{}-privateTest".format(old, dataset_name), dataset_name)
@@ -323,10 +323,10 @@ def icdar2017_clamm(args):
     test_sc_folder = os.path.join(dataset_styleClassification, 'test')
     test_md_folder = os.path.join(dataset_manuscriptDating, 'test')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(dataset_manuscriptDating)
-    _make_folder_if_not_exists(dataset_styleClassification)
-    _make_folder_if_not_exists(test_sc_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(dataset_manuscriptDating)
+    make_folder_if_not_exists(dataset_styleClassification)
+    make_folder_if_not_exists(test_sc_folder)
 
     def _write_data_to_folder(zipfile, filenames, labels, folder, start_index,  isTest):
         print("Writing data\n")
@@ -349,7 +349,7 @@ def icdar2017_clamm(args):
             with zipfile.open(enrty) as file:
                 img = Image.open(file)
                 dest = os.path.join(folder, str(label))
-                _make_folder_if_not_exists(dest)
+                make_folder_if_not_exists(dest)
                 img.save(os.path.join(dest, str(i) + '.png'), "PNG", quality=100)
 
     def getLabels(zfile):
@@ -443,13 +443,13 @@ def historical_wi(args):
     test_colored_folder = os.path.join(test_folder, 'Color')
     folders = [train_binarized_folder, train_colored_folder, test_binarized_folder, test_colored_folder]
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(train_binarized_folder)
-    _make_folder_if_not_exists(train_colored_folder)
-    _make_folder_if_not_exists(test_folder)
-    _make_folder_if_not_exists(test_binarized_folder)
-    _make_folder_if_not_exists(test_colored_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(train_binarized_folder)
+    make_folder_if_not_exists(train_colored_folder)
+    make_folder_if_not_exists(test_folder)
+    make_folder_if_not_exists(test_binarized_folder)
+    make_folder_if_not_exists(test_colored_folder)
     """
     dataset_root = os.path.join(os.path.join(args.output_folder, 'historical_wi'))
     binarized_dataset = os.path.join(dataset_root, "BinarizedDataset")
@@ -460,13 +460,13 @@ def historical_wi(args):
     test_colored_folder = os.path.join(colored_dataset, 'test')
     folders = [train_binarized_folder, train_colored_folder, test_binarized_folder, test_colored_folder]
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(binarized_dataset)
-    _make_folder_if_not_exists(colored_dataset)
-    _make_folder_if_not_exists(train_binarized_folder)
-    _make_folder_if_not_exists(train_colored_folder)
-    _make_folder_if_not_exists(test_binarized_folder)
-    _make_folder_if_not_exists(test_colored_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(binarized_dataset)
+    make_folder_if_not_exists(colored_dataset)
+    make_folder_if_not_exists(train_binarized_folder)
+    make_folder_if_not_exists(train_colored_folder)
+    make_folder_if_not_exists(test_binarized_folder)
+    make_folder_if_not_exists(test_colored_folder)
 
     def _write_data_to_folder(zipfile, labels, folder, isTrainingset):
         print("Writing data to folder\n")
@@ -474,7 +474,7 @@ def historical_wi(args):
             with zipfile.open(enrty) as file:
                 img = Image.open(file)
                 dest = os.path.join(folder, str(label))
-                _make_folder_if_not_exists(dest)
+                make_folder_if_not_exists(dest)
                 if isTrainingset == 1:
                     img.save(os.path.join(dest, str(i) + '.png'))
                 else:
@@ -566,8 +566,8 @@ def kmnist(args):
 
         raw_folder = os.path.join(args.output_folder, 'raw')
         processed_folder = os.path.join(args.output_folder, 'processed')
-        _make_folder_if_not_exists(raw_folder)
-        _make_folder_if_not_exists(processed_folder)
+        make_folder_if_not_exists(raw_folder)
+        make_folder_if_not_exists(processed_folder)
 
         training_file = 'training.pt'
         test_file = 'test.pt'
@@ -615,14 +615,14 @@ def kmnist(args):
     train_folder = os.path.join(dataset_root, 'train')
     test_folder = os.path.join(dataset_root, 'test')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(test_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(test_folder)
 
     def _write_data_to_folder(arr, labels, folder):
         for i, (img, label) in enumerate(zip(arr, labels)):
             dest = os.path.join(folder, str(label))
-            _make_folder_if_not_exists(dest)
+            make_folder_if_not_exists(dest)
             Image.fromarray(img.numpy(), mode='L').save(os.path.join(dest, str(i) + '.png'))
 
     # Write the images to the folders
@@ -675,9 +675,9 @@ def kmnist(args):
 #     train_folder = os.path.join(dataset_root, 'train')
 #     test_folder = os.path.join(dataset_root, 'test')
 #
-#     _make_folder_if_not_exists(dataset_root)
-#     _make_folder_if_not_exists(train_folder)
-#     _make_folder_if_not_exists(test_folder)
+#     make_folder_if_not_exists(dataset_root)
+#     make_folder_if_not_exists(train_folder)
+#     make_folder_if_not_exists(test_folder)
 #
 #     split_dataset(dataset_folder=dataset_root, split=0.2, symbolic=False)
 #     print("The kkanji dataset is ready for you at {}".format(dataset_root))
@@ -714,14 +714,14 @@ def fashion_mnist(args):
     train_folder = os.path.join(dataset_root, 'train')
     test_folder = os.path.join(dataset_root, 'test')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(test_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(test_folder)
 
     def _write_data_to_folder(arr, labels, folder):
         for i, (img, label) in enumerate(zip(arr, labels)):
             dest = os.path.join(folder, str(label))
-            _make_folder_if_not_exists(dest)
+            make_folder_if_not_exists(dest)
             Image.fromarray(img.numpy(), mode='L').save(os.path.join(dest, str(i) + '.png'))
 
     # Write the images to the folders
@@ -795,14 +795,14 @@ def miml(args):
     val_folder = os.path.join(dataset_root, 'val')
     test_folder = os.path.join(dataset_root, 'test')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(val_folder)
-    _make_folder_if_not_exists(test_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(val_folder)
+    make_folder_if_not_exists(test_folder)
 
     def _write_data_to_folder(data, labels, folder, classes):
         dest = os.path.join(folder, 'images')
-        _make_folder_if_not_exists(dest)
+        make_folder_if_not_exists(dest)
         for image, label in zip(data, labels):
             shutil.copy(image, dest)
 
@@ -874,7 +874,7 @@ def glas(args):
     # make the root folder
     output_folder = args.output_folder
     dataset_root = os.path.join(output_folder, 'GlaS')
-    _make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(dataset_root)
 
     # links to HisDB data sets
     link_tubules = urllib.parse.urlparse(
@@ -930,8 +930,8 @@ def glas(args):
 
     print('Splitting the dataset into train, val and test')
     for s in ['train', 'test', 'val']:
-        _make_folder_if_not_exists(os.path.join(dataset_root, s, 'gt'))
-        _make_folder_if_not_exists(os.path.join(dataset_root, s, 'data'))
+        make_folder_if_not_exists(os.path.join(dataset_root, s, 'gt'))
+        make_folder_if_not_exists(os.path.join(dataset_root, s, 'data'))
 
         print('CREATING {} SET'.format(s))
         for patient in sets_dict[s]:
@@ -945,11 +945,6 @@ def glas(args):
                         out_file = os.path.join('data', img_file)
 
                     shutil.move(os.path.join(dataset_root, img_file), os.path.join(dataset_root, s, out_file))
-
-
-def _make_folder_if_not_exists(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
 
 
 if __name__ == "__main__":

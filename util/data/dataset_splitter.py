@@ -14,7 +14,7 @@ import random
 # Torch related stuff
 import torchvision.datasets as datasets
 from sklearn.model_selection import train_test_split
-from .get_a_dataset import _make_folder_if_not_exists
+from util.misc import make_folder_if_not_exists
 
 
 def split_dataset(dataset_folder, split, symbolic, debug=False):
@@ -319,21 +319,21 @@ def split_dataset_segmentation(dataset_folder, split, symbolic, test=False, debu
     train_folder = os.path.join(dataset_root, 'train')
     val_folder = os.path.join(dataset_root, 'val')
 
-    _make_folder_if_not_exists(dataset_root)
-    _make_folder_if_not_exists(train_folder)
-    _make_folder_if_not_exists(val_folder)
+    make_folder_if_not_exists(dataset_root)
+    make_folder_if_not_exists(train_folder)
+    make_folder_if_not_exists(val_folder)
 
     if test:
         test_folder = os.path.join(dataset_root, 'test')
-        _make_folder_if_not_exists(test_folder)
+        make_folder_if_not_exists(test_folder)
 
     folders = [train_folder, val_folder, test_folder] if test else [train_folder, val_folder]
     file_splits = [filenames_train, filenames_val, filenames_test] if test else [filenames_train, filenames_val]
 
     # Copying the splits into their folders
     for folder, split_files in zip(folders, file_splits):
-        _make_folder_if_not_exists(os.path.join(folder, 'data'))
-        _make_folder_if_not_exists(os.path.join(folder, 'gt'))
+        make_folder_if_not_exists(os.path.join(folder, 'data'))
+        make_folder_if_not_exists(os.path.join(folder, 'gt'))
 
         for fdata, fgt in split_files:
             if symbolic:
@@ -381,10 +381,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+
     split_dataset(dataset_folder=args.dataset_folder, split=args.split, symbolic=args.symbolic)
-
-    split_dataset_segmentation(dataset_folder=args.dataset_folder, split=args.split, symbolic=args.symbolic, test=args.test)
-
-    split_dataset_writerIdentification(dataset_folder=args.dataset_folder, split=args.split)
-
 

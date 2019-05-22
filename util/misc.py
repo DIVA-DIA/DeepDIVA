@@ -324,11 +324,18 @@ def has_extension(filename, extensions):
     filename_lower = filename.lower()
     return any(filename_lower.endswith(ext) for ext in extensions)
 
+
+def make_folder_if_not_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
 def pil_loader(path):
     # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:
         with Image.open(f) as img:
             return img.convert('RGB')
+
 
 # functions added for HisDB classification
 def int_to_one_hot(x, n_classes):

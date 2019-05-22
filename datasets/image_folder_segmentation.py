@@ -235,7 +235,6 @@ class ImageFolder(data.Dataset):
             # get the numbers for __len__
             self.img_names_sizes, self.num_horiz_crops, self.num_vert_crops = self._get_img_size_and_crop_numbers()
 
-
         else:
             self.crops_per_image = crops_per_image
             # list with the index order of the images
