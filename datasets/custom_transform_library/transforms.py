@@ -97,8 +97,9 @@ class OneHotEncoding(object):
 
 
 class OneHotEncodingDIVAHisDB(object):
-    def __init__(self, class_encodings):
+    def __init__(self, class_encodings, use_boundary_pixel):
         self.class_encodings = class_encodings
+        self.use_boundary_pixel = use_boundary_pixel
 
     def __call__(self, gt):
         """
@@ -107,7 +108,7 @@ class OneHotEncodingDIVAHisDB(object):
         Returns:
 
         """
-        return F_custom.gt_to_one_hot_hisdb(gt, self.class_encodings)
+        return F_custom.gt_to_one_hot_hisdb(gt, self.class_encodings, self.use_boundary_pixel)
 
 
 class RandomTwinCrop(object):

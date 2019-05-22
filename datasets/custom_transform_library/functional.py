@@ -100,7 +100,7 @@ def gt_to_one_hot(matrix, class_encodings):
     return torch.LongTensor(one_hot_matrix.transpose((2, 0, 1)))
 
 
-def gt_to_one_hot_hisdb(matrix, class_encodings):
+def gt_to_one_hot_hisdb(matrix, class_encodings, use_boundary_pixel):
     """
     Convert ground truth tensor or numpy matrix to one-hot encoded matrix
 
@@ -128,7 +128,8 @@ def gt_to_one_hot_hisdb(matrix, class_encodings):
         border_mask = np_array[0, :, :].astype(np.uint8) != 0
 
     # ajust blue channel according to border pixel in red channel -> set to background
-    im_np[border_mask] = 1
+    if use_boundary_pixel:
+        im_np[border_mask] = 1
 
     integer_encoded = np.array([i for i in range(num_classes)])
     onehot_encoder = OneHotEncoder(sparse=False, categories='auto')

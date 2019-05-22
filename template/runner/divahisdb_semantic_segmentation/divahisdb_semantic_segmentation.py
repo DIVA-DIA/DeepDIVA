@@ -104,7 +104,8 @@ class DivahisdbSemanticSegmentation:
         # Load the best model before evaluating on the test set.
         logging.info('Loading the best model before evaluating on the test set.')
         kwargs["load_model"] = os.path.join(current_log_folder, 'model_best.pth.tar')
-
+        # increase batch size, because we only have one worker
+        kwargs["batch_size"] = kwargs["batch_size"] * kwargs["workers"]
         model, _, _, _, _ = set_up_model(num_classes=len(class_encoding),
                                          model_name=model_name,
                                          lr=lr,

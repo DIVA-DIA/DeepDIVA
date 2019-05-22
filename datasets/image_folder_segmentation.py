@@ -243,8 +243,12 @@ class ImageFolder(data.Dataset):
 
         # make sure length is divisible by the number of workers
         if self.num_workers > 1:
-            assert self.__len__() % self.num_workers == 0
-            assert self.imgs_in_memory * self.crops_per_image % self.num_workers == 0
+            if not self.__len__() % self.num_workers == 0:
+                logging.error("{} (number of pages in set ({}) * images in memory * crops per image) must be divisible by the number of workers (currently {})".format(self.__len__(), len(self.img_paths), self.num_workers))
+                sys.exit(-1)
+            if not self.imgs_in_memory * self.crops_per_image % self.num_workers == 0:
+                logging.error("{} (images in memory * crops per image) must be divisible by the number of workers (currently {})".format(self.imgs_in_memory * self.crops_per_image, self.num_workers))
+                sys.exit(-1)
 
     def __len__(self):
         """

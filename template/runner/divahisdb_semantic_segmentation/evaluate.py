@@ -75,9 +75,6 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
 
     pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
-        # convert 3D one-hot encoded matrix to 2D matrix with class numbers (for CrossEntropy())
-        # target = torch.LongTensor(np.array([np.argmax(a, axis=0) for a in target.numpy()]))
-
         # Measure data loading time
         data_time.update(time.time() - end)
 
@@ -410,6 +407,8 @@ def _save_test_img_output(img_to_save, one_hot, multi_run, dataset_folder, loggi
     if use_boundary_pixel:
         border_mask = ground_truth[:, :, 0].astype(np.uint8) != 0
         pred[border_mask] = target[border_mask]
+        # adjust the gt_image for the border pixel -> set to background (1)
+        ground_truth[border_mask] = 1
 
     # Compute and record the meanIU of the whole image TODO check with Vinay & Michele if correct
     acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target, pred, num_classes)
