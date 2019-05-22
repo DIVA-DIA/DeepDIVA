@@ -401,7 +401,7 @@ def _save_test_img_output(img_to_save, one_hot, multi_run, dataset_folder, loggi
             ground_truth = np.array(img.convert('RGB'))
 
     # get the ground truth mapping
-    target = np.argmax(gt_to_one_hot(ground_truth, class_encodings).numpy(), axis=0)
+    target = np.argmax(gt_to_one_hot(ground_truth, class_encodings, use_boundary_pixel).numpy(), axis=0)
 
     # border pixels can be classified as background or foreground -> set to the same in pred and target
     if use_boundary_pixel:
