@@ -116,7 +116,7 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
             writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), log_loss,
                               epoch * len(data_loader) + batch_idx)
             writer.add_scalar(logging_label + '/mb_meanIU_{}'.format(multi_run), mean_iu,
-                               epoch * len(data_loader) + batch_idx)
+                              epoch * len(data_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -140,6 +140,19 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
             cm = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(), labels=[i for i in range(num_classes)])
             confusion_matrix_heatmap = make_heatmap(cm, [str(i) for i in class_encodings])
 
+            # Logging the confusion matrix
+            if multi_run is None:
+                save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
+                                                  image=confusion_matrix_heatmap, global_step=epoch)
+                # save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted',
+                #                                   image=confusion_matrix_heatmap_w, global_step=epoch)
+            else:
+                save_image_and_log_to_tensorboard(writer,
+                                                  tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
+                                                  image=confusion_matrix_heatmap, global_step=epoch)
+                # save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted{}'.format(multi_run),
+                #                                   image=confusion_matrix_heatmap_w, global_step=epoch)
+
             # load the weights
             # weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, runner_class)
             # sample_weight = [weights[i] for i in np.array(targets).flatten()]
@@ -153,22 +166,11 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
     else:
         logging.info("No confusion matrix created.")
 
-    # Logging the epoch-wise accuracy and saving the confusion matrix
+    # Logging the epoch-wise accuracy
     if multi_run is None:
         writer.add_scalar(logging_label + '/meanIU', meanIU.avg, epoch)
-        if not no_val_conf_matrix :
-            save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
-                                              image=confusion_matrix_heatmap, global_step=epoch)
-            # save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted',
-            #                                   image=confusion_matrix_heatmap_w, global_step=epoch)
     else:
         writer.add_scalar(logging_label + '/meanIU_{}'.format(multi_run), meanIU.avg, epoch)
-        if not no_val_conf_matrix:
-            save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
-                                              image = confusion_matrix_heatmap, global_step = epoch)
-            # save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted{}'.format(multi_run),
-            #                                   image=confusion_matrix_heatmap_w, global_step=epoch)
-
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '
@@ -181,7 +183,7 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
 
 
 def test(data_loader, model, criterion, writer, epoch, class_encodings, img_names_sizes_dict, dataset_folder, inmem,
-         workers, runner_class, use_boundary_pixel, no_cuda=False, log_interval=10, **kwargs):
+         workers, runner_class, use_boundary_pixel, no_val_conf_matrix, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
@@ -275,7 +277,7 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
             writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), log_loss,
                               epoch * len(data_loader) + batch_idx)
             writer.add_scalar(logging_label + '/mb_meanIU_{}'.format(multi_run), mean_iu_batch,
-                               epoch * len(data_loader) + batch_idx)
+                              epoch * len(data_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -320,37 +322,41 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
     meanIU.update(mean_iu, 1)
 
     # Make a confusion matrix
-    try:
-        #targets_flat = np.array(targets).flatten()
-        #preds_flat = np.array(preds).flatten()
-        # load the weights
-        weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, runner_class)
-        # calculate the confusion matrix
-        cm = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(), labels=[i for i in range(num_classes)])
-        cm_w = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(),
-                                labels=[i for i in range(num_classes)], sample_weight=[weights[i] for i in np.array(targets).flatten()])
-        confusion_matrix_heatmap = make_heatmap(cm, [str(i) for i in class_encodings])
-        confusion_matrix_heatmap_w = make_heatmap(np.round(cm_w*100).astype(np.int), [str(i) for i in class_encodings])
+    if not no_val_conf_matrix:
+        try:
+            #targets_flat = np.array(targets).flatten()
+            #preds_flat = np.array(preds).flatten()
+            # load the weights
+            weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, runner_class)
+            # calculate the confusion matrix
+            cm = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(), labels=[i for i in range(num_classes)])
+            cm_w = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(),
+                                    labels=[i for i in range(num_classes)], sample_weight=[weights[i] for i in np.array(targets).flatten()])
+            confusion_matrix_heatmap = make_heatmap(cm, [str(i) for i in class_encodings])
+            confusion_matrix_heatmap_w = make_heatmap(np.round(cm_w*100).astype(np.int), [str(i) for i in class_encodings])
 
-    except ValueError:
-        logging.warning('Confusion Matrix did not work as expected')
-        confusion_matrix_heatmap = np.zeros((10, 10, 3))
-        confusion_matrix_heatmap_w = confusion_matrix_heatmap
+            # Logging the epoch-wise accuracy and saving the confusion matrix
+            if multi_run is None:
+                save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
+                                                  image=confusion_matrix_heatmap, global_step=epoch)
+                #save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted',
+                #                                  image=confusion_matrix_heatmap_w, global_step=epoch)
+            else:
+                save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
+                                                  image=confusion_matrix_heatmap, global_step=epoch)
+                #save_image_and_log_to_tensorboard(writer,
+                #                                  tag=logging_label + '/confusion_matrix_weighted{}'.format(multi_run),
+                #                                  image=confusion_matrix_heatmap_w, global_step=epoch)
+        except ValueError:
+            logging.warning('Confusion Matrix did not work as expected')
+            confusion_matrix_heatmap = np.zeros((10, 10, 3))
+            confusion_matrix_heatmap_w = confusion_matrix_heatmap
 
     # Logging the epoch-wise accuracy and saving the confusion matrix
     if multi_run is None:
         writer.add_scalar(logging_label + '/meanIU', meanIU.avg, epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
-                                          image=confusion_matrix_heatmap, global_step=epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted',
-                                          image=confusion_matrix_heatmap_w, global_step=epoch)
     else:
         writer.add_scalar(logging_label + '/meanIU_{}'.format(multi_run), meanIU.avg, epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
-                                          image=confusion_matrix_heatmap, global_step=epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted{}'.format(multi_run),
-                                          image=confusion_matrix_heatmap_w, global_step=epoch)
-
 
     logging.info(_prettyprint_logging_label(logging_label) +
                  ' epoch[{}]: '
@@ -423,7 +429,7 @@ def _save_test_img_output(img_to_save, one_hot, multi_run, dataset_folder, loggi
     else:
         # writer.add_scalar(logging_label + '/meanIU_{}'.format(multi_run), mean_iu, epoch)
         save_image_and_log_to_tensorboard_segmentation(class_encodings, writer, tag=logging_label + '/output_{}_{}'.format(multi_run,
-                                                                                                          img_to_save),
+                                                                                                                           img_to_save),
                                                        image=np_rgb,
                                                        gt_image=ground_truth)
 
