@@ -257,7 +257,7 @@ def split_dataset_writerIdentification(dataset_folder, split):
     return
 
 
-def split_dataset_segmentation(dataset_folder, split, symbolic, test=False, debug=False):
+def split_dataset_segmentation(dataset_folder, split, symbolic, test=False):
     """
     Partition a dataset into train/val(/test) splits on the filesystem for segmentation datasets organized
     as dataset/data with the images and dataset/gt for the ground truth. The corresponding images need to have the same
@@ -273,8 +273,6 @@ def split_dataset_segmentation(dataset_folder, split, symbolic, test=False, debu
         Does not make a copy of the data, but only symbolic links to the original data
     test: bool
         If true, the validation set is split again (1:1) into a val and test set. Default false.
-    debug : bool
-        Prints additional debug statements
 
     Returns
     -------
@@ -301,9 +299,14 @@ def split_dataset_segmentation(dataset_folder, split, symbolic, test=False, debu
     file_names_gt = sorted(
         [f for f in os.listdir(path_gt) if os.path.isfile(os.path.join(path_gt, f))])
 
-    file_names = [(data, gt) for data, gt in zip(file_names_data, file_names_gt)]
+    # Check data and ensure everything is cool
+    assert len(file_names_data) == len(file_names_gt)
+    for data, gt in zip(file_names_data, file_names_gt):
+        assert data[:-3] == gt[:-3]  # exclude the extension which should be jpg and png
+        assert gt[-3:] == "png"
 
     # Split the data into two sets
+    file_names = [(data, gt) for data, gt in zip(file_names_data, file_names_gt)]
     filenames_train, filenames_val, _, _ = train_test_split(file_names, file_names,
                                                             test_size=split,
                                                             random_state=42)
