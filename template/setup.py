@@ -186,7 +186,7 @@ def class_encodings(dataset_folder, inmem, workers, runner_class, **kwargs):
         Class encodings for the selected dataset, contained in the analytics.csv file.
     """
     csv_file = _load_analytics_csv(dataset_folder, inmem, workers, runner_class, **kwargs)
-    return csv_file.ix[3, 1:].values.astype(int)
+    return np.array([x for x in csv_file.ix[3, 1:].values if str(x) != 'nan']).astype(int)
 
 def _get_optimizer(optimizer_name, model, **kwargs):
     """
