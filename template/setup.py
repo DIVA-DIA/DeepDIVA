@@ -164,7 +164,7 @@ def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, ru
     return np.array([x for x in csv_file.ix[2, 1:].values if str(x) != 'nan']).astype(float)
 
 
-def class_encodings(dataset_folder, inmem, workers, runner_class, **kwargs):
+def _load_class_encodings(dataset_folder, inmem, workers, runner_class, **kwargs):
     """
     This function simply recovers class_encodings from the analytics.csv file
 
