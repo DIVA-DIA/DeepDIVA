@@ -59,24 +59,24 @@ def deeplabv3_resnet34_os8(output_channels, **kwargs):
 # *********************************************************************************
 
 
-def deeplabv3_builder(model_name, output_channels, pretrained=False, path_pretrained_model=None, cityscapes=False, **kwargs):
+def deeplabv3_builder(model_name, output_channels, pretrained=False, resume=None, cityscapes=False, **kwargs):
     if model_name=='deeplabv3':
         logging.info('ResNet type not specified, running "deeplabv3_resnet18_os8". (choose from {})'.format(", ".join(CLASS_NAMES.keys())))
         model = DeepLabV3("deeplabv3_resnet18_os8", pretrained, output_channels, **kwargs)
     else:
         model = DeepLabV3(model_name, pretrained, output_channels, **kwargs)
 
-    # load a pre-trained model from a path
-    if path_pretrained_model:
-        if os.path.isfile(path_pretrained_model):
-            model_dict = torch.load(path_pretrained_model)
+    # load a model from a path
+    if resume:
+        if os.path.isfile(resume):
+            model_dict = torch.load(resume)
             logging.info('Loading a saved model')
             try:
                 model.load_state_dict(model_dict['state_dict'], strict=False)
             except Exception as exp:
                 logging.warning(exp)
         else:
-            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+            logging.error("No model dict found at '{}'".format(resume))
 
     # load the weights pre-trained on cityscapes dataset (only possible for current "deeplabv3_resnet18_os8" set-up)
     if "deeplabv3_resnet18_os8" and cityscapes:

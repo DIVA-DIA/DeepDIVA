@@ -10,62 +10,64 @@ from models.registry import Model
 From https://github.com/bfortuner/pytorch_tiramisu
 """
 @Model
-def fcdensenet57(output_channels=8, pretrained=False, path_pretrained_model=None, **kwargs):
+def fcdensenet57(output_channels=8, resume=None, **kwargs):
     model = FCDenseNet(
         in_channels=3, down_blocks=(4, 4, 4, 4, 4),
         up_blocks=(4, 4, 4, 4, 4), bottleneck_layers=4,
         growth_rate=12, out_chans_first_conv=48, output_channels=output_channels)
 
-    if pretrained:
-        if os.path.isfile(path_pretrained_model):
-            model_dict = torch.load(path_pretrained_model)
+    # load a model from a path
+    if resume:
+        if os.path.isfile(resume):
+            model_dict = torch.load(resume)
             logging.info('Loading a saved model')
             try:
                 model.load_state_dict(model_dict['state_dict'], strict=False)
             except Exception as exp:
                 logging.warning(exp)
         else:
-            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+            logging.error("No model dict found at '{}'".format(resume))
 
     return model
 
 @Model
-def fcdensenet67(output_channels=8, path_pretrained_model=None, **kwargs):
+def fcdensenet67(output_channels=8, resume=None, **kwargs):
     model = FCDenseNet(
         in_channels=3, down_blocks=(5, 5, 5, 5, 5),
         up_blocks=(5, 5, 5, 5, 5), bottleneck_layers=5,
         growth_rate=16, out_chans_first_conv=48, output_channels=output_channels)
 
-    if path_pretrained_model:
-        if os.path.isfile(path_pretrained_model):
-            model_dict = torch.load(path_pretrained_model)
+    if resume:
+        if os.path.isfile(resume):
+            model_dict = torch.load(resume)
             logging.info('Loading a saved model')
             try:
                 model.load_state_dict(model_dict['state_dict'], strict=False)
             except Exception as exp:
                 logging.warning(exp)
         else:
-            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+            logging.error("No model dict found at '{}'".format(resume))
 
     return model
 
 @Model
-def fcdensenet103(output_channels=8, pretrained=False, path_pretrained_model=None, **kwargs):
+def fcdensenet103(output_channels=8, resume=None, **kwargs):
     model = FCDenseNet(
         in_channels=3, down_blocks=(4, 5, 7, 10, 12),
         up_blocks=(12, 10, 7, 5, 4), bottleneck_layers=15,
         growth_rate=16, out_chans_first_conv=48, output_channels=output_channels)
 
-    if pretrained:
-        if os.path.isfile(path_pretrained_model):
-            model_dict = torch.load(path_pretrained_model)
+    # load a model from a path
+    if resume:
+        if os.path.isfile(resume):
+            model_dict = torch.load(resume)
             logging.info('Loading a saved model')
             try:
                 model.load_state_dict(model_dict['state_dict'], strict=False)
             except Exception as exp:
                 logging.warning(exp)
         else:
-            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+            logging.error("No model dict found at '{}'".format(resume))
 
     return model
 

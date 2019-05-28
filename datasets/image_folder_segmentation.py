@@ -9,7 +9,7 @@ import random
 import sys
 import math
 import os.path
-from collections import deque, OrderedDict
+from collections import deque
 
 # from DeepDIVA
 from template.setup import class_encodings
@@ -185,16 +185,18 @@ class ImageFolder(data.Dataset):
     """
 
     def __init__(self, root, classes, workers, imgs_in_memory, crops_per_image, crop_size,
-                 transform=None, img_transform=None, gt_transform=None,
-                 loader=default_loader, **kwargs):
+                 transform=None, img_transform=None, gt_transform=None, debug=False, loader=default_loader, **kwargs):
 
         img_paths = get_gt_data_paths(root)
         # the total number of crops needs to be divisible by the number of workers
         self.num_workers = workers
+        self.loader = loader
 
-        self.updated = 0
-        self.img_and_updates = {os.path.basename(name[0]):0 for name in img_paths}
-        self.img_and_num_cropos = {os.path.basename(name[0]):0 for name in img_paths}
+        self.debug = debug
+        if self.debug:
+            self.updated = 0
+            self.img_and_updates = {os.path.basename(name[0]): 0 for name in img_paths}
+            self.img_and_num_crops = {os.path.basename(name[0]): 0 for name in img_paths}
 
         if len(img_paths) == 0:
             raise (RuntimeError("Found 0 images in subfolders of: " + root + "\nSupported image extensions are: "
@@ -204,7 +206,7 @@ class ImageFolder(data.Dataset):
         self.root = root
         # list of tuples that contain the path to the gt and image that belong together
         self.img_paths = img_paths
-        self.total_number_of_images = len(self.img_paths)
+        self.num_imgs_in_set = len(self.img_paths)
 
         # true if it is the test set
         self.is_test = "test" == os.path.basename(self.root)
@@ -237,17 +239,17 @@ class ImageFolder(data.Dataset):
 
         else:
             self.crops_per_image = crops_per_image
+            self.crops_per_image_per_worker = crops_per_image // self.num_workers
             # list with the index order of the images
-            self.image_order = [i for i in range(self.total_number_of_images)]
-            self.image_bundle_order = [i for i in range(self.imgs_in_memory)] * (self._bundle_len() // self.imgs_in_memory)
+            self.image_order = [i for i in range(self.num_imgs_in_set)]
 
         # make sure length is divisible by the number of workers
         if self.num_workers > 1:
             if not self.__len__() % self.num_workers == 0:
-                logging.error("{} (number of pages in set ({}) * images in memory * crops per image) must be divisible by the number of workers (currently {})".format(self.__len__(), len(self.img_paths), self.num_workers))
+                logging.error("{} (number of pages in set ({}) * crops per image {}) must be divisible by the number of workers (currently {})".format(self.__len__(), self.num_imgs_in_set, self.crops_per_image, self.num_workers))
                 sys.exit(-1)
-            if not self.imgs_in_memory * self.crops_per_image % self.num_workers == 0:
-                logging.error("{} (images in memory * crops per image) must be divisible by the number of workers (currently {})".format(self.imgs_in_memory * self.crops_per_image, self.num_workers))
+            if not self.crops_per_image % self.num_workers == 0:
+                logging.error("{} (images in memory) must be divisible by the number of workers (currently {})".format(self.imgs_in_memory * self.crops_per_image, self.num_workers))
                 sys.exit(-1)
 
     def __len__(self):
@@ -262,7 +264,7 @@ class ImageFolder(data.Dataset):
             return sum([hc*vc for hc, vc in zip(self.num_horiz_crops, self.num_vert_crops)])
         else:
             # number of images returned for random cropping
-            return len(self.img_paths) * self.imgs_in_memory * self.crops_per_image
+            return len(self.img_paths) * self.crops_per_image
 
     def __getitem__(self, index):
         """
@@ -282,8 +284,8 @@ class ImageFolder(data.Dataset):
             # shuffle page order at start of epoch
             if self.number_of_crops == 0:
                 self._shuffle_img_order()
-                # initiate the queues where the images in memory are stored
-                self.data_img_queue, self.gt_img_queue = self._initiate_queues()
+                # initiate the lists where the images in memory are stored
+                self._load_memory()
 
             return self._get_train_val_items()
 
@@ -297,31 +299,27 @@ class ImageFolder(data.Dataset):
 
     def _get_train_val_items(self):
         if self.current_number_of_crops == 0:
-            # shuffle the image bundle order at the beginning and when a new page is loaded
-            self._shuffle_img_order_bundle()
             # check if new page needs to be loaded
             if self.number_of_crops > 0 and self.number_of_crops % self._bundle_len() == 0:
-                self._update_queues()
+                self._load_memory()
+            # shuffle the image bundle order at the beginning and when a new page is loaded
+            self._shuffle_img_order_bundle()
 
-        # logging.info("PID{}: Image order: {}".format(os.getpid(), self.image_order))
-        # logging.info("PID{}: Image bundle order: {}".format(os.getpid(), self.image_bundle_order))
-        # logging.info("PID{}: Current images: {}".format(os.getpid(),
-        #     [os.path.basename(self.img_paths[i][0]) for i in self.image_order[(self.next_image_index-self.imgs_in_memory):self.next_image_index]]))
-        # logging.info("PID{}: Cropping from image: {}".format(os.getpid(), os.path.basename(self.img_paths[self.image_order[
-        #     (self.next_image_index - 1) - (self.imgs_in_memory - 1 - self.image_bundle_order[self.current_number_of_crops])
-        #     ]][0])))
-        current_img = os.path.basename(self.img_paths[self.image_order[
-                                     (self.next_image_index - 1) - (self.imgs_in_memory - 1 - self.image_bundle_order
-                                     [self.current_number_of_crops])]][0])
-        self.img_and_num_cropos[current_img] = self.img_and_num_cropos[current_img] + 1
-        # logging.info("**********{}: crops/img {}".format(os.getpid(), self.img_and_num_cropos))
+        if self.debug:
+            current_img = self.imgnames_inmem[self.image_bundle_order[self.current_number_of_crops]]
+            self.img_and_num_crops[current_img] = self.img_and_num_crops[current_img] + 1
+        logging.debug("PID{}: Image order: {}".format(os.getpid(), self.image_order))
+        logging.debug("PID{}: Image bundle order: {}".format(os.getpid(), self.image_bundle_order))
+        logging.debug("PID{}: Cropping from image: {}".format(os.getpid(), current_img))
+
+        logging.debug("**********{}: crops/img {}".format(os.getpid(), self.img_and_num_crops))
 
         # get the items
-        img, gt = self.apply_transformation(self.data_img_queue[self.image_bundle_order[self.current_number_of_crops]],
-                                            self.gt_img_queue[self.image_bundle_order[self.current_number_of_crops]])
+        img, gt = self.apply_transformation(self.data_img_inmem[self.image_bundle_order[self.current_number_of_crops]],
+                                            self.gt_img_inmem[self.image_bundle_order[self.current_number_of_crops]])
 
-        # logging.info("PID{}: Crop number {} / {} of the bundle / {} total".format(os.getpid(),
-        #              self.current_number_of_crops+1, self._bundle_len(), self._worker_len()))
+        logging.debug("PID{}: Crop number {} / {} of the bundle, {} / {} total".format(os.getpid(),
+                     self.current_number_of_crops+1, self._bundle_len(), self.number_of_crops+1, self._worker_len()))
 
         # update total number of crops
         # set to zero when last crop of image bundle is generated
@@ -342,10 +340,10 @@ class ImageFolder(data.Dataset):
         self.current_number_of_crops = (self.current_number_of_crops + 1) % self.tot_crops_current_img
         self._update_sliding_window_coordinates()
 
-        # logging.info("PID{}: Cropping position ({},{}). Horizontal {}/{}. Vertical {}/{}. Total {}/{}".format(
-        #     os.getpid(), x_position, y_position, self.current_horiz_crop, self.current_num_horiz_crops,
-        #     self.current_vert_crop, self.current_num_vert_crops, self.current_number_of_crops,
-        #     self.tot_crops_current_img))
+        logging.debug("PID{}: Cropping position ({},{}). Horizontal {}/{}. Vertical {}/{}. Total {}/{}".format(
+            os.getpid(), x_position, y_position, self.current_horiz_crop, self.current_num_horiz_crops,
+            self.current_vert_crop, self.current_num_vert_crops, self.current_number_of_crops,
+            self.tot_crops_current_img))
 
         return (img, coordinates, self.img_names_sizes[self.next_image_index-1][0]), gt
 
@@ -376,6 +374,8 @@ class ImageFolder(data.Dataset):
             image data
         gt: PIL image
             ground truth image
+        coordinates: tuple (int, int)
+            coordinates where the sliding window should be cropped
         Returns
         -------
         tuple
@@ -400,10 +400,10 @@ class ImageFolder(data.Dataset):
         return img, gt
 
     def _bundle_len(self):
-        return self._worker_len() // len(self.img_paths)
+        return len(self.image_bundle_order)
 
     def _worker_len(self):
-        return self.__len__() // self.num_workers
+        return int(self.crops_per_image_per_worker * self.num_imgs_in_set)
 
     def _shuffle_img_order(self):
         random.shuffle(self.image_order)
@@ -411,46 +411,33 @@ class ImageFolder(data.Dataset):
     def _shuffle_img_order_bundle(self):
         random.shuffle(self.image_bundle_order)
 
-    def _initiate_queues(self):
-        # first time loading images
-        to_load = [self.img_paths[i] for i in self.image_order[:self.imgs_in_memory]]
-        data_img_queue = deque([pil_loader(data_path) for (data_path, _) in to_load])
-        gt_img_queue = deque([pil_loader(gt_path) for (_, gt_path) in to_load])
+    def _load_memory(self):
+        # get path to images to load
+        to_load = [self.img_paths[i] for i in self.image_order[self.next_image_index:(self.imgs_in_memory + self.next_image_index)]]
+
+        self.imgnames_inmem = [os.path.basename(data_path) for (data_path, _) in to_load]
+        self.data_img_inmem = [self.loader(data_path) for (data_path, _) in to_load]
+        self.gt_img_inmem = [self.loader(gt_path) for (_, gt_path) in to_load]
 
         # update index of next image
-        self.next_image_index = self.imgs_in_memory
+        self.next_image_index += self.imgs_in_memory
+        logging.debug("PID{}: Current images: {}".format(os.getpid(),
+            [os.path.basename(self.img_paths[i][0]) for i in self.image_order[(self.next_image_index-self.imgs_in_memory):self.next_image_index]]))
+        # set back to zero if we get outside of the image range
+        if self.next_image_index > self.num_imgs_in_set:
+            self.next_image_index = 0
 
         # gt and data images are the same size
-        for img, gt in zip(data_img_queue, gt_img_queue):
+        for img, gt in zip(self.data_img_inmem, self.gt_img_inmem):
             assert img.size == gt.size
 
-        for (data_path, _) in to_load:
-            self.img_and_updates[os.path.basename(data_path)] = self.img_and_updates[os.path.basename(data_path)] + 1
-            #print(os.getpid(), os.path.basename(data_path))
-        #logging.info("**********{}: page udpates {}".format(os.getpid(), self.img_and_updates))
+        # create the order in which the crops are sample from the loaded images
+        self.image_bundle_order = [i for i in range(len(self.data_img_inmem))] * self.crops_per_image_per_worker
 
-        return data_img_queue, gt_img_queue
-
-    def _update_queues(self):
-        # updating image queues
-        # remove last element
-        self.data_img_queue.pop()
-        self.gt_img_queue.pop()
-
-        # load new image to the front of the queue
-        data_path, gt_path = self.img_paths[self.image_order[self.next_image_index]]
-        self.data_img_queue.appendleft(pil_loader(data_path))
-        self.gt_img_queue.appendleft(pil_loader(gt_path))
-
-        # gt and data images are the same size
-        assert self.data_img_queue[0].size == self.gt_img_queue[0].size
-
-        self.img_and_updates[os.path.basename(data_path)] = self.img_and_updates[os.path.basename(data_path)] + 1
-        #logging.info("**********{}: page udpates {}".format(os.getpid(), self.img_and_updates))
-        # print(os.getpid(), os.path.basename(data_path))
-
-        # update index of next image
-        self.next_image_index = (self.next_image_index + 1) % self.total_number_of_images
+        if self.debug:
+            for (data_path, _) in to_load:
+                self.img_and_updates[os.path.basename(data_path)] = self.img_and_updates[os.path.basename(data_path)] + 1
+        logging.debug("**********{}: page updates {}".format(os.getpid(), self.img_and_updates))
 
     def _get_img_size_and_crop_numbers(self):
         img_names_sizes = [] # list of tuples -> (gt_img_name, img_size (H, W))
@@ -459,8 +446,8 @@ class ImageFolder(data.Dataset):
 
         # load image
         for img_path, gt_path in self.img_paths:
-            data_img = pil_loader(img_path)
-            gt_img = pil_loader(gt_path)
+            data_img = self.loader(img_path)
+            gt_img = self.loader(gt_path)
             # ensure that data and gt image are of the same size
             assert gt_img.size == data_img.size
             img_names_sizes.append((os.path.basename(gt_path), data_img.size[::-1]))

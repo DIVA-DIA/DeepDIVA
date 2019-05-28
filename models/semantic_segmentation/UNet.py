@@ -6,19 +6,19 @@ from models.registry import Model
 
 
 @Model
-def unet(output_channels=8, path_pretrained_model=None, **kwargs):
+def unet(output_channels=8, resume=None, **kwargs):
     model = Unet(output_channels=output_channels)
 
-    if path_pretrained_model:
-        if os.path.isfile(path_pretrained_model):
-            model_dict = torch.load(path_pretrained_model)
+    if resume:
+        if os.path.isfile(resume):
+            model_dict = torch.load(resume)
             logging.info('Loading a saved model')
             try:
                 model.load_state_dict(model_dict['state_dict'], strict=False)
             except Exception as exp:
                 logging.warning(exp)
         else:
-            logging.error("No model dict found at '{}'".format(path_pretrained_model))
+            logging.error("No model dict found at '{}'".format(resume))
 
     return model
 
