@@ -12,7 +12,7 @@ import os.path
 from collections import deque, OrderedDict
 
 # from DeepDIVA
-from template.setup import class_encodings
+from template.setup import _load_class_encodings
 from util.misc import has_extension, pil_loader
 from .custom_transform_library.transforms import ToTensorTwinImage, ToTensorSlidingWindowCrop
 
@@ -149,7 +149,7 @@ def load_dataset(dataset_folder, workers, in_memory=False, **kwargs):
         sys.exit(-1)
 
     # get the class encodings
-    classes = class_encodings(dataset_folder, inmem=in_memory, workers=workers, **kwargs)
+    classes = _load_class_encodings(dataset_folder, inmem=in_memory, workers=workers, **kwargs)
 
     # Get an online dataset for each split
     train_ds = ImageFolder(train_dir, classes, workers, **kwargs)
@@ -194,7 +194,7 @@ class ImageFolder(data.Dataset):
 
         self.updated = 0
         self.img_and_updates = {os.path.basename(name[0]):0 for name in img_paths}
-        self.img_and_num_cropos = {os.path.basename(name[0]):0 for name in img_paths}
+        self.img_and_num_crops = {os.path.basename(name[0]):0 for name in img_paths}
 
         if len(img_paths) == 0:
             raise (RuntimeError("Found 0 images in subfolders of: " + root + "\nSupported image extensions are: "
@@ -303,17 +303,17 @@ class ImageFolder(data.Dataset):
             if self.number_of_crops > 0 and self.number_of_crops % self._bundle_len() == 0:
                 self._update_queues()
 
-        # logging.info("PID{}: Image order: {}".format(os.getpid(), self.image_order))
-        # logging.info("PID{}: Image bundle order: {}".format(os.getpid(), self.image_bundle_order))
-        # logging.info("PID{}: Current images: {}".format(os.getpid(),
-        #     [os.path.basename(self.img_paths[i][0]) for i in self.image_order[(self.next_image_index-self.imgs_in_memory):self.next_image_index]]))
-        # logging.info("PID{}: Cropping from image: {}".format(os.getpid(), os.path.basename(self.img_paths[self.image_order[
-        #     (self.next_image_index - 1) - (self.imgs_in_memory - 1 - self.image_bundle_order[self.current_number_of_crops])
-        #     ]][0])))
+        logging.debug("PID{}: Image order: {}".format(os.getpid(), self.image_order))
+        logging.debug("PID{}: Image bundle order: {}".format(os.getpid(), self.image_bundle_order))
+        logging.debug("PID{}: Current images: {}".format(os.getpid(),
+            [os.path.basename(self.img_paths[i][0]) for i in self.image_order[(self.next_image_index-self.imgs_in_memory):self.next_image_index]]))
+        logging.debug("PID{}: Cropping from image: {}".format(os.getpid(), os.path.basename(self.img_paths[self.image_order[
+            (self.next_image_index - 1) - (self.imgs_in_memory - 1 - self.image_bundle_order[self.current_number_of_crops])
+            ]][0])))
         current_img = os.path.basename(self.img_paths[self.image_order[
                                      (self.next_image_index - 1) - (self.imgs_in_memory - 1 - self.image_bundle_order
                                      [self.current_number_of_crops])]][0])
-        self.img_and_num_cropos[current_img] = self.img_and_num_cropos[current_img] + 1
+        self.img_and_num_crops[current_img] = self.img_and_num_crops[current_img] + 1
         # logging.info("**********{}: crops/img {}".format(os.getpid(), self.img_and_num_cropos))
 
         # get the items
