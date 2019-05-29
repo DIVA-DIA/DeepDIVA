@@ -12,7 +12,7 @@ import os.path
 from collections import deque
 
 # from DeepDIVA
-from template.setup import class_encodings
+from template.setup import _load_class_encodings
 from util.misc import has_extension, pil_loader
 from .custom_transform_library.transforms import ToTensorTwinImage, ToTensorSlidingWindowCrop
 
@@ -149,7 +149,7 @@ def load_dataset(dataset_folder, workers, in_memory=False, **kwargs):
         sys.exit(-1)
 
     # get the class encodings
-    classes = class_encodings(dataset_folder, inmem=in_memory, workers=workers, **kwargs)
+    classes = _load_class_encodings(dataset_folder, inmem=in_memory, workers=workers, **kwargs)
 
     # Get an online dataset for each split
     train_ds = ImageFolder(train_dir, classes, workers, **kwargs)
