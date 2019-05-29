@@ -185,18 +185,17 @@ class ImageFolder(data.Dataset):
     """
 
     def __init__(self, root, classes, workers, imgs_in_memory, crops_per_image, crop_size,
-                 transform=None, img_transform=None, gt_transform=None, debug=False, loader=default_loader, **kwargs):
+                 transform=None, img_transform=None, gt_transform=None, loader=default_loader, **kwargs):
 
         img_paths = get_gt_data_paths(root)
         # the total number of crops needs to be divisible by the number of workers
         self.num_workers = workers
         self.loader = loader
 
-        self.debug = debug
-        if self.debug:
-            self.updated = 0
-            self.img_and_updates = {os.path.basename(name[0]): 0 for name in img_paths}
-            self.img_and_num_crops = {os.path.basename(name[0]): 0 for name in img_paths}
+        # only used for debugging
+        self.updated = 0
+        self.img_and_updates = {os.path.basename(name[0]): 0 for name in img_paths}
+        self.img_and_num_crops = {os.path.basename(name[0]): 0 for name in img_paths}
 
         if len(img_paths) == 0:
             raise (RuntimeError("Found 0 images in subfolders of: " + root + "\nSupported image extensions are: "
@@ -305,9 +304,8 @@ class ImageFolder(data.Dataset):
             # shuffle the image bundle order at the beginning and when a new page is loaded
             self._shuffle_img_order_bundle()
 
-        if self.debug:
-            current_img = self.imgnames_inmem[self.image_bundle_order[self.current_number_of_crops]]
-            self.img_and_num_crops[current_img] = self.img_and_num_crops[current_img] + 1
+        current_img = self.imgnames_inmem[self.image_bundle_order[self.current_number_of_crops]]
+        self.img_and_num_crops[current_img] = self.img_and_num_crops[current_img] + 1
         logging.debug("PID{}: Image order: {}".format(os.getpid(), self.image_order))
         logging.debug("PID{}: Image bundle order: {}".format(os.getpid(), self.image_bundle_order))
         logging.debug("PID{}: Cropping from image: {}".format(os.getpid(), current_img))
@@ -434,9 +432,8 @@ class ImageFolder(data.Dataset):
         # create the order in which the crops are sample from the loaded images
         self.image_bundle_order = [i for i in range(len(self.data_img_inmem))] * self.crops_per_image_per_worker
 
-        if self.debug:
-            for (data_path, _) in to_load:
-                self.img_and_updates[os.path.basename(data_path)] = self.img_and_updates[os.path.basename(data_path)] + 1
+        for (data_path, _) in to_load:
+            self.img_and_updates[os.path.basename(data_path)] = self.img_and_updates[os.path.basename(data_path)] + 1
         logging.debug("**********{}: page updates {}".format(os.getpid(), self.img_and_updates))
 
     def _get_img_size_and_crop_numbers(self):
