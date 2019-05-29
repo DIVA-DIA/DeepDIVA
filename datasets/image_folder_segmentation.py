@@ -249,7 +249,7 @@ class ImageFolder(data.Dataset):
                 logging.error("{} (number of pages in set ({}) * crops per image {}) must be divisible by the number of workers (currently {})".format(self.__len__(), self.num_imgs_in_set, self.crops_per_image, self.num_workers))
                 sys.exit(-1)
             if not self.crops_per_image % self.num_workers == 0:
-                logging.error("{} (images in memory) must be divisible by the number of workers (currently {})".format(self.imgs_in_memory * self.crops_per_image, self.num_workers))
+                logging.error("{} (# crops per page) must be divisible by the number of workers (currently {})".format(self.crops_per_image * self.crops_per_image, self.num_workers))
                 sys.exit(-1)
 
     def __len__(self):
