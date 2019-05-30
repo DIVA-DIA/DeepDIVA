@@ -394,8 +394,10 @@ class ImageFolder(data.Dataset):
 
     def _load_page(self):
         # TODO documentation
-        # get path to images to load
-        to_load = [self.img_paths[i] for i in self.image_order[self.next_image_index:(self.imgs_in_memory + self.next_image_index)]]
+        # Get path to images to load. IMPORTANT: notice that the 2* below makes the page list a ring in this scenario
+        # i.e. at the end we re-sample from the first pages if necessary.
+        #start_index = np.min([self.next_image_index, len(self.image_order)- self.imgs_in_memory])  # Ensures that in memory there are always self.imgs_in_memory many images
+        to_load = [self.img_paths[i] for i in (2*self.image_order)[self.next_image_index:(self.imgs_in_memory + self.next_image_index)]]
 
         self.imgnames_inmem = [os.path.basename(data_path) for (data_path, _) in to_load]
         self.data_img_inmem = [self.loader(data_path) for (data_path, _) in to_load]
