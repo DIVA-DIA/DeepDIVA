@@ -30,9 +30,9 @@ from util.data.dataset_integrity import verify_integrity_quick, verify_integrity
 from util.misc import get_all_files_in_folders_and_subfolders
 
 
-def set_up_model(output_channels, model_name, pretrained, optimizer_name, criterion_name, no_cuda, resume, load_model,
-                 start_epoch, disable_databalancing, dataset_folder, inmem, workers, num_classes=None,
-                 ablate=False, **kwargs):
+def set_up_model(output_channels, model_name, pretrained, no_cuda, resume, load_model,
+                 start_epoch, disable_databalancing, dataset_folder, inmem, workers,
+                 optimizer_name=None, criterion_name=None, num_classes=None, ablate=False, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
@@ -46,7 +46,7 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, criter
         Specify whether to load a pretrained model or not
     optimizer_name : string
         Name of the optimizer
-     criterion_name : string
+    criterion_name : string
         Name of the criterion
     no_cuda : bool
         Specify whether to use the GPU or not
@@ -93,9 +93,11 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, criter
     model = models.__dict__[model_name](output_channels=output_channels, pretrained=pretrained, ablate=ablate, **kwargs)
 
     # Get the optimizer created with the specified parameters in kwargs (such as lr, momentum, ... )
-    optimizer = _get_optimizer(optimizer_name, model, **kwargs)
+    if optimizer_name:
+        optimizer = _get_optimizer(optimizer_name, model, **kwargs)
 
-    criterion = _get_criterion(criterion_name, disable_databalancing, dataset_folder, inmem, workers, **kwargs)
+    if criterion_name:
+        criterion = _get_criterion(criterion_name, disable_databalancing, dataset_folder, inmem, workers, **kwargs)
 
     # Transfer model to GPU (if desired)
     if not no_cuda:
@@ -136,6 +138,7 @@ def set_up_model(output_channels, model_name, pretrained, optimizer_name, criter
     else:
         best_value = 0.0
 
+    # Some of these might be None depending on the input parameters
     return model, criterion, optimizer, best_value, start_epoch
 
 
@@ -389,7 +392,7 @@ def _verify_dataset_integrity(dataset_folder, disable_dataset_integrity, enable_
             verify_integrity_quick(dataset_folder)
 
 
-def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class):
+def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class=None):
     """
     This function simply recovers mean and std from the analytics.csv file
 
@@ -420,7 +423,7 @@ def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class):
         import sys
         logging.error('analytics.csv located in {} incorrectly formed. '
                       'Try to delete it and run again'.format(dataset_folder))
-        sys.exit(0)
+        sys.exit(-1)
     return mean, std
 
 
