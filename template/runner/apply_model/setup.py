@@ -1,22 +1,17 @@
 # Utils
 import logging
 import os
-import sys
 
 # Torch related stuff
 import torch.nn.parallel
-import torch.nn as nn
 import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
-import torch.backends.cudnn as cudnn
 
 # DeepDIVA
-import models
 from datasets.image_folder_dataset import ImageFolderApply
 from template.runner.triplet.transforms import MultiCrop
-from template.setup import _load_mean_std_from_file, _get_optimizer, \
-    _load_class_frequencies_weights_from_file
+from template.setup import _load_mean_std_from_file
 
 
 def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, workers, inmem,
