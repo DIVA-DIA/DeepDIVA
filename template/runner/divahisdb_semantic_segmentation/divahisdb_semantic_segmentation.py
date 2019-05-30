@@ -108,8 +108,6 @@ class DivahisdbSemanticSegmentation:
         kwargs["batch_size"] = kwargs["batch_size"] * kwargs["workers"]
         model, _, _, _, _ = set_up_model(num_classes=len(class_encoding),
                                          model_name=model_name,
-                                         lr=lr,
-                                         train_loader=train_loader,
                                          **kwargs)
 
         # Test
