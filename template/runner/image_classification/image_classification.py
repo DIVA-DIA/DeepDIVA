@@ -104,30 +104,18 @@ class ImageClassification:
         return  model, num_classes, best_value, train_loader, val_loader, test_loader, optimizer, criterion
 
     @classmethod
-    def train_routine(cls, model, best_value, optimizer, lr, decay_lr, criterion,
-                      validation_interval, start_epoch, epochs, checkpoint_all_epochs, current_log_folder, writer,
+    def train_routine(cls, best_value, decay_lr, validation_interval, start_epoch, epochs, checkpoint_all_epochs,
+                      current_log_folder,
                       **kwargs):
         """
         Performs the training and validatation routines
 
         Parameters
         ----------
-        model : DataParallel
-            The model to train
         best_value : float
             Best value of the model so far. Non-zero only in case of --resume being used
-        optimizer : torch.optim
-            Optimizer to use during training, e.g. SGD
-        lr : float
-            Value for learning rate
         decay_lr : boolean
             Decay the lr flag
-        criterion : torch.nn.modules.loss
-            Loss function to use, e.g. cross-entropy
-        train_loader : torch.utils.data.dataloader.DataLoader
-            Training dataloader
-        val_loader : torch.utils.data.dataloader.DataLoader
-            Validation dataloader
         validation_interval : int
             Run evaluation on validation set every N epochs
         start_epoch : int
@@ -138,8 +126,6 @@ class ImageClassification:
             Save checkpoint at each epoch
         current_log_folder : string
             Path to where logs/checkpoints are saved
-        writer : Tensorboard.SummaryWriter
-            Responsible for writing logs in Tensorboard compatible format.
         kwargs : dict
             Any additional arguments.
 
@@ -155,22 +141,23 @@ class ImageClassification:
         train_value = np.zeros((epochs - start_epoch))
 
         # Validate before training
-        val_value[-1] = cls._validate(model=model, criterion=criterion, writer=writer, epoch=-1, **kwargs)
+        val_value[-1] = cls._validate(epoch=-1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = cls._train(model=model, criterion=criterion, optimizer=optimizer, writer=writer, epoch=epoch, **kwargs)
+            train_value[epoch] = cls._train(epoch=epoch, **kwargs)
 
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = cls._validate(model=model, criterion=criterion, writer=writer, epoch=epoch, **kwargs)
+                val_value[epoch] = cls._validate(epoch=epoch, **kwargs)
             if decay_lr is not None:
-                adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
+                adjust_learning_rate(epoch=epoch, decay_lr_epochs=decay_lr, **kwargs)
             # Checkpoint
-            best_value = checkpoint(epoch=epoch, new_value=val_value[epoch],
-                                    best_value=best_value, model=model,
-                                    optimizer=optimizer,
+            best_value = checkpoint(epoch=epoch,
+                                    new_value=val_value[epoch],
+                                    best_value=best_value,
                                     log_dir=current_log_folder,
-                                    checkpoint_all_epochs=checkpoint_all_epochs)
+                                    checkpoint_all_epochs=checkpoint_all_epochs,
+                                    **kwargs)
         logging.info('Training done')
         return train_value, val_value
 
@@ -188,8 +175,6 @@ class ImageClassification:
             How many different classes there are in our problem. Used for loading the model.
         criterion : torch.nn.modules.loss
             Loss function to use, e.g. cross-entropy
-        test_loader : torch.utils.data.dataloader.DataLoader
-            Test set dataloader
         epochs : int
             After how many epochs are we testing
         current_log_folder : string
