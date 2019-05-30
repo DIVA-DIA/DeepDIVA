@@ -22,31 +22,9 @@ from util.misc import checkpoint, adjust_learning_rate
 
 class ImageClassification:
     @classmethod
-    def single_run(cls, writer, current_log_folder, model_name, epochs, lr, decay_lr,
-                   validation_interval, checkpoint_all_epochs, **kwargs):
+    def single_run(cls, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
-
-        Parameters
-        ----------
-        writer : Tensorboard.SummaryWriter
-            Responsible for writing logs in Tensorboard compatible format.
-        current_log_folder : string
-            Path to where logs/checkpoints are saved
-        model_name : string
-            Name of the model
-        epochs : int
-            Number of epochs to train
-        lr : float
-            Value for learning rate
-        decay_lr : boolean
-            Decay the lr flag
-        validation_interval : int
-            Run evaluation on validation set every N epochs
-        checkpoint_all_epochs : bool
-            If enabled, save checkpoint after every epoch.
-        kwargs : dict
-            Any additional arguments.
 
         Returns
         -------
@@ -58,83 +36,208 @@ class ImageClassification:
             Accuracy value for test split
         """
         # Get the selected model input size
-        model_expected_input_size = models.__dict__[model_name]().expected_input_size
-        cls._validate_model_input_size(model_expected_input_size, model_name)
-        logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
+        model_expected_input_size = cls.get_model_expected_input_size(**kwargs)
 
-        # Setting up the dataloaders
-        train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
+        # Prepare the data, optimizer and criterion
+        model, num_classes, best_value, train_loader, val_loader, test_loader, optimizer, criterion = cls.prepare(
+            model_expected_input_size, **kwargs)
 
-        # Setting up model, optimizer, criterion
-        model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
-                                                                            model_name=model_name,
-                                                                            train_loader=train_loader,
-                                                                            lr=lr,
-                                                                            **kwargs)
+        # Train routine
+        train_value, val_value = cls.train_routine(model=model, best_value=best_value,
+                                                   optimizer=optimizer, criterion=criterion,
+                                                   train_loader=train_loader, val_loader=val_loader,
+                                                   **kwargs)
 
-        # Core routine
-        logging.info('Begin training')
-        val_value = np.zeros((epochs + 1 - start_epoch))
-        train_value = np.zeros((epochs - start_epoch))
-
-        val_value[-1] = cls._validate(val_loader, model, criterion, writer, -1, **kwargs)
-        for epoch in range(start_epoch, epochs):
-            # Train
-            train_value[epoch] = cls._train(train_loader, model, criterion, optimizer, writer, epoch,
-                                                            **kwargs)
-
-            # Validate
-            if epoch % validation_interval == 0:
-                val_value[epoch] = cls._validate(val_loader, model, criterion, writer, epoch, **kwargs)
-            if decay_lr is not None:
-                adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
-            best_value = checkpoint(epoch=epoch, new_value=val_value[epoch],
-                                    best_value=best_value, model=model,
-                                    optimizer=optimizer,
-                                    log_dir=current_log_folder,
-                                    checkpoint_all_epochs=checkpoint_all_epochs)
-
-
-        # Load the best model before evaluating on the test set.
-        logging.info('Loading the best model before evaluating on the test set.')
-        kwargs["load_model"] = os.path.join(current_log_folder,
-                                            'model_best.pth.tar')
-        model, _, _, _, _ = set_up_model(num_classes=num_classes,
-                                         model_name=model_name,
-                                         lr=lr,
-                                         train_loader=train_loader,
-                                         **kwargs)
-
-        # Test
-        test_value = cls._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
-        logging.info('Training completed')
+        # Test routine
+        test_value = cls.test_routine(criterion=criterion, num_classes=num_classes, test_loader=test_loader,
+                                      **kwargs)
 
         return train_value, val_value, test_value
 
+
     ####################################################################################################################
     @classmethod
-    def _validate_model_input_size(cls, model_expected_input_size, model_name):
+    def get_model_expected_input_size(cls, model_name, **kwargs):
         """
-        This method verifies that the model expected input size is a tuple of 2 elements.
-        This is necessary to avoid confusion with models which run on other types of data.
+        Reads and validates the model expected input size
 
         Parameters
         ----------
-        model_expected_input_size
-            The item retrieved from the model which corresponds to the expected input size
-        model_name : String
-            Name of the model (logging purpose only)
+        model_name : str
+            name of the model. Used for loading the model.
+        kwargs : dict
+            Any additional arguments.
 
         Returns
         -------
-            None
+        model_expected_input_size : (int, int)
+            Model expected input size
         """
+        model_expected_input_size = models.__dict__[model_name]().expected_input_size
         if type(model_expected_input_size) is not tuple or len(model_expected_input_size) != 2:
             logging.error('Model {model_name} expected input size is not a tuple. '
                           'Received: {model_expected_input_size}'
                           .format(model_name=model_name,
                                   model_expected_input_size=model_expected_input_size))
             sys.exit(-1)
+        logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
+        return model_expected_input_size
+
+    @classmethod
+    def prepare(cls, model_expected_input_size, model_name, lr, **kwargs):
+        """
+        Loads and prepares the data, the optimizer and the criterion
+
+        Parameters
+        ----------
+        model_expected_input_size : (int, int)
+            Model expected input size
+        model_name : str
+            Name of the model. Used for loading the model.
+         lr : float
+            Value for learning rate
+        kwargs : dict
+            Any additional arguments.
+
+        Returns
+        -------
+        model : DataParallel
+            The model to train
+        num_classes : int
+            How many different classes there are in our problem. Used for loading the model.
+        best_value : float
+            Best value of the model so far. Non-zero only in case of --resume being used
+        train_loader : torch.utils.data.dataloader.DataLoader
+            Training dataloader
+        val_loader : torch.utils.data.dataloader.DataLoader
+            Validation dataloader
+        test_loader : torch.utils.data.dataloader.DataLoader
+            Test set dataloader
+        optimizer : torch.optim
+            Optimizer to use during training, e.g. SGD
+        criterion : torch.nn.modules.loss
+            Loss function to use, e.g. cross-entropy
+        """
+        # Setting up the dataloaders
+        train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
+
+        # Setting up model, optimizer, criterion
+        model, criterion, optimizer, best_value = set_up_model(model_name=model_name, num_classes=num_classes, lr=lr,
+                                                               **kwargs)
+        return  model, num_classes, best_value, train_loader, val_loader, test_loader, optimizer, criterion
+
+    @classmethod
+    def train_routine(cls, model, best_value, optimizer, lr, decay_lr, criterion, train_loader, val_loader,
+                      validation_interval, start_epoch, epochs, checkpoint_all_epochs, current_log_folder, writer,
+                      **kwargs):
+        """
+        Performs the training and validatation routines
+
+        Parameters
+        ----------
+        model : DataParallel
+            The model to train
+        best_value : float
+            Best value of the model so far. Non-zero only in case of --resume being used
+        optimizer : torch.optim
+            Optimizer to use during training, e.g. SGD
+        lr : float
+            Value for learning rate
+        decay_lr : boolean
+            Decay the lr flag
+        criterion : torch.nn.modules.loss
+            Loss function to use, e.g. cross-entropy
+        train_loader : torch.utils.data.dataloader.DataLoader
+            Training dataloader
+        val_loader : torch.utils.data.dataloader.DataLoader
+            Validation dataloader
+        validation_interval : int
+            Run evaluation on validation set every N epochs
+        start_epoch : int
+            Int to initialize the starting epoch. Non-zero only in case of --resume being used
+        epochs : int
+            Number of epochs to train
+        checkpoint_all_epochs : bool
+            Save checkpoint at each epoch
+        current_log_folder : string
+            Path to where logs/checkpoints are saved
+        writer : Tensorboard.SummaryWriter
+            Responsible for writing logs in Tensorboard compatible format.
+        kwargs : dict
+            Any additional arguments.
+
+        Returns
+        -------
+        train_value : ndarray[floats] of size (1, `epochs`)
+            Accuracy values for train split
+        val_value : ndarray[floats] of size (1, `epochs`+1)
+            Accuracy values for validation split
+        """
+        logging.info('Begin training')
+        val_value = np.zeros((epochs + 1 - start_epoch))
+        train_value = np.zeros((epochs - start_epoch))
+
+        # Validate before training
+        val_value[-1] = cls._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        for epoch in range(start_epoch, epochs):
+            # Train
+            train_value[epoch] = cls._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+
+            # Validate
+            if epoch % validation_interval == 0:
+                val_value[epoch] = cls._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+            if decay_lr is not None:
+                adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
+            # Checkpoint
+            best_value = checkpoint(epoch=epoch, new_value=val_value[epoch],
+                                    best_value=best_value, model=model,
+                                    optimizer=optimizer,
+                                    log_dir=current_log_folder,
+                                    checkpoint_all_epochs=checkpoint_all_epochs)
+        logging.info('Training done')
+        return train_value, val_value
+
+    @classmethod
+    def test_routine(cls, model_name, num_classes, criterion, test_loader, epochs, current_log_folder, writer,
+                     **kwargs):
+        """
+        Load the best model according to the validation score (early stopping) and runs the test routine.
+
+        Parameters
+        ----------
+        model_name : str
+            name of the model. Used for loading the model.
+        num_classes : int
+            How many different classes there are in our problem. Used for loading the model.
+        criterion : torch.nn.modules.loss
+            Loss function to use, e.g. cross-entropy
+        test_loader : torch.utils.data.dataloader.DataLoader
+            Test set dataloader
+        epochs : int
+            After how many epochs are we testing
+        current_log_folder : string
+            Path to where logs/checkpoints are saved
+        writer : Tensorboard.SummaryWriter
+            Responsible for writing logs in Tensorboard compatible format.
+        kwargs : dict
+            Any additional arguments.
+
+        Returns
+        -------
+        test_value : float
+            Accuracy value for test split
+        """
+        # Load the best model before evaluating on the test set.
+        logging.info('Loading the best model before evaluating on the test set.')
+        kwargs["load_model"] = os.path.join(current_log_folder,
+                                            'model_best.pth.tar')
+        model, _, _, _ = set_up_model(num_classes=num_classes,
+                                      model_name=model_name,
+                                      **kwargs)
+        # Test
+        test_value = cls._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        logging.info('Training completed')
+        return test_value
 
     ####################################################################################################################
     """
