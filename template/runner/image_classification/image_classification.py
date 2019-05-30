@@ -15,7 +15,8 @@ import numpy as np
 # DeepDIVA
 import models
 # Delegated
-from template.runner.image_classification import evaluate, train
+from template.runner.image_classification.train import train
+from template.runner.image_classification.evaluate import evaluate
 from template.setup import set_up_model, set_up_dataloaders
 from util.misc import checkpoint, adjust_learning_rate
 
@@ -35,12 +36,9 @@ class ImageClassification:
         test_value : float
             Accuracy value for test split
         """
-        # Get the selected model input size
-        model_expected_input_size = cls.get_model_expected_input_size(**kwargs)
 
         # Prepare the data, optimizer and criterion
-        model, num_classes, best_value, train_loader, val_loader, test_loader, optimizer, criterion = cls.prepare(
-            model_expected_input_size, **kwargs)
+        model, num_classes, best_value, train_loader, val_loader, test_loader, optimizer, criterion = cls.prepare(**kwargs)
 
         # Train routine
         train_value, val_value = cls.train_routine(model=model, best_value=best_value,
@@ -57,45 +55,14 @@ class ImageClassification:
 
     ####################################################################################################################
     @classmethod
-    def get_model_expected_input_size(cls, model_name, **kwargs):
-        """
-        Reads and validates the model expected input size
-
-        Parameters
-        ----------
-        model_name : str
-            name of the model. Used for loading the model.
-        kwargs : dict
-            Any additional arguments.
-
-        Returns
-        -------
-        model_expected_input_size : (int, int)
-            Model expected input size
-        """
-        model_expected_input_size = models.__dict__[model_name]().expected_input_size
-        if type(model_expected_input_size) is not tuple or len(model_expected_input_size) != 2:
-            logging.error('Model {model_name} expected input size is not a tuple. '
-                          'Received: {model_expected_input_size}'
-                          .format(model_name=model_name,
-                                  model_expected_input_size=model_expected_input_size))
-            sys.exit(-1)
-        logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
-        return model_expected_input_size
-
-    @classmethod
-    def prepare(cls, model_expected_input_size, model_name, lr, **kwargs):
+    def prepare(cls, model_name, **kwargs):
         """
         Loads and prepares the data, the optimizer and the criterion
 
         Parameters
         ----------
-        model_expected_input_size : (int, int)
-            Model expected input size
         model_name : str
             Name of the model. Used for loading the model.
-         lr : float
-            Value for learning rate
         kwargs : dict
             Any additional arguments.
 
@@ -118,16 +85,26 @@ class ImageClassification:
         criterion : torch.nn.modules.loss
             Loss function to use, e.g. cross-entropy
         """
+        # Get the selected model input size
+        model_expected_input_size = models.__dict__[model_name]().expected_input_size
+        if type(model_expected_input_size) is not tuple or len(model_expected_input_size) != 2:
+            logging.error('Model {model_name} expected input size is not a tuple. '
+                          'Received: {model_expected_input_size}'
+                          .format(model_name=model_name,
+                                  model_expected_input_size=model_expected_input_size))
+            sys.exit(-1)
+        logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
+
         # Setting up the dataloaders
         train_loader, val_loader, test_loader, num_classes = set_up_dataloaders(model_expected_input_size, **kwargs)
 
         # Setting up model, optimizer, criterion
-        model, criterion, optimizer, best_value = set_up_model(model_name=model_name, num_classes=num_classes, lr=lr,
+        model, criterion, optimizer, best_value = set_up_model(model_name=model_name, num_classes=num_classes,
                                                                **kwargs)
         return  model, num_classes, best_value, train_loader, val_loader, test_loader, optimizer, criterion
 
     @classmethod
-    def train_routine(cls, model, best_value, optimizer, lr, decay_lr, criterion, train_loader, val_loader,
+    def train_routine(cls, model, best_value, optimizer, lr, decay_lr, criterion,
                       validation_interval, start_epoch, epochs, checkpoint_all_epochs, current_log_folder, writer,
                       **kwargs):
         """
@@ -178,14 +155,14 @@ class ImageClassification:
         train_value = np.zeros((epochs - start_epoch))
 
         # Validate before training
-        val_value[-1] = cls._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[-1] = cls._validate(model=model, criterion=criterion, writer=writer, epoch=-1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = cls._train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+            train_value[epoch] = cls._train(model=model, criterion=criterion, optimizer=optimizer, writer=writer, epoch=epoch, **kwargs)
 
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = cls._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+                val_value[epoch] = cls._validate(model=model, criterion=criterion, writer=writer, epoch=epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
             # Checkpoint
@@ -198,7 +175,7 @@ class ImageClassification:
         return train_value, val_value
 
     @classmethod
-    def test_routine(cls, model_name, num_classes, criterion, test_loader, epochs, current_log_folder, writer,
+    def test_routine(cls, model_name, num_classes, criterion, epochs, current_log_folder, writer,
                      **kwargs):
         """
         Load the best model according to the validation score (early stopping) and runs the test routine.
@@ -235,7 +212,7 @@ class ImageClassification:
                                       model_name=model_name,
                                       **kwargs)
         # Test
-        test_value = cls._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        test_value = cls._test(model=model, criterion=criterion, writer=writer, epoch=epochs - 1, **kwargs)
         logging.info('Training completed')
         return test_value
 
@@ -246,13 +223,13 @@ class ImageClassification:
     """
 
     @classmethod
-    def _train(cls, train_loader, model, criterion, optimizer, writer, epoch, **kwargs):
-        return train.train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
+    def _train(cls, **kwargs):
+        return train(**kwargs)
 
     @classmethod
-    def _validate(cls, val_loader, model, criterion, writer, epoch, **kwargs):
-        return evaluate.validate(val_loader, model, criterion, writer, epoch, **kwargs)
+    def _validate(cls, **kwargs):
+        return evaluate(data_loader=kwargs['val_loader'], logging_label='val', **kwargs)
 
     @classmethod
-    def _test(cls, test_loader, model, criterion, writer, epoch, **kwargs):
-        return evaluate.test(test_loader, model, criterion, writer, epoch, **kwargs)
+    def _test(cls, **kwargs):
+        return evaluate(data_loader=kwargs['test_loader'], logging_label='test', **kwargs)
