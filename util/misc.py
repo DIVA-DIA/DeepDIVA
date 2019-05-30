@@ -110,7 +110,7 @@ def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
 
 
 def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir,
-               invert_best=False, checkpoint_all_epochs=False):
+               invert_best=False, checkpoint_all_epochs=False, **kwargs):
     """Saves the current training checkpoint and the best valued checkpoint to file.
 
     Parameters
@@ -135,7 +135,8 @@ def checkpoint(epoch, new_value, best_value, model, optimizer, log_dir,
         (useful when metric evaluted is error rate)
     checkpoint_all_epochs : bool
         If enabled, save checkpoint after every epoch.
-
+    kwargs : dict
+        Any additional arguments.
     Returns
     -------
     best_value : float
