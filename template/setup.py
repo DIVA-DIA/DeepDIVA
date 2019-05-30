@@ -30,9 +30,8 @@ from util.data.dataset_integrity import verify_integrity_quick, verify_integrity
 from util.misc import get_all_files_in_folders_and_subfolders
 
 
-def set_up_model(output_channels, model_name, pretrained, no_cuda, resume, load_model,
-                 start_epoch, disable_databalancing, dataset_folder, inmem, workers,
-                 optimizer_name=None, criterion_name=None, num_classes=None, ablate=False, **kwargs):
+def set_up_model(output_channels, model_name, pretrained, no_cuda, resume, load_model, disable_databalancing, dataset_folder,
+                 inmem, workers, optimizer_name=None, criterion_name=None, num_classes=None, ablate=False, **kwargs):
     """
     Instantiate model, optimizer, criterion. Load a pretrained model or resume from a checkpoint.
 
@@ -125,7 +124,6 @@ def set_up_model(output_channels, model_name, pretrained, no_cuda, resume, load_
         if os.path.isfile(resume):
             logging.info("Loading checkpoint '{}'".format(resume))
             checkpoint = torch.load(resume)
-            start_epoch = checkpoint['epoch']
             best_value = checkpoint['best_value']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
@@ -139,7 +137,7 @@ def set_up_model(output_channels, model_name, pretrained, no_cuda, resume, load_
         best_value = 0.0
 
     # Some of these might be None depending on the input parameters
-    return model, criterion, optimizer, best_value, start_epoch
+    return model, criterion, optimizer, best_value
 
 
 def _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, runner_class, **kwargs):
