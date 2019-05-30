@@ -21,8 +21,8 @@ from util.misc import checkpoint, adjust_learning_rate
 
 
 class ImageClassification:
-    @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
+    @classmethod
+    def single_run(cls, writer, current_log_folder, model_name, epochs, lr, decay_lr,
                    validation_interval, checkpoint_all_epochs, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
@@ -39,14 +39,14 @@ class ImageClassification:
             Number of epochs to train
         lr : float
             Value for learning rate
-        kwargs : dict
-            Any additional arguments.
         decay_lr : boolean
             Decay the lr flag
         validation_interval : int
             Run evaluation on validation set every N epochs
         checkpoint_all_epochs : bool
             If enabled, save checkpoint after every epoch.
+        kwargs : dict
+            Any additional arguments.
 
         Returns
         -------
@@ -59,7 +59,7 @@ class ImageClassification:
         """
         # Get the selected model input size
         model_expected_input_size = models.__dict__[model_name]().expected_input_size
-        ImageClassification._validate_model_input_size(model_expected_input_size, model_name)
+        cls._validate_model_input_size(model_expected_input_size, model_name)
         logging.info('Model {} expects input size of {}'.format(model_name, model_expected_input_size))
 
         # Setting up the dataloaders
@@ -68,8 +68,8 @@ class ImageClassification:
         # Setting up model, optimizer, criterion
         model, criterion, optimizer, best_value, start_epoch = set_up_model(num_classes=num_classes,
                                                                             model_name=model_name,
-                                                                            lr=lr,
                                                                             train_loader=train_loader,
+                                                                            lr=lr,
                                                                             **kwargs)
 
         # Core routine
@@ -77,15 +77,15 @@ class ImageClassification:
         val_value = np.zeros((epochs + 1 - start_epoch))
         train_value = np.zeros((epochs - start_epoch))
 
-        val_value[-1] = ImageClassification._validate(val_loader, model, criterion, writer, -1, **kwargs)
+        val_value[-1] = cls._validate(val_loader, model, criterion, writer, -1, **kwargs)
         for epoch in range(start_epoch, epochs):
             # Train
-            train_value[epoch] = ImageClassification._train(train_loader, model, criterion, optimizer, writer, epoch,
+            train_value[epoch] = cls._train(train_loader, model, criterion, optimizer, writer, epoch,
                                                             **kwargs)
 
             # Validate
             if epoch % validation_interval == 0:
-                val_value[epoch] = ImageClassification._validate(val_loader, model, criterion, writer, epoch, **kwargs)
+                val_value[epoch] = cls._validate(val_loader, model, criterion, writer, epoch, **kwargs)
             if decay_lr is not None:
                 adjust_learning_rate(lr=lr, optimizer=optimizer, epoch=epoch, decay_lr_epochs=decay_lr)
             best_value = checkpoint(epoch=epoch, new_value=val_value[epoch],
@@ -97,20 +97,23 @@ class ImageClassification:
 
         # Load the best model before evaluating on the test set.
         logging.info('Loading the best model before evaluating on the test set.')
+        kwargs["load_model"] = os.path.join(current_log_folder,
+                                            'model_best.pth.tar')
         model, _, _, _, _ = set_up_model(num_classes=num_classes,
                                          model_name=model_name,
-                                         load_model= os.path.join(current_log_folder, 'model_best.pth.tar'),
+                                         lr=lr,
+                                         train_loader=train_loader,
                                          **kwargs)
 
         # Test
-        test_value = ImageClassification._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
+        test_value = cls._test(test_loader, model, criterion, writer, epochs - 1, **kwargs)
         logging.info('Training completed')
 
         return train_value, val_value, test_value
 
     ####################################################################################################################
-    @staticmethod
-    def _validate_model_input_size(model_expected_input_size, model_name):
+    @classmethod
+    def _validate_model_input_size(cls, model_expected_input_size, model_name):
         """
         This method verifies that the model expected input size is a tuple of 2 elements.
         This is necessary to avoid confusion with models which run on other types of data.
