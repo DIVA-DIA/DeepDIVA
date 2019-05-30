@@ -15,18 +15,14 @@ from datasets.custom_transform_library import transforms as custom_transforms
 from template.setup import _load_mean_std_from_file
 
 
-def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, workers, inmem, **kwargs):
+def set_up_dataloaders(dataset_folder, batch_size, workers, inmem, **kwargs):
     """
     Set up the dataloaders for the specified datasets.
 
     Parameters
     ----------
-    model_expected_input_size : tuple
-        Specify the height and width that the model expects.
     dataset_folder : string
         Path string that points to the three folder train/val/test. Example: ~/../../data/svhn
-    n_triplets : int
-        Number of triplets to generate for train/val/tes
     batch_size : int
         Number of datapoints to process at once
     workers : int
