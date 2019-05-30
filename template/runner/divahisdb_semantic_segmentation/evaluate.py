@@ -24,7 +24,8 @@ from .setup import one_hot_to_np_rgb, one_hot_to_full_output
 from datasets.custom_transform_library.functional import gt_to_one_hot_hisdb as gt_to_one_hot
 
 
-def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_val_conf_matrix, no_cuda=False, log_interval=10, **kwargs):
+def validate(val_loader, model, criterion, writer, epoch, class_encodings, no_val_conf_matrix,
+             no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
@@ -32,7 +33,7 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
     ----------
     class_encodings : list
         Contains the classes (range of ints)
-    data_loader : torch.utils.data.DataLoader
+    val_loader : torch.utils.data.DataLoader
         The dataloader of the evaluation set
     model : torch.nn.module
         The network model being used
@@ -73,7 +74,7 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
     preds = []
     targets = []
 
-    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
+    pbar = tqdm(enumerate(val_loader), total=len(val_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
         # Measure data loading time
         data_time.update(time.time() - end)
@@ -104,13 +105,13 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
 
 
         if multi_run is None:
-            writer.add_scalar(logging_label + '/mb_loss', log_loss, epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_meanIU', mean_iu, epoch * len(data_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_loss', log_loss, epoch * len(val_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_meanIU', mean_iu, epoch * len(val_loader) + batch_idx)
         else:
             writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), log_loss,
-                              epoch * len(data_loader) + batch_idx)
+                              epoch * len(val_loader) + batch_idx)
             writer.add_scalar(logging_label + '/mb_meanIU_{}'.format(multi_run), mean_iu,
-                              epoch * len(data_loader) + batch_idx)
+                              epoch * len(val_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -118,7 +119,7 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
 
         if batch_idx % log_interval == 0:
             pbar.set_description(logging_label +
-                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
+                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(val_loader)))
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=losses),
@@ -176,8 +177,8 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
     return meanIU.avg
 
 
-def test(data_loader, model, criterion, writer, epoch, class_encodings, img_names_sizes_dict, dataset_folder, inmem,
-         workers, runner_class, use_boundary_pixel, no_val_conf_matrix, no_cuda=False, log_interval=10, **kwargs):
+def test(test_loader, model, criterion, writer, epoch, class_encodings, img_names_sizes_dict, dataset_folder,
+         use_boundary_pixel, no_val_conf_matrix, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
@@ -187,7 +188,7 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
         Contains the range of encoded classes
     img_names_sizes_dict: dictionary {str: (int, int)}
         Key: gt image name (with extension), Value: image size
-    data_loader : torch.utils.data.DataLoader
+    test_loader : torch.utils.data.DataLoader
         The dataloader of the evaluation set
     model : torch.nn.module
         The network model being used
@@ -231,7 +232,7 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
     # needed for test phase output generation
     current_img_name = ""
 
-    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
+    pbar = tqdm(enumerate(test_loader), total=len(test_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
         input, top_left_coordinates, test_img_names = input
 
@@ -262,13 +263,13 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
         log_loss = loss.item()
 
         if multi_run is None:
-            writer.add_scalar(logging_label + '/mb_loss', log_loss, epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_meanIU', mean_iu_batch, epoch * len(data_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_loss', log_loss, epoch * len(test_loader) + batch_idx)
+            writer.add_scalar(logging_label + '/mb_meanIU', mean_iu_batch, epoch * len(test_loader) + batch_idx)
         else:
             writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), log_loss,
-                              epoch * len(data_loader) + batch_idx)
+                              epoch * len(test_loader) + batch_idx)
             writer.add_scalar(logging_label + '/mb_meanIU_{}'.format(multi_run), mean_iu_batch,
-                              epoch * len(data_loader) + batch_idx)
+                              epoch * len(test_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -276,7 +277,7 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
 
         if batch_idx % log_interval == 0:
             pbar.set_description(logging_label +
-                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
+                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(test_loader)))
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=losses),

@@ -14,7 +14,7 @@ from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_l
 from util.evaluation.metrics.accuracy import accuracy_segmentation
 
 
-def train(train_loader, model, criterion, optimizer, writer, epoch, class_names, no_cuda=False,
+def train(train_loader, model, criterion, optimizer, writer, epoch, class_encodings, no_cuda=False,
           log_interval=25, **kwargs):
     """
     Training routine
@@ -44,7 +44,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_names,
         meanIU of the model of the evaluated split
     """
     multi_run = kwargs['run'] if 'run' in kwargs else None
-    num_classes = len(class_names)
+    num_classes = len(class_encodings)
 
     # Instantiate the counters
     batch_time = AverageMeter()
