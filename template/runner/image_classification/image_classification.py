@@ -96,14 +96,10 @@ class ImageClassification:
 
 
         # Load the best model before evaluating on the test set.
-        logging.info('Loading the best model before evaluating on the '
-                     'test set.')
-        kwargs["load_model"] = os.path.join(current_log_folder,
-                                            'model_best.pth.tar')
+        logging.info('Loading the best model before evaluating on the test set.')
         model, _, _, _, _ = set_up_model(num_classes=num_classes,
                                          model_name=model_name,
-                                         lr=lr,
-                                         train_loader=train_loader,
+                                         load_model= os.path.join(current_log_folder, 'model_best.pth.tar'),
                                          **kwargs)
 
         # Test
