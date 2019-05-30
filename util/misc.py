@@ -78,7 +78,7 @@ class AverageMeter(object):
     """
 
 
-def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs):
+def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs, **kwargs):
     """Sets the learning rate to the initial LR decayed by 10 every N epochs.
 
     Adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
