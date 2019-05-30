@@ -25,8 +25,7 @@ from template.setup import set_up_model
 #######################################################################################################################
 class ApplyModel:
     @staticmethod
-    def single_run(writer, current_log_folder, model_name, epochs, lr, decay_lr,
-                   output_channels, classify, **kwargs):
+    def single_run(writer, current_log_folder, model_name, lr, output_channels, classify, **kwargs):
         """
         This is the main routine where train(), validate() and test() are called.
 
@@ -41,17 +40,11 @@ class ApplyModel:
         model_name: string
             Name of the model
 
-        epochs: int
-            Number of epochs to train
-
         lr: float
             Value for learning rate
 
         kwargs: dict
             Any additional arguments.
-
-        decay_lr: boolean
-            Decay the lr flag
 
         output_channels: int
             Specify shape of final layer of network.
