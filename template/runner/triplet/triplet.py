@@ -90,7 +90,6 @@ class Triplet:
         # Setting up model, optimizer, criterion
         model, _, optimizer, best_value, start_epoch = set_up_model(model_name=model_name,
                                                                     lr=lr,
-                                                                    # train_loader=train_loader,
                                                                     **kwargs)
 
         # Set the special criterion for triplets
@@ -117,7 +116,6 @@ class Triplet:
                 if epoch % validation_interval == 0:
                     val_value[epoch] = Triplet._validate(val_loader=val_loader,
                                                          model=model,
-                                                         criterion=criterion,
                                                          writer=writer,
                                                          epoch=epoch,
                                                          **kwargs)
@@ -140,17 +138,11 @@ class Triplet:
         # Test
         test_value = Triplet._test(test_loader=test_loader,
                                    model=model,
-                                   criterion=criterion,
                                    writer=writer,
                                    epoch=(epochs - 1),
                                    **kwargs)
 
         return train_value, val_value, test_value
-
-    def weights_init(m):
-        if isinstance(m, torch.nn.Conv2d):
-            init.xavier_uniform(m.weight.data, gain=np.math.sqrt(2.0))
-            init.constant(m.bias.data, 0.1)
 
     ####################################################################################################################
     @staticmethod
@@ -186,9 +178,9 @@ class Triplet:
         return train.train(train_loader, model, criterion, optimizer, writer, epoch, **kwargs)
 
     @classmethod
-    def _validate(cls, val_loader, model, criterion, writer, epoch, **kwargs):
-        return evaluate.validate(val_loader, model, criterion, writer, epoch, **kwargs)
+    def _validate(cls, val_loader, model, writer, epoch, **kwargs):
+        return evaluate.validate(val_loader, model, writer, epoch, **kwargs)
 
     @classmethod
-    def _test(cls, test_loader, model, criterion, writer, epoch, **kwargs):
-        return evaluate.test(test_loader, model, criterion, writer, epoch, **kwargs)
+    def _test(cls, test_loader, model, writer, epoch, **kwargs):
+        return evaluate.test(test_loader, model, writer, epoch, **kwargs)

@@ -14,17 +14,17 @@ from tqdm import tqdm
 from util.evaluation.metrics import compute_mapk
 
 
-def validate(val_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
+def validate(val_loader, model, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to validate the model."""
-    return _evaluate_map(val_loader, model, criterion, writer, epoch, 'val', no_cuda, log_interval, **kwargs)
+    return _evaluate_map(val_loader, model, writer, epoch, 'val', no_cuda, log_interval, **kwargs)
 
 
-def test(test_loader, model, criterion, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
+def test(test_loader, model, writer, epoch, no_cuda=False, log_interval=20, **kwargs):
     """Wrapper for _evaluate() with the intent to test the model"""
-    return _evaluate_map(test_loader, model, criterion, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
+    return _evaluate_map(test_loader, model, writer, epoch, 'test', no_cuda, log_interval, **kwargs)
 
 
-def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, no_cuda, log_interval, map, **kwargs):
+def _evaluate_map(data_loader, model, writer, epoch, logging_label, no_cuda, log_interval, map, **kwargs):
     """
     The evaluation routine
 
@@ -34,8 +34,6 @@ def _evaluate_map(data_loader, model, criterion, writer, epoch, logging_label, n
         The dataloader of the evaluation set
     model : torch.nn.module
         The network model being used
-    criterion: torch.nn.loss
-        The loss function used to compute the loss of the model
     writer : tensorboardX.writer.SummaryWriter
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
     epoch : int
