@@ -159,7 +159,7 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var_argm
     target_argmax = target_var_argmax.data.cpu().numpy()
 
     # Compute and record the accuracy
-    acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target_argmax, output_argmax, num_classes)
+    _, _, mean_iu, _ = accuracy_segmentation(target_argmax, output_argmax, num_classes)
     meanIU_meter.update(mean_iu, input_var.size(0))
 
     # Reset gradient
