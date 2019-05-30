@@ -43,6 +43,8 @@ def validate(val_loader, model, criterion, writer, epoch, class_encodings, no_va
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
     epoch : int
         Number of the epoch (for logging purposes)
+    no_val_conf_matrix  : bool
+        # TODO
     no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
     log_interval : int
@@ -198,6 +200,12 @@ def test(test_loader, model, criterion, writer, epoch, class_encodings, img_name
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
     epoch : int
         Number of the epoch (for logging purposes)
+    dataset_folder : str
+        # TODO
+    use_boundary_pixel : bool
+        # TODO
+    no_val_conf_matrix  : bool
+        # TODO
     no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
     log_interval : int
