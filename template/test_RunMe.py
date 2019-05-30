@@ -11,9 +11,13 @@ the main functions can be tested.
 
 Please keep the list of these tests up to date as soon as you add new features.
 """
+import os
+
 import numpy as np
 
 from template.RunMe import RunMe
+
+DATASET_PATH="/local/scratch/"
 
 def test_one():
     """
@@ -23,7 +27,7 @@ def test_one():
     epochs = 1
     args = ["--experiment-name", "test_template",
             "--ignoregit",
-            "--dataset-folder", "/dataset/cifar",
+            "--dataset-folder", os.path.join(DATASET_PATH,"cifar"),
             "--epochs", str(epochs)]
 
     train, val, test = RunMe().main(args=args)
