@@ -440,8 +440,8 @@ class ImageFolder(data.Dataset):
             # Ensure that data and gt image are of the same size
             assert gt_img.size == data_img.size
             img_names_sizes.append((os.path.basename(gt_path), data_img.size[::-1]))
-            num_horiz_crops.append(math.ceil(data_img.size[0] / (self.crop_size / (1 / self.overlap))))
-            num_vert_crops.append(math.ceil(data_img.size[1] / (self.crop_size / (1 / self.overlap))))
+            num_horiz_crops.append(math.ceil(data_img.size[1] / (self.crop_size / (1 / self.overlap))))
+            num_vert_crops.append(math.ceil(data_img.size[0] / (self.crop_size / (1 / self.overlap))))
 
         return img_names_sizes, num_horiz_crops, num_vert_crops
 
