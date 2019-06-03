@@ -351,11 +351,6 @@ def _semantic_segmentation_options(parser):
                                 default=128, metavar='N',
                                 help='size of the square input patch e.g. with 32 the input will be re-sized to 32x32')
 
-    semantic_segmentation.add_argument('--no-val-conf-matrix',
-                             default=False,
-                             action='store_true',
-                             help='Confusion matrix is not made for validation phase, only for test phase')
-
     # parameters for HisDB
     semantic_segmentation.add_argument('--imgs-in-memory',
                                        type=int,
@@ -370,10 +365,6 @@ def _semantic_segmentation_options(parser):
                                        default=50, metavar='N',
                                        help='number of crops per iterations per page')
 
-    semantic_segmentation.add_argument('--use-boundary-pixel',
-                             default=False,
-                             action='store_true',
-                             help='Take boundary pixel into account for the accuracy computation')
 
     # parameter for DeepLabV3 if you want to use cityscapes pre-trained model
     semantic_segmentation.add_argument('--cityscapes',
