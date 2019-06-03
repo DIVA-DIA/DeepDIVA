@@ -52,7 +52,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_ds, val_ds, test_ds = multi_label_image_folder_dataset.load_dataset(dataset_folder, inmem, workers)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
+        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers, kwargs['runner_class'])
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')

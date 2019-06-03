@@ -301,7 +301,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem, workers)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
+        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers, kwargs['runner_class'])
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
@@ -390,7 +390,7 @@ def _verify_dataset_integrity(dataset_folder, disable_dataset_integrity, enable_
             verify_integrity_quick(dataset_folder)
 
 
-def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class=None):
+def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class):
     """
     This function simply recovers mean and std from the analytics.csv file
 

@@ -60,7 +60,7 @@ def set_up_dataloader(model_expected_input_size, dataset_folder, batch_size, wor
 
     # Loads the analytics csv and extract mean and std
     try:
-        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
+        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers, kwargs['runner_class'])
     except:
         logging.error('analytics.csv not found in folder. Please copy the one generated in the '
                         'training folder to this folder.')
