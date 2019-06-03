@@ -43,6 +43,7 @@ def evaluate(data_loader, model, criterion, writer, epoch, logging_label, no_cud
     top1.avg : float
         Accuracy of the model of the evaluated split
     """
+    # 'Run' is injected in kwargs at runtime IFF it is a multi-run event
     multi_run = kwargs['run'] if 'run' in kwargs else None
 
     # Instantiate the counters
