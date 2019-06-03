@@ -94,19 +94,21 @@ def set_up_dataloaders(dataset_folder, batch_size, workers, inmem, **kwargs):
     return train_loader, val_loader, test_loader
 
 
-def one_hot_to_np_rgb(matrix, class_encodings):
+def output_to_class_encodings(output, class_encodings):
     """
     This function converts the one-hot encoded matrix to an image like it was provided in the ground truth
 
     Parameters
     -------
-    np array of size [#C x H x W]
-        sparse one-hot encoded matrix, where #C is the number of classes
+    output : np.array of size [#C x H x W]
+        output prediction of the network for a full-size image, where #C is the number of classes
+    class_encodings : List
+        Contains the range of encoded classes
     Returns
     -------
     numpy array of size [C x H x W] (BGR)
     """
-    B = np.argmax(matrix, axis=0)
+    B = np.argmax(output, axis=0)
     class_to_B = {i: j for i, j in enumerate(class_encodings)}
 
     masks = [B == old for old in class_to_B.keys()]
@@ -119,34 +121,3 @@ def one_hot_to_np_rgb(matrix, class_encodings):
     return rgb
 
 
-def one_hot_to_full_output(one_hot, coordinates, combined_one_hot, output_dim):
-    """
-    This function combines the one-hot matrix of all the patches in one image to one large output matrix. Overlapping
-    values are averaged.
-
-    Parameters
-    ----------
-    output_dims: tuples [Htot x Wtot]
-        dimension of the large image
-    one_hot: numpy matrix of size [batch size x #C x H x W]
-        a patch from the larger image
-    coordinates: tuple
-        top left coordinates of the patch within the larger image for all patches in a batch
-    combined_one_hot: numpy matrix of size [#C x Htot x Wtot]
-        one hot encoding of the full image
-    Returns
-    -------
-    combined_one_hot: numpy matrix [#C x Htot x Wtot]
-    """
-    if len(combined_one_hot) == 0:
-        combined_one_hot = np.zeros((one_hot.shape[0], *output_dim))
-
-    x1, y1 = coordinates
-    x2, y2 = (min(x1 + one_hot.shape[1], output_dim[0]), min(y1 + one_hot.shape[2], output_dim[1]))
-    zero_mask = combined_one_hot[:, x1:x2, y1:y2] == 0
-    # if still zero in combined_one_hot just insert value from crop, if there is a value average
-    combined_one_hot[:, x1:x2, y1:y2] = np.where(zero_mask, one_hot[:, :zero_mask.shape[1], :zero_mask.shape[2]],
-                                                 np.maximum(one_hot[:, :zero_mask.shape[1], :zero_mask.shape[2]],
-                                                  combined_one_hot[:, x1:x2, y1:y2]))
-
-    return combined_one_hot
