@@ -23,7 +23,7 @@ from .setup import one_hot_to_np_rgb, one_hot_to_full_output
 from datasets.custom_transform_library.functional import gt_to_one_hot
 
 
-def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_val_conf_matrix, no_cuda=False, log_interval=10, **kwargs):
+def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_val_conf_matrix=False, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
@@ -183,7 +183,7 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
 
 
 def test(data_loader, model, criterion, writer, epoch, class_encodings, img_names_sizes_dict, dataset_folder, inmem,
-         workers, runner_class, use_boundary_pixel, no_cuda=False, log_interval=10, **kwargs):
+         workers, runner_class, use_boundary_pixel=False, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
