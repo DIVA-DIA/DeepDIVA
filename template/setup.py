@@ -80,9 +80,6 @@ def set_up_model(output_channels, model_name, pretrained, no_cuda, resume, load_
     best_value : float
         Specifies the former best value obtained by the model.
         Relevant only if you are resuming training.
-    start_epoch : int
-        Specifies at which epoch was the model saved.
-        Relevant only if you are resuming training.
     """
 
     # Initialize the model
