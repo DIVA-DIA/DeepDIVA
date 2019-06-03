@@ -100,7 +100,7 @@ def gt_to_one_hot(matrix, class_encodings):
     return torch.LongTensor(one_hot_matrix.transpose((2, 0, 1)))
 
 
-def gt_to_one_hot_hisdb(matrix, class_encodings, use_boundary_pixel):
+def gt_to_one_hot_hisdb(matrix, class_encodings, use_boundary_pixel=True):
     """
     Convert ground truth tensor or numpy matrix to one-hot encoded matrix
 
@@ -108,9 +108,10 @@ def gt_to_one_hot_hisdb(matrix, class_encodings, use_boundary_pixel):
     -------
     matrix: float tensor from to_tensor() or numpy array
         shape (C x H x W) in the range [0.0, 1.0] or shape (H x W x C) BGR
-    class_encodings: list of int
+    class_encodings: List of int
         Blue channel values that encode the different classes
-
+    use_boundary_pixel : boolean
+        Use boundary pixel
     Returns
     -------
     torch.LongTensor of size [#C x H x W]
@@ -127,7 +128,7 @@ def gt_to_one_hot_hisdb(matrix, class_encodings, use_boundary_pixel):
         im_np = np_array[2, :, :].astype(np.uint8)
         border_mask = np_array[0, :, :].astype(np.uint8) != 0
 
-    # ajust blue channel according to border pixel in red channel -> set to background
+    # adjust blue channel according to border pixel in red channel -> set to background
     if use_boundary_pixel:
         im_np[border_mask] = 1
 
@@ -149,14 +150,7 @@ def gt_to_one_hot_hisdb(matrix, class_encodings, use_boundary_pixel):
 
 def argmax_onehot(tensor):
     """
-
-    Parameters
-    ----------
-    tensor
-
-    Returns
-    -------
-
+    # TODO
     """
     return torch.LongTensor(np.array(np.argmax(tensor.numpy(), axis=0)))
 
