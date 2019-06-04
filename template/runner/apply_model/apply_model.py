@@ -69,7 +69,7 @@ class ApplyModel:
         # Setting up model, optimizer, criterion
         output_channels = num_classes if classify else output_channels
 
-        model, _, _, _, _ = set_up_model(output_channels=output_channels,
+        model, _, _, _= set_up_model(output_channels=output_channels,
                                          model_name=model_name,
                                          lr=lr,
                                          train_loader=None,
