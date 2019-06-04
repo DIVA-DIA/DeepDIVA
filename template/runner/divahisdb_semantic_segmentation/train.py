@@ -100,7 +100,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_encodi
     if multi_run is None:
         writer.add_scalar('train/meanIU', meanIU.avg, epoch)
     else:
-        writer.add_scalar('train/meanIU{}'.format(multi_run), meanIU.avg, epoch)
+        writer.add_scalar('train/meanIU_{}'.format(multi_run), meanIU.avg, epoch)
 
     logging.debug('Train epoch[{}]: '
                  'MeanIU={meanIU.avg:.3f}\t'
