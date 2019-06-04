@@ -316,38 +316,45 @@ class ImageFolder(data.Dataset):
 
     def _get_test_items(self):
         # TODO documentation
-        # get and update the coordinates for the sliding window
+
+        assert self.current_horiz_crop < self.total_num_horiz_crops
+        assert self.current_vert_crop < self.total_num_vert_crops
+
+        # Get and update the coordinates for the sliding window
         coordinates = self._get_crop_coordinates()
-        x_position, y_position = coordinates
+
 
         img, gt = self.apply_transformation(self.current_data_img, self.current_gt_img, coordinates=coordinates)
 
         # update total number of crops -> set to zero when last crop of epoch is generated
-        self.current_number_of_crops = (self.current_number_of_crops + 1) % self.tot_crops_current_img
+        self.current_number_of_crops = (self.current_number_of_crops + 1) % self.total_crops_current_img
         self._update_sliding_window_coordinates()
 
         logging.debug("PID{}: Cropping position ({},{}). Horizontal {}/{}. Vertical {}/{}. Total {}/{}".format(
-            os.getpid(), x_position, y_position, self.current_horiz_crop, self.current_num_horiz_crops,
-            self.current_vert_crop, self.current_num_vert_crops, self.current_number_of_crops,
-            self.tot_crops_current_img))
+            os.getpid(), coordinates[0], coordinates[1], self.current_horiz_crop, self.total_num_horiz_crops,
+            self.current_vert_crop, self.total_num_vert_crops, self.current_number_of_crops,
+            self.total_crops_current_img))
 
         return (img, coordinates, self.img_names_sizes[self.next_image_index-1][0]), gt
 
     def _load_test_images_and_vars(self):
-        # TODO documentation
-        # load image
+        """
+        Inits the variables responsible of tracking which crop should be taken next, the current images and the like.
+        This should be run every time a new page gets loaded for the test-set
+        """
+        # Load image
         self.current_data_img = pil_loader(self.img_paths[self.next_image_index][0])
         self.current_gt_img = pil_loader(self.img_paths[self.next_image_index][1])
 
-        # initialize the sliding window indices
-        self.current_num_horiz_crops = self.num_horiz_crops[self.next_image_index]
+        # Initialize the sliding window indices
+        self.total_num_horiz_crops = self.num_horiz_crops[self.next_image_index]
         self.current_horiz_crop = 0
-        self.current_num_vert_crops = self.num_vert_crops[self.next_image_index]
+        self.total_num_vert_crops = self.num_vert_crops[self.next_image_index]
         self.current_vert_crop = 0
 
-        self.tot_crops_current_img = self.current_num_vert_crops * self.current_num_horiz_crops
+        self.total_crops_current_img = self.total_num_vert_crops * self.total_num_horiz_crops
 
-        # update pointer to next image
+        # Update pointer to next image
         self.next_image_index += 1
 
     def apply_transformation(self, img, gt, coordinates=None):
@@ -440,33 +447,42 @@ class ImageFolder(data.Dataset):
             # Ensure that data and gt image are of the same size
             assert gt_img.size == data_img.size
             img_names_sizes.append((os.path.basename(gt_path), data_img.size[::-1]))
-            num_horiz_crops.append(math.ceil(data_img.size[0] / (self.crop_size / (1 / self.overlap))))
-            num_vert_crops.append(math.ceil(data_img.size[1] / (self.crop_size / (1 / self.overlap))))
+            step_size = self.crop_size * self.overlap
+            num_horiz_crops.append(math.ceil((data_img.size[1] - self.crop_size) / step_size + 1))
+            num_vert_crops.append(math.ceil((data_img.size[0] - self.crop_size) / step_size + 1))
 
         return img_names_sizes, num_horiz_crops, num_vert_crops
 
     def _update_sliding_window_coordinates(self):
-        # TODO documentation
-        self.current_horiz_crop = (self.current_horiz_crop + 1) % self.current_num_horiz_crops
-
-        if self.current_horiz_crop == 0 or self.current_vert_crop == 0:
-            self.current_vert_crop = (self.current_vert_crop + 1)
+        """
+        Updates the indexes of self.current_horiz_crop and self.current_vert_crop to perform a correct sliding window
+        left to right, top to bottom
+        """
+        self.current_horiz_crop = self.current_horiz_crop + 1
+        if self.current_horiz_crop % self.total_num_horiz_crops == 0:
+            self.current_horiz_crop = 0
+            self.current_vert_crop = self.current_vert_crop + 1
 
     def _get_crop_coordinates(self):
-        # TODO documentation
-        # x coordinate
-        if self.current_horiz_crop == (self.current_num_horiz_crops - 1):
-            # we are at the end of a line
+        """
+        Get the coordinates of the crop base on the internal status of the counters
+        self.current_horiz_crop and self.current_vert_crop
+        """
+        # X coordinate
+        if self.current_horiz_crop == self.total_num_horiz_crops - 1:
+            # We are at the end of a line
             x_position = self.img_names_sizes[self.next_image_index-1][1][0] - self.crop_size
         else:
-            # move one position to the right
             x_position = int(self.crop_size / (1 / self.overlap)) * self.current_horiz_crop
+            assert x_position < self.img_names_sizes[self.next_image_index-1][1][0] - self.crop_size
 
-        # y coordinate
-        if self.current_vert_crop == self.current_num_vert_crops:
-            # we are at the bottom end
+
+        # Y coordinate
+        if self.current_vert_crop == self.total_num_vert_crops - 1:
+            # We are at the bottom end
             y_position = self.img_names_sizes[self.next_image_index-1][1][1] - self.crop_size
         else:
             y_position = int(self.crop_size / (1 / self.overlap)) * self.current_vert_crop
+            assert y_position < self.img_names_sizes[self.next_image_index - 1][1][1] - self.crop_size
 
         return x_position, y_position

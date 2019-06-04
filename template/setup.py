@@ -80,9 +80,6 @@ def set_up_model(output_channels, model_name, pretrained, no_cuda, resume, load_
     best_value : float
         Specifies the former best value obtained by the model.
         Relevant only if you are resuming training.
-    start_epoch : int
-        Specifies at which epoch was the model saved.
-        Relevant only if you are resuming training.
     """
 
     # Initialize the model
@@ -301,7 +298,7 @@ def set_up_dataloaders(model_expected_input_size, dataset_folder, batch_size, wo
         train_ds, val_ds, test_ds = image_folder_dataset.load_dataset(dataset_folder, inmem, workers)
 
         # Loads the analytics csv and extract mean and std
-        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers)
+        mean, std = _load_mean_std_from_file(dataset_folder, inmem, workers, kwargs['runner_class'])
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
@@ -390,7 +387,7 @@ def _verify_dataset_integrity(dataset_folder, disable_dataset_integrity, enable_
             verify_integrity_quick(dataset_folder)
 
 
-def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class=None):
+def _load_mean_std_from_file(dataset_folder, inmem, workers, runner_class):
     """
     This function simply recovers mean and std from the analytics.csv file
 
@@ -451,7 +448,7 @@ def _load_analytics_csv(dataset_folder, inmem, workers, runner_class, **kwargs):
         logging.warning('Missing analytics.csv file for dataset located at {}'.format(dataset_folder))
         try:
             logging.warning('Attempt creating analytics.csv file for dataset located at {}'.format(dataset_folder))
-            if 'segmentation' in runner_class:
+            if runner_class is not None and 'segmentation' in runner_class:
                 compute_mean_std_segmentation(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
             else:
                 compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)

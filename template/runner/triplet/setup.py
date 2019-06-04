@@ -60,7 +60,9 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets,
         # Loads the analytics csv and extract mean and std
         mean, std = _load_mean_std_from_file(dataset_folder=dataset_folder,
                                              inmem=inmem,
-                                             workers=workers)
+                                             workers=workers,
+                                             runner_class=kwargs['runner_class'],
+                                             )
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
@@ -88,7 +90,8 @@ def setup_dataloaders(model_expected_input_size, dataset_folder, n_triplets,
         # Loads the analytics csv and extract mean and std
         mean, std = _load_mean_std_from_file(dataset_folder=dataset_folder,
                                              inmem=inmem,
-                                             workers=workers)
+                                             workers=workers,
+                                             runner_class=kwargs['runner_class'])
 
         # Set up dataset transforms
         logging.debug('Setting up dataset transforms')
