@@ -364,7 +364,10 @@ def _semantic_segmentation_options(parser):
                                        type=int,
                                        default=50, metavar='N',
                                        help='number of crops per iterations per page')
-
+    semantic_segmentation.add_argument('--post-process',
+                              action='store_true',
+                              default=False,
+                              help='apply post processing to the image')
 
     # parameter for DeepLabV3 if you want to use cityscapes pre-trained model
     semantic_segmentation.add_argument('--cityscapes',

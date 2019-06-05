@@ -5,11 +5,13 @@ import time
 
 import matplotlib
 import numpy as np
+import torch
 from PIL import Image
 # Torch related stuff
 from tqdm import tqdm
 
 from datasets.custom_transform_library.functional import gt_to_one_hot_hisdb as gt_to_one_hot
+from template.runner.divahisdb_semantic_segmentation.post_process import crf
 from util.evaluation.metrics.accuracy import accuracy_segmentation
 # DeepDIVA
 from util.misc import AverageMeter, _prettyprint_logging_label, make_colour_legend_image
@@ -118,7 +120,7 @@ def validate(val_loader, model, criterion, writer, epoch, class_encodings, no_cu
 
 
 def test(test_loader, model, criterion, writer, epoch, class_encodings, img_names_sizes_dict, dataset_folder,
-         no_cuda=False, log_interval=10, **kwargs):
+         post_process, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
@@ -142,6 +144,8 @@ def test(test_loader, model, criterion, writer, epoch, class_encodings, img_name
         # TODO
     dataset_folder : str
         # TODO
+    post_process : Boolean
+        apply post-processing to the output of the network
     no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
     log_interval : int
@@ -228,7 +232,7 @@ def test(test_loader, model, criterion, writer, epoch, class_encodings, img_name
             # Save the image when done
             if not np.isnan(np.sum(canvas[img_name])):
                 # Save the final image
-                mean_iu = process_full_image(img_name, canvas[img_name], multi_run, dataset_folder, class_encodings)
+                mean_iu = process_full_image(img_name, canvas[img_name], multi_run, dataset_folder, class_encodings, post_process)
                 # Update the meanIU
                 meanIU.update(mean_iu, 1)
                 # Remove the entry
@@ -254,7 +258,6 @@ def test(test_loader, model, criterion, writer, epoch, class_encodings, img_name
 
 def get_argmax(output):
     """ Gets the argmax values for each sample in the minibatch"""
-    # TODO check with Vinay & Michele if correct
     return np.array([np.argmax(o, axis=0) for o in output.data.cpu().numpy()])
 
 
@@ -294,7 +297,7 @@ def merge_patches(patch, coordinates, full_output):
     return full_output
 
 
-def process_full_image(image_name, output, multi_run, dataset_folder, class_encodings):
+def process_full_image(image_name, output, multi_run, dataset_folder, class_encodings, post_process):
     """
     Helper function to save the output during testing
 
@@ -302,8 +305,8 @@ def process_full_image(image_name, output, multi_run, dataset_folder, class_enco
     ----------
     meanIU.avg : float
         MeanIU of the model of the evaluated split
-    writer : tensorboardX.writer.SummaryWriter
-        The tensorboard writer object. Used to log values on file for the tensorboard visualization.
+    multi_run :
+
     image_name: str
         name of the image that is saved
     output: numpy matrix of size [#C x H x W]
@@ -311,37 +314,48 @@ def process_full_image(image_name, output, multi_run, dataset_folder, class_enco
     dataset_folder: str
         path to the dataset folder
 
+    post_process : Boolean
+        apply post-processing to the output of the network
+
     Returns
     -------
     mean_iu : float
         mean iu of this image
     """
-    num_classes = len(class_encodings)
-
     # Load GT
     with open(os.path.join(dataset_folder, "test", "gt", image_name), 'rb') as f:
         with Image.open(f) as img:
             gt = np.array(img)
 
-    # Get the ground truth mapping
-    target = np.argmax(gt_to_one_hot(gt, class_encodings, True).numpy(), axis=0)
+    # Get predictions
+    if post_process:
+        # Load original image
+        with open(os.path.join(dataset_folder, "test", "data", image_name[:-4] + ".JPG"), 'rb') as f:
+            with Image.open(f) as img:
+                original_image = np.array(img)
+        # Apply CRF
+        prediction = crf(original_image, output)
+        output_encoded = output_to_class_encodings(prediction, class_encodings, perform_argmax=False)
+    else:
+        prediction = np.argmax(output, axis=0)
+        output_encoded = output_to_class_encodings(output, class_encodings)
 
     # Get boundary pixels and adjust the gt_image for the border pixel -> set to background (1)
     boundary_mask = gt[:, :, 0].astype(np.uint8) == 128
-    gt[boundary_mask, 2] = 1
 
-    # Get predictions and filter their values for the boundary pixels
-    prediction = np.argmax(output, axis=0)
-    target[np.logical_and.reduce([boundary_mask, prediction != target, prediction == 1])] =  1
+    # Get the ground truth mapping and filter their values for the boundary pixels
+    target = np.argmax(gt_to_one_hot(gt, class_encodings).numpy(), axis=0)
+    target[np.logical_and.reduce([boundary_mask, prediction != target, prediction == 0])] =  0  # NOTE: here 0 is 0x1 because it works on the index!
 
     # Compute and record the meanIU of the whole image
-    _, _, mean_iu, _ = accuracy_segmentation(target, prediction, num_classes)
+    _, _, mean_iu, _ = accuracy_segmentation(target, prediction, len(class_encodings))
 
-    output_encoded = output_to_class_encodings(output, class_encodings)
     scalar_label = 'output_{}'.format(image_name) if multi_run is None else 'output_{}_{}'.format(multi_run, image_name)
     _save_output_evaluation(class_encodings, output_encoded=output_encoded, gt_image=gt, tag=scalar_label, multi_run=multi_run)
 
     return mean_iu
+
+
 
 
 def _save_output_evaluation(class_encodings, output_encoded, gt_image, tag, multi_run=None):

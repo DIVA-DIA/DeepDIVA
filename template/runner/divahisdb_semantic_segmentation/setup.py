@@ -94,9 +94,9 @@ def set_up_dataloaders(dataset_folder, batch_size, workers, inmem, **kwargs):
     return train_loader, val_loader, test_loader
 
 
-def output_to_class_encodings(output, class_encodings):
+def output_to_class_encodings(output, class_encodings, perform_argmax=True):
     """
-    This function converts the one-hot encoded matrix to an image like it was provided in the ground truth
+    This function converts the output prediction matrix to an image like it was provided in the ground truth
 
     Parameters
     -------
@@ -104,11 +104,15 @@ def output_to_class_encodings(output, class_encodings):
         output prediction of the network for a full-size image, where #C is the number of classes
     class_encodings : List
         Contains the range of encoded classes
+    perform_argmax : bool
+        perform argmax on input data
     Returns
     -------
     numpy array of size [C x H x W] (BGR)
     """
-    B = np.argmax(output, axis=0)
+
+    B = np.argmax(output, axis=0) if perform_argmax else output
+
     class_to_B = {i: j for i, j in enumerate(class_encodings)}
 
     masks = [B == old for old in class_to_B.keys()]
