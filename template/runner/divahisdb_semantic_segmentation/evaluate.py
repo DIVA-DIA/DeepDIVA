@@ -104,7 +104,7 @@ def validate(val_loader, model, criterion, writer, epoch, class_encodings, no_cu
 
 
     # Logging the epoch-wise meanIU
-    scalar_label = 'val/mb_meanIU' if multi_run is None else 'val/mb_meanIU_{}'.format(multi_run)
+    scalar_label = 'val/meanIU' if multi_run is None else 'val/meanIU_{}'.format(multi_run)
     writer.add_scalar(scalar_label, meanIU.avg, epoch)
 
     logging.info(_prettyprint_logging_label("val") +
