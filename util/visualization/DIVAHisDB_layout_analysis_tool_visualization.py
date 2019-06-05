@@ -70,7 +70,7 @@ def generate_layout_analysis_output(output_folder, gt_image, segm_image, output_
     gt_blue = gt_image[:, :, 2] #[2140:2145, 1570:1575]
 
     # subtract the boundary pixel from the gt
-    boundary_pixel = gt_image[:, :, 0].astype(np.uint8) != 0
+    boundary_pixel = gt_image[:, :, 0].astype(np.uint8) == 128
     gt_blue[boundary_pixel] = 1
 
     # get the colour masks
@@ -126,9 +126,9 @@ def _get_boundary_masks(output, gt, boundary_pixel):
     masks = {}
 
     # background pixels
-    masks["bg_correct"] = np.logical_and(boundary_pixel, np.logical_and(output != gt, np.logical_and(output != 1, gt == 1)))
+    masks["bg_correct"] = np.logical_and.reduce([boundary_pixel, output != gt, output != 1, gt == 1])
     # foreground pixels
-    masks["fg_correct"] = np.logical_and(boundary_pixel, np.logical_and(output != gt, np.logical_and(output != 1, gt == 1)))
+    masks["fg_correct"] = np.logical_and.reduce([boundary_pixel, output != gt, output == 1, gt != 1])
 
     return masks
 

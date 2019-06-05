@@ -321,28 +321,25 @@ def process_full_image(image_name, output, multi_run, dataset_folder, class_enco
     # Load GT
     with open(os.path.join(dataset_folder, "test", "gt", image_name), 'rb') as f:
         with Image.open(f) as img:
-            #ground_truth = np.rollaxis(np.array(img), 1, 0)
-            ground_truth = np.array(img)
+            gt = np.array(img)
 
     # Get the ground truth mapping
-    target = np.argmax(gt_to_one_hot(ground_truth, class_encodings, True).numpy(), axis=0)
+    target = np.argmax(gt_to_one_hot(gt, class_encodings, True).numpy(), axis=0)
 
-    # Get boundary pixels
-    boundary_mask = ground_truth[:, :, 0].astype(np.uint8) == 128
+    # Get boundary pixels and adjust the gt_image for the border pixel -> set to background (1)
+    boundary_mask = gt[:, :, 0].astype(np.uint8) == 128
+    gt[boundary_mask, 2] = 1
 
     # Get predictions and filter their values for the boundary pixels
     prediction = np.argmax(output, axis=0)
-    prediction[boundary_mask] = target[boundary_mask]
-
-    # Adjust the gt_image for the border pixel -> set to background (1)
-    ground_truth[boundary_mask] = 1
+    target[np.logical_and.reduce([boundary_mask, prediction != target, prediction == 1])] =  1
 
     # Compute and record the meanIU of the whole image
     _, _, mean_iu, _ = accuracy_segmentation(target, prediction, num_classes)
 
     output_encoded = output_to_class_encodings(output, class_encodings)
     scalar_label = 'output_{}'.format(image_name) if multi_run is None else 'output_{}_{}'.format(multi_run, image_name)
-    _save_output_evaluation(class_encodings, output_encoded=output_encoded, gt_image=ground_truth, tag=scalar_label, multi_run=multi_run)
+    _save_output_evaluation(class_encodings, output_encoded=output_encoded, gt_image=gt, tag=scalar_label, multi_run=multi_run)
 
     return mean_iu
 
@@ -416,13 +413,12 @@ def _save_output_evaluation(class_encodings, output_encoded, gt_image, tag, mult
     # 3. Layout analysis evaluation
     # Output image as described in https://github.com/DIVA-DIA/DIVA_Layout_Analysis_Evaluator
 
-    img_la = np.copy(output_encoded)
     tag_la = "layout_analysis_evaluation/" + tag
 
     dest_filename = os.path.join(output_folder, 'images', tag_la if multi_run is None else tag_la + '_{}'.format(multi_run))
     if not os.path.exists(os.path.dirname(dest_filename)):
         os.makedirs(os.path.dirname(dest_filename))
 
-    generate_layout_analysis_output(os.path.join(output_folder, 'images'), gt_image, img_la, dest_filename, legend=True)
+    generate_layout_analysis_output(os.path.join(output_folder, 'images'), gt_image, output_encoded, dest_filename, legend=True)
 
 
