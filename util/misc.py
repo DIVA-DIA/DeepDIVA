@@ -99,13 +99,9 @@ def adjust_learning_rate(lr, optimizer, epoch, decay_lr_epochs, **kwargs):
     None
 
     """
-    import copy
-    original_lr = copy.deepcopy(lr)
     lr = lr * (0.1 ** (epoch // decay_lr_epochs))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
-    if original_lr != lr:
-        logging.info('Learning rate decayed. New learning rate is: {}'.format(lr))
     return
 
 
