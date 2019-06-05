@@ -53,7 +53,7 @@ class Unet(nn.Module):
 
         self.out = nn.Sequential(
             nn.Conv2d(self.num_filter, self.out_dim, 3, 1, 1),
-            nn.Tanh(),
+            # nn.Tanh(), # Commented on purpose because unexpected in DeepDIVA but present in original implementation
         )
 
     def forward(self, input):
