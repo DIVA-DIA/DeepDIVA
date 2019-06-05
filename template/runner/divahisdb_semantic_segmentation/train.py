@@ -67,11 +67,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_encodi
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
 
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-
-        mean_iu, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, meanIU, num_classes)
+        mean_iu, loss = train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, meanIU, num_classes)
 
         # Add loss and accuracy to Tensorboard
         log_loss = loss.item()
