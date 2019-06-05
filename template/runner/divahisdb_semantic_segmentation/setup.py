@@ -68,7 +68,7 @@ def set_up_dataloaders(dataset_folder, batch_size, workers, inmem, **kwargs):
     # transforms on the gt
     gt_transform = transforms.Compose([
         # transforms the gt image into a one-hot encoded matrix
-        custom_transforms.OneHotEncodingDIVAHisDB(class_encodings=train_ds.class_encodings, use_boundary_pixel=True),
+        custom_transforms.OneHotEncodingDIVAHisDB(class_encodings=train_ds.class_encodings),
         # transforms the one hot encoding to argmax labels -> for the cross-entropy criterion
         custom_transforms.OneHotToPixelLabelling()])
 

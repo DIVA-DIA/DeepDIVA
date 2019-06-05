@@ -97,7 +97,7 @@ class OneHotEncoding(object):
 
 
 class OneHotEncodingDIVAHisDB(object):
-    def __init__(self, class_encodings, use_boundary_pixel):
+    def __init__(self, class_encodings, use_boundary_pixel=True):
         self.class_encodings = class_encodings
         self.use_boundary_pixel = use_boundary_pixel
 
