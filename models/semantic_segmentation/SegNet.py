@@ -31,7 +31,6 @@ def segnet(output_channels=8, resume=None, **kwargs):
 class SegNet(nn.Module):
     def __init__(self, output_channels, pretrained=False, **kwargs):
         super(SegNet, self).__init__()
-        # TODO: make different functions for different VGG models
         vgg = vgg19_bn(pretrained=pretrained, **kwargs)
 
         num_classes = output_channels
