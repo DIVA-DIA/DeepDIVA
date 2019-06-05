@@ -161,7 +161,7 @@ class FCDenseNet(nn.Module):
             out = self.denseBlocksUp[i](out)
 
         out = self.finalConv(out)
-        out = self.softmax(out)
+        #out = self.softmax(out) # Commented on purpose because unexpected in DeepDIVA but present in original implementation
         return out
 
 
