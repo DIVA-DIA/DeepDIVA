@@ -449,7 +449,10 @@ def _load_analytics_csv(dataset_folder, inmem, workers, runner_class, **kwargs):
         try:
             logging.warning('Attempt creating analytics.csv file for dataset located at {}'.format(dataset_folder))
             if runner_class is not None and 'segmentation' in runner_class:
-                compute_mean_std_segmentation(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
+                compute_mean_std_segmentation(dataset_folder=dataset_folder,
+                                              inmem=inmem,
+                                              workers=workers,
+                                              filter_boundaries=True if 'divahisdb' in runner_class else False)
             else:
                 compute_mean_std(dataset_folder=dataset_folder, inmem=inmem, workers=workers)
             logging.warning('Created analytics.csv file for dataset located at {} '.format(dataset_folder))

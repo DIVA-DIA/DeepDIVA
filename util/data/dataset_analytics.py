@@ -98,7 +98,7 @@ def compute_mean_std(dataset_folder, inmem, workers):
     df.to_csv(os.path.join(dataset_folder, 'analytics.csv'), header=False)
 
 
-def compute_mean_std_segmentation(dataset_folder, inmem, workers):
+def compute_mean_std_segmentation(dataset_folder, inmem, workers, filter_boundaries):
     """
     Computes mean and std of a dataset for semantic segmentation. Saves the results as CSV file in the dataset folder.
 
@@ -110,7 +110,8 @@ def compute_mean_std_segmentation(dataset_folder, inmem, workers):
         Specifies whether is should be computed i nan online of offline fashion.
     workers : int
         Number of workers to use for the mean/std computation
-
+    filter_boundaries : bool
+        specifies whether thr boundary pixels should be removed or not
     Returns
     -------
         None
@@ -134,7 +135,7 @@ def compute_mean_std_segmentation(dataset_folder, inmem, workers):
         mean, std = cms_online(file_names_data, workers)
 
     # Compute class frequencies weights
-    class_frequencies_weights, class_ints = _get_class_frequencies_weights_segmentation(file_names_gt)
+    class_frequencies_weights, class_ints = _get_class_frequencies_weights_segmentation(file_names_gt, filter_boundaries)
     # print(class_frequencies_weights)
     # Save results as CSV file in the dataset folder
     df = pd.DataFrame([mean, std, class_frequencies_weights, class_ints])
@@ -269,7 +270,7 @@ def _get_class_frequencies_weights(dataset, workers):
     return (1 / num_samples_per_class) / ((1 / num_samples_per_class).sum())
 
 
-def _get_class_frequencies_weights_segmentation(gt_images):
+def _get_class_frequencies_weights_segmentation(gt_images, filter_boundaries):
     """
     Get the weights proportional to the inverse of their class frequencies.
     The vector sums up to 1
@@ -280,6 +281,8 @@ def _get_class_frequencies_weights_segmentation(gt_images):
         Path to all ground truth images, which contain the pixel-wise label
     workers: int
         Number of workers to use for the mean/std computation
+    filter_boundaries : bool
+        specifies whether thr boundary pixels should be removed or not
 
     Returns
     -------
@@ -292,7 +295,11 @@ def _get_class_frequencies_weights_segmentation(gt_images):
     label_counter = {}
 
     for path in gt_images:
-        img = np.array(Image.open(path))[:, :, 2].flatten()
+        img = np.array(Image.open(path))
+        if filter_boundaries:
+            mask = img[:, :, 0].astype(np.uint8) == 128
+            img[mask, 2] = 1
+        img = img[:, :, 2].flatten()
         total_num_pixels += len(img)
         for i, j in zip(*np.unique(img, return_counts=True)):
             label_counter[i] = label_counter.get(i, 0) + j
