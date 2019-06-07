@@ -2,19 +2,17 @@
 import logging
 import time
 import numpy as np
-from PIL import Image
-import os
 
 # Torch related stuff
 import torch
 from tqdm import tqdm
 
 # DeepDIVA
-from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard
+from util.misc import AverageMeter, _prettyprint_logging_label
 from util.evaluation.metrics.accuracy import accuracy_segmentation
 
 
-def train(train_loader, model, criterion, optimizer, writer, epoch, class_names, no_cuda=False,
+def train(train_loader, model, criterion, optimizer, writer, epoch, class_encodings, no_cuda=False,
           log_interval=25, **kwargs):
     """
     Training routine
@@ -44,7 +42,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_names,
         meanIU of the model of the evaluated split
     """
     multi_run = kwargs['run'] if 'run' in kwargs else None
-    num_classes = len(class_names)
+    num_classes = len(class_encodings)
 
     # Instantiate the counters
     batch_time = AverageMeter()
@@ -67,11 +65,7 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_names,
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
 
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-
-        mean_iu, loss = train_one_mini_batch(model, criterion, optimizer, input_var, target_var, loss_meter, meanIU, num_classes)
+        mean_iu, loss = train_one_mini_batch(model, criterion, optimizer, input, target, loss_meter, meanIU, num_classes)
 
         # Add loss and accuracy to Tensorboard
         log_loss = loss.item()
@@ -100,20 +94,13 @@ def train(train_loader, model, criterion, optimizer, writer, epoch, class_names,
     if multi_run is None:
         writer.add_scalar('train/meanIU', meanIU.avg, epoch)
     else:
-        writer.add_scalar('train/meanIU{}'.format(multi_run), meanIU.avg, epoch)
+        writer.add_scalar('train/meanIU_{}'.format(multi_run), meanIU.avg, epoch)
 
     logging.debug('Train epoch[{}]: '
                  'MeanIU={meanIU.avg:.3f}\t'
                  'Loss={loss.avg:.4f}\t'
                  'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
                   .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, meanIU=meanIU))
-
-    # logging.info(_prettyprint_logging_label("train") +
-    #              ' epoch[{}]: '
-    #              'MeanIU={meanIU.avg:.3f}\t'
-    #              'Loss={loss.avg:.4f}\t'
-    #              'Batch time={batch_time.avg:.3f} ({data_time.avg:.3f} to load data)'
-    #              .format(epoch, batch_time=batch_time, data_time=data_time, loss=loss_meter, meanIU=meanIU))
 
     return meanIU.avg
 
@@ -159,7 +146,7 @@ def train_one_mini_batch(model, criterion, optimizer, input_var, target_var_argm
     target_argmax = target_var_argmax.data.cpu().numpy()
 
     # Compute and record the accuracy
-    acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target_argmax, output_argmax, num_classes)
+    _, _, mean_iu, _ = accuracy_segmentation(target_argmax, output_argmax, num_classes)
     meanIU_meter.update(mean_iu, input_var.size(0))
 
     # Reset gradient

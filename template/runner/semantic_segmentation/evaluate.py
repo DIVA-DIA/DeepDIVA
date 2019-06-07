@@ -1,37 +1,31 @@
 # Utils
 import logging
-import time
-import warnings
 import os
-import numpy as np
-from PIL import Image
-import colorsys
-import matplotlib
+import time
 
-# Torch related stuff
+import matplotlib
+import numpy as np
 import torch
-from sklearn.metrics import confusion_matrix
+from PIL import Image
+# Torch related stuff
 from tqdm import tqdm
 
-# DeepDIVA
-from util.misc import AverageMeter, _prettyprint_logging_label, save_image_and_log_to_tensorboard, get_distinct_colors, \
-    make_colour_legend_image
-from util.visualization.confusion_matrix_heatmap import make_heatmap
-from util.evaluation.metrics.accuracy import accuracy_segmentation
-from template.setup import _load_class_frequencies_weights_from_file
-from .setup import one_hot_to_np_rgb, one_hot_to_full_output
 from datasets.custom_transform_library.functional import gt_to_one_hot
+from template.runner.divahisdb_semantic_segmentation.post_process import crf
+from util.evaluation.metrics.accuracy import accuracy_segmentation
+# DeepDIVA
+from util.misc import AverageMeter, _prettyprint_logging_label, make_colour_legend_image
+from .setup import output_to_class_encodings
 
 
-def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_val_conf_matrix=False, no_cuda=False, log_interval=10, **kwargs):
+def validate(val_loader, model, criterion, writer, epoch, class_encodings, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
     Parameters
     ----------
-    class_encodings : list
-        Contains the classes (range of ints)
-    data_loader : torch.utils.data.DataLoader
+
+    val_loader : torch.utils.data.DataLoader
         The dataloader of the evaluation set
     model : torch.nn.module
         The network model being used
@@ -41,6 +35,8 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
     epoch : int
         Number of the epoch (for logging purposes)
+    class_encodings : List
+        Contains the classes (range of ints)
     no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
     log_interval : int
@@ -51,10 +47,10 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
     meanIU.avg : float
         MeanIU of the model of the evaluated split
     """
-    logging_label = "val"
+    # 'Run' is injected in kwargs at runtime IFF it is a multi-run event
+    multi_run = kwargs['run'] if 'run' in kwargs else None
 
     num_classes = len(class_encodings)
-    multi_run = kwargs['run'] if 'run' in kwargs else None
 
     # Instantiate the counters
     batch_time = AverageMeter()
@@ -68,15 +64,8 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
     # Iterate over whole evaluation set
     end = time.time()
 
-    # Empty lists to store the predictions and target values
-    preds = []
-    targets = []
-
-    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
+    pbar = tqdm(enumerate(val_loader), total=len(val_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
-        # convert 3D one-hot encoded matrix to 2D matrix with class numbers (for CrossEntropy())
-        # target = torch.LongTensor(np.array([np.argmax(a, axis=0) for a in target.numpy()]))
-
         # Measure data loading time
         data_time.update(time.time() - end)
 
@@ -85,94 +74,41 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
 
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-
         # Compute output
-        output = model(input_var)
-        output_argmax = np.array([np.argmax(o, axis=0) for o in output.data.cpu().numpy()])
+        output = model(input)
 
         # Compute and record the loss
-        loss = criterion(output, target_var)
+        loss = criterion(output, target)
         losses.update(loss.item(), input.size(0))
 
-        # Compute and record the accuracy TODO check with Vinay & Michele if correct
-        acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target_var.cpu().numpy(), output_argmax, num_classes)
-        meanIU.update(mean_iu, input.size(0))
+        # Compute and record the accuracy
+        _, _, mean_iu_batch, _ = accuracy_segmentation(target.cpu().numpy(), get_argmax(output), num_classes)
+        meanIU.update(mean_iu_batch, input.size(0))
 
-        # Get the predictions
-        _ = [preds.append(item) for item in output_argmax]
-        _ = [targets.append(item) for item in target_var.cpu().numpy()]
-
-        # Add loss and accuracy to Tensorboard
-        try:
-            log_loss = loss.item()
-        except AttributeError:
-            log_loss = loss.data[0]
-
-        if multi_run is None:
-            writer.add_scalar(logging_label + '/mb_loss', log_loss, epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_meanIU', mean_iu, epoch * len(data_loader) + batch_idx)
-        else:
-            writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), log_loss,
-                              epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_meanIU_{}'.format(multi_run), mean_iu,
-                               epoch * len(data_loader) + batch_idx)
+        # Add loss and meanIU to Tensorboard
+        scalar_label = 'val/mb_loss' if multi_run is None else 'val/mb_loss_{}'.format(multi_run)
+        writer.add_scalar(scalar_label, loss.item(), epoch * len(val_loader) + batch_idx)
+        scalar_label = 'val/mb_meanIU' if multi_run is None else 'val/mb_meanIU_{}'.format(multi_run)
+        writer.add_scalar(scalar_label, mean_iu_batch, epoch * len(val_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
         if batch_idx % log_interval == 0:
-            pbar.set_description(logging_label +
-                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
+            pbar.set_description('val epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(val_loader)))
 
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=losses),
                              meanIU='{meanIU.avg:.3f}\t'.format(meanIU=meanIU),
                              Data='{data_time.avg:.3f}\t'.format(data_time=data_time))
 
-    # Make a confusion matrix
-    if not no_val_conf_matrix:
-        try:
-            # targets_flat = np.array(targets).flatten()
-            # preds_flat = np.array(preds).flatten()
-            # calculate confusion matrices
-            cm = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(), labels=[i for i in range(num_classes)])
-            confusion_matrix_heatmap = make_heatmap(cm, [str(i) for i in class_encodings])
 
-            # load the weights
-            # weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, runner_class)
-            # sample_weight = [weights[i] for i in np.array(targets).flatten()]
-            # cm_w = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(), labels=[i for i in range(num_classes)],
-            #                         sample_weight=[weights[i] for i in np.array(targets).flatten()])
-            # confusion_matrix_heatmap_w = make_heatmap(np.round(cm_w*100).astype(np.int), class_names)
-        except ValueError:
-            logging.warning('Confusion Matrix did not work as expected')
-            confusion_matrix_heatmap = np.zeros((10, 10, 3))
-            # confusion_matrix_heatmap_w = confusion_matrix_heatmap
-    else:
-        logging.info("No confusion matrix created.")
+    # Logging the epoch-wise meanIU
+    scalar_label = 'val/meanIU' if multi_run is None else 'val/meanIU_{}'.format(multi_run)
+    writer.add_scalar(scalar_label, meanIU.avg, epoch)
 
-    # Logging the epoch-wise accuracy and saving the confusion matrix
-    if multi_run is None:
-        writer.add_scalar(logging_label + '/meanIU', meanIU.avg, epoch)
-        if not no_val_conf_matrix :
-            save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
-                                              image=confusion_matrix_heatmap, global_step=epoch)
-            # save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted',
-            #                                   image=confusion_matrix_heatmap_w, global_step=epoch)
-    else:
-        writer.add_scalar(logging_label + '/meanIU_{}'.format(multi_run), meanIU.avg, epoch)
-        if not no_val_conf_matrix:
-            save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
-                                              image = confusion_matrix_heatmap, global_step = epoch)
-            # save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted{}'.format(multi_run),
-            #                                   image=confusion_matrix_heatmap_w, global_step=epoch)
-
-
-    logging.info(_prettyprint_logging_label(logging_label) +
+    logging.info(_prettyprint_logging_label("val") +
                  ' epoch[{}]: '
                  'MeanIU={meanIU.avg:.3f}\t'
                  'Loss={loss.avg:.4f}\t'
@@ -182,18 +118,16 @@ def validate(data_loader, model, criterion, writer, epoch, class_encodings, no_v
     return meanIU.avg
 
 
-def test(data_loader, model, criterion, writer, epoch, class_encodings, img_names_sizes_dict, dataset_folder, inmem,
-         workers, runner_class, use_boundary_pixel=False, no_cuda=False, log_interval=10, **kwargs):
+def test(test_loader, model, criterion, writer, epoch, class_encodings, img_names_sizes_dict, dataset_folder,
+         post_process, no_cuda=False, log_interval=10, **kwargs):
     """
     The evaluation routine
 
     Parameters
     ----------
-    class_encodings : list [int]
-        Contains the range of encoded classes
     img_names_sizes_dict: dictionary {str: (int, int)}
         Key: gt image name (with extension), Value: image size
-    data_loader : torch.utils.data.DataLoader
+    test_loader : torch.utils.data.DataLoader
         The dataloader of the evaluation set
     model : torch.nn.module
         The network model being used
@@ -203,6 +137,14 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
         The tensorboard writer object. Used to log values on file for the tensorboard visualization.
     epoch : int
         Number of the epoch (for logging purposes)
+    class_encodings : List
+        Contains the range of encoded classes
+    img_names_sizes_dict
+        # TODO
+    dataset_folder : str
+        # TODO
+    post_process : Boolean
+        apply post-processing to the output of the network
     no_cuda : boolean
         Specifies whether the GPU should be used or not. A value of 'True' means the CPU will be used.
     log_interval : int
@@ -213,10 +155,10 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
     meanIU.avg : float
         MeanIU of the model of the evaluated split
     """
-    logging_label = "test"
+    # 'Run' is injected in kwargs at runtime IFF it is a multi-run event
+    multi_run = kwargs['run'] if 'run' in kwargs else None
 
     num_classes = len(class_encodings)
-    multi_run = kwargs['run'] if 'run' in kwargs else None
 
     # Instantiate the counters
     batch_time = AverageMeter()
@@ -230,15 +172,12 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
     # Iterate over whole evaluation set
     end = time.time()
 
-    # Empty lists to store the predictions and target values
-    preds = []
-    targets = []
+    # Need to store the images currently being processes
+    canvas = {}
 
-    # needed for test phase output generation
-    current_img_name = ""
-
-    pbar = tqdm(enumerate(data_loader), total=len(data_loader), unit='batch', ncols=150, leave=False)
+    pbar = tqdm(enumerate(test_loader), total=len(test_loader), unit='batch', ncols=150, leave=False)
     for batch_idx, (input, target) in pbar:
+        # Unpack input
         input, top_left_coordinates, test_img_names = input
 
         # Measure data loading time
@@ -249,44 +188,28 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
 
-        # Convert the input and its labels to Torch Variables
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
-
         # Compute output
-        output = model(input_var)
-        output_argmax = np.array([np.argmax(o, axis=0) for o in output.data.cpu().numpy()])
+        output = model(input)
 
         # Compute and record the loss
-        loss = criterion(output, target_var)
+        loss = criterion(output, target)
         losses.update(loss.item(), input.size(0))
 
-        # Compute and record the batch meanIU TODO check with Vinay & Michele if correct
-        acc_batch, acc_cls_batch, mean_iu_batch, fwavacc_batch = accuracy_segmentation(target_var.cpu().numpy(), output_argmax, num_classes)
+        # Compute and record the batch meanIU
+        _, _, mean_iu_batch, _ = accuracy_segmentation(target.cpu().numpy(), get_argmax(output), num_classes)
 
-        # Add loss and accuracy to Tensorboard
-        try:
-            log_loss = loss.item()
-        except AttributeError:
-            log_loss = loss.data[0]
-
-        if multi_run is None:
-            writer.add_scalar(logging_label + '/mb_loss', log_loss, epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_meanIU', mean_iu_batch, epoch * len(data_loader) + batch_idx)
-        else:
-            writer.add_scalar(logging_label + '/mb_loss_{}'.format(multi_run), log_loss,
-                              epoch * len(data_loader) + batch_idx)
-            writer.add_scalar(logging_label + '/mb_meanIU_{}'.format(multi_run), mean_iu_batch,
-                               epoch * len(data_loader) + batch_idx)
+        # Add loss and meanIU to Tensorboard
+        scalar_label = 'test/mb_loss' if multi_run is None else 'test/mb_loss_{}'.format(multi_run)
+        writer.add_scalar(scalar_label, loss.item(), epoch * len(test_loader) + batch_idx)
+        scalar_label = 'test/mb_meanIU' if multi_run is None else 'test/mb_meanIU_{}'.format(multi_run)
+        writer.add_scalar(scalar_label, mean_iu_batch, epoch * len(test_loader) + batch_idx)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
 
         if batch_idx % log_interval == 0:
-            pbar.set_description(logging_label +
-                                 ' epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(data_loader)))
-
+            pbar.set_description('test epoch [{0}][{1}/{2}]\t'.format(epoch, batch_idx, len(test_loader)))
             pbar.set_postfix(Time='{batch_time.avg:.3f}\t'.format(batch_time=batch_time),
                              Loss='{loss.avg:.4f}\t'.format(loss=losses),
                              meanIU='{meanIU.avg:.3f}\t'.format(meanIU=meanIU),
@@ -294,67 +217,35 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
 
         # Output needs to be patched together to form the complete output of the full image
         # patches are returned as a sliding window over the full image, overlapping sections are averaged
-        one_hots = output.data.cpu().numpy()
-        for one_hot, x, y, img_name in zip(one_hots, top_left_coordinates[0].numpy(), top_left_coordinates[1].numpy(), test_img_names):
-            # new image
-            if img_name != current_img_name:
-                if len(current_img_name) > 0:
-                    # save the old one before starting the new one
-                    pred, target, mean_iu = _save_test_img_output(current_img_name, combined_one_hot, multi_run, dataset_folder,
-                                                                  logging_label, writer, epoch, class_encodings, use_boundary_pixel)
-                    preds.append(pred)
-                    targets.append(target)
-                    # update the meanIU
-                    meanIU.update(mean_iu, 1)
+        for patch, x, y, img_name in zip(output.data.cpu().numpy(), top_left_coordinates[0].numpy(), top_left_coordinates[1].numpy(), test_img_names):
 
-                # start the combination of the new image
-                logging.info("Starting segmentation of image {}".format(img_name))
-                combined_one_hot = []
-                current_img_name = img_name
+            # Is a new image?
+            if not img_name in canvas:
+                # Create a new image of the right size filled with NaNs
+                canvas[img_name] = np.empty((num_classes, *img_names_sizes_dict[img_name]))
+                canvas[img_name].fill(np.nan)
 
-            combined_one_hot = one_hot_to_full_output(one_hot, (x, y), combined_one_hot, img_names_sizes_dict[img_name])
+            # Add the patch to the image
+            canvas[img_name] = merge_patches(patch, (x, y), canvas[img_name])
 
-    # save the final image
-    pred, target, mean_iu = _save_test_img_output(current_img_name, combined_one_hot, multi_run, dataset_folder, logging_label, writer, epoch, class_encodings, use_boundary_pixel)
-    preds.append(pred)
-    targets.append(target)
-    # update the meanIU
-    meanIU.update(mean_iu, 1)
+            # Save the image when done
+            if not np.isnan(np.sum(canvas[img_name])):
+                # Save the final image
+                mean_iu = process_full_image(img_name, canvas[img_name], multi_run, dataset_folder, class_encodings, post_process)
+                # Update the meanIU
+                meanIU.update(mean_iu, 1)
+                # Remove the entry
+                canvas.pop(img_name)
+                logging.info("\nProcessed image {} with mean IU={}".format(img_name, mean_iu))
 
-    # Make a confusion matrix
-    try:
-        #targets_flat = np.array(targets).flatten()
-        #preds_flat = np.array(preds).flatten()
-        # load the weights
-        weights = _load_class_frequencies_weights_from_file(dataset_folder, inmem, workers, runner_class)
-        # calculate the confusion matrix
-        cm = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(), labels=[i for i in range(num_classes)])
-        cm_w = confusion_matrix(y_true=np.array(targets).flatten(), y_pred=np.array(preds).flatten(),
-                                labels=[i for i in range(num_classes)], sample_weight=[weights[i] for i in np.array(targets).flatten()])
-        confusion_matrix_heatmap = make_heatmap(cm, [str(i) for i in class_encodings])
-        confusion_matrix_heatmap_w = make_heatmap(np.round(cm_w*100).astype(np.int), [str(i) for i in class_encodings])
+    # Canvas MUST be empty or something was wrong with coverage of all images
+    assert len(canvas) == 0
 
-    except ValueError:
-        logging.warning('Confusion Matrix did not work as expected')
-        confusion_matrix_heatmap = np.zeros((10, 10, 3))
-        confusion_matrix_heatmap_w = confusion_matrix_heatmap
+    # Logging the overall meanIU
+    scalar_label = 'test/meanIU' if multi_run is None else 'test/meanIU_{}'.format(multi_run)
+    writer.add_scalar(scalar_label, meanIU.avg, epoch)
 
-    # Logging the epoch-wise accuracy and saving the confusion matrix
-    if multi_run is None:
-        writer.add_scalar(logging_label + '/meanIU', meanIU.avg, epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix',
-                                          image=confusion_matrix_heatmap, global_step=epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted',
-                                          image=confusion_matrix_heatmap_w, global_step=epoch)
-    else:
-        writer.add_scalar(logging_label + '/meanIU_{}'.format(multi_run), meanIU.avg, epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_{}'.format(multi_run),
-                                          image=confusion_matrix_heatmap, global_step=epoch)
-        save_image_and_log_to_tensorboard(writer, tag=logging_label + '/confusion_matrix_weighted{}'.format(multi_run),
-                                          image=confusion_matrix_heatmap_w, global_step=epoch)
-
-
-    logging.info(_prettyprint_logging_label(logging_label) +
+    logging.info(_prettyprint_logging_label("test") +
                  ' epoch[{}]: '
                  'MeanIU={meanIU.avg:.3f}\t'
                  'Loss={loss.avg:.4f}\t'
@@ -364,8 +255,48 @@ def test(data_loader, model, criterion, writer, epoch, class_encodings, img_name
     return meanIU.avg
 
 
-def _save_test_img_output(img_to_save, one_hot, multi_run, dataset_folder, logging_label, writer, epoch, class_encodings,
-                          use_boundary_pixel):
+def get_argmax(output):
+    """ Gets the argmax values for each sample in the minibatch"""
+    return np.array([np.argmax(o, axis=0) for o in output.data.cpu().numpy()])
+
+
+
+def merge_patches(patch, coordinates, full_output):
+    """
+    This function merges the patch into the full output image
+    Overlapping values are resolved by taking the max.
+
+    Parameters
+    ----------
+    patch: numpy matrix of size [batch size x #C x crop_size x crop_size]
+        a patch from the larger image
+    coordinates: tuple of ints
+        top left coordinates of the patch within the larger image for all patches in a batch
+    full_output: numpy matrix of size [#C x H x W]
+        output image at full size
+    Returns
+    -------
+    full_output: numpy matrix [#C x Htot x Wtot]
+    """
+    assert len(full_output.shape) == 3
+    assert full_output.size != 0
+
+    # Resolve patch coordinates
+    x1, y1 = coordinates
+    x2, y2 = x1 + patch.shape[1], y1 + patch.shape[2]
+
+    # If this triggers it means that a patch is 'out-of-bounds' of the image and that should never happen!
+    assert x2 <= full_output.shape[1]
+    assert y2 <= full_output.shape[2]
+
+    mask = np.isnan(full_output[:, x1:x2, y1:y2])
+    # if still NaN in full_output just insert value from crop, if there is a value then take max
+    full_output[:, x1:x2, y1:y2] = np.where(mask, patch, np.maximum(patch, full_output[:, x1:x2, y1:y2]))
+
+    return full_output
+
+
+def process_full_image(image_name, output, multi_run, dataset_folder, class_encodings, post_process):
     """
     Helper function to save the output during testing
 
@@ -373,70 +304,65 @@ def _save_test_img_output(img_to_save, one_hot, multi_run, dataset_folder, loggi
     ----------
     meanIU.avg : float
         MeanIU of the model of the evaluated split
-    writer : tensorboardX.writer.SummaryWriter
-        The tensorboard writer object. Used to log values on file for the tensorboard visualization.
-    epoch : int
-        Number of the epoch (for logging purposes)
-    img_to_save: str
+    multi_run :
+
+    image_name: str
         name of the image that is saved
-    one_hot: numpy array
-        one hot encoded output of the network for the whole image
+    output: numpy matrix of size [#C x H x W]
+        output image at full size
     dataset_folder: str
         path to the dataset folder
 
+    post_process : Boolean
+        apply post-processing to the output of the network
+
     Returns
     -------
-    pred, target: numpy arrays
-        argmax of the predicted and target values for the image
+    mean_iu : float
+        mean iu of this image
     """
-    num_classes = len(class_encodings)
-
-    logging.info("Finished segmentation of image {}. Saving output...".format(img_to_save))
-    np_rgb = one_hot_to_np_rgb(one_hot, class_encodings)
-    # add full image to predictions
-    pred = np.argmax(one_hot, axis=0)
-    # open full ground truth image TODO add image extension
-    gt_img_path = os.path.join(dataset_folder, logging_label, "gt", img_to_save)
-
-    with open(gt_img_path, 'rb') as f:
+    # Load GT
+    with open(os.path.join(dataset_folder, "test", "gt", image_name), 'rb') as f:
         with Image.open(f) as img:
-            ground_truth = np.array(img.convert('RGB'))
+            gt = np.array(img)
 
-    # get the ground truth mapping
-    target = np.argmax(gt_to_one_hot(ground_truth, class_encodings).numpy(), axis=0)
-
-    # Compute and record the meanIU of the whole image TODO check with Vinay & Michele if correct
-    acc, acc_cls, mean_iu, fwavacc = accuracy_segmentation(target, pred, num_classes)
-    txt = " (adjusted for the boundary pixel)" if use_boundary_pixel else ""
-    logging.info("MeanIU {}: {}{}".format(img_to_save, mean_iu, txt))
-
-    if multi_run is None:
-        # writer.add_scalar(logging_label + '/meanIU', mean_iu, epoch)
-        save_image_and_log_to_tensorboard_segmentation(class_encodings, writer, tag=logging_label + '/output_{}'.format(img_to_save),
-                                                       image=np_rgb,
-                                                       gt_image=ground_truth)
+    # Get predictions
+    if post_process:
+        # Load original image
+        with open(os.path.join(dataset_folder, "test", "data", image_name[:-4] + ".JPG"), 'rb') as f:
+            with Image.open(f) as img:
+                original_image = np.array(img)
+        # # Apply CRF
+        prediction = crf(original_image, output)
+        output_encoded = output_to_class_encodings(prediction, class_encodings, perform_argmax=False)
     else:
-        # writer.add_scalar(logging_label + '/meanIU_{}'.format(multi_run), mean_iu, epoch)
-        save_image_and_log_to_tensorboard_segmentation(class_encodings, writer, tag=logging_label + '/output_{}_{}'.format(multi_run,
-                                                                                                          img_to_save),
-                                                       image=np_rgb,
-                                                       gt_image=ground_truth)
+        prediction = np.argmax(output, axis=0)
+        output_encoded = output_to_class_encodings(output, class_encodings)
 
-    return pred, target, mean_iu
+    # Get the ground truth mapping
+    target = np.argmax(gt_to_one_hot(gt, class_encodings).numpy(), axis=0)
+
+    # Compute and record the meanIU of the whole image
+    _, _, mean_iu, _ = accuracy_segmentation(target, prediction, len(class_encodings))
+
+    scalar_label = 'output_{}'.format(image_name) if multi_run is None else 'output_{}_{}'.format(multi_run, image_name)
+    _save_output_evaluation(class_encodings, output_encoded=output_encoded, tag=scalar_label, multi_run=multi_run)
+
+    return mean_iu
 
 
-def save_image_and_log_to_tensorboard_segmentation(class_encodings, writer=None, tag=None, image=None, global_step=None, gt_image=None):
+def _save_output_evaluation(class_encodings, output_encoded, tag, multi_run=None):
     """Utility function to save image in the output folder and also log it to Tensorboard.
-    ALL IMAGES ARE IN RGB FORMAT
+
     Parameters
     ----------
-    writer : tensorboardX.writer.SummaryWriter object
-        The writer object for Tensorboard
+    class_encodings : List
+        Contains the range of encoded classes
     tag : str
         Name of the image.
-    image : ndarray [W x H x C] in RGB
-        Image to be saved and logged to Tensorboard.
-    global_step : int
+    output_encoded : ndarray [W x H x C] in RGB
+        Image to be saved
+    multi_run : int
         Epoch/Mini-batch counter.
 
     Returns
@@ -444,80 +370,46 @@ def save_image_and_log_to_tensorboard_segmentation(class_encodings, writer=None,
     None
 
     """
+    # ##################################################################################################################
     # 1. Create true output
 
     # Get output folder using the FileHandler from the logger.
     # (Assumes the file handler is the last one)
     output_folder = os.path.dirname(logging.getLogger().handlers[-1].baseFilename)
-
-    if global_step is not None:
-        dest_filename = os.path.join(output_folder, 'images', tag + '_{}'.format(global_step))
-    else:
-        dest_filename = os.path.join(output_folder, 'images', tag)
-
+    dest_filename = os.path.join(output_folder, 'images', "output", tag if multi_run is None else tag + '_{}'.format(multi_run))
     if not os.path.exists(os.path.dirname(dest_filename)):
         os.makedirs(os.path.dirname(dest_filename))
 
-    # save the output
-    result = Image.fromarray(image.astype(np.uint8))
-    result.save(dest_filename)
+    # Save the output
+    Image.fromarray(output_encoded.astype(np.uint8)).save(dest_filename)
 
+    # ##################################################################################################################
     # 2. Make a more human readable output -> one colour per class
-    tag_col = "coloured_" + tag
+    tag_col = "coloured/" + tag
 
-    # Get output folder using the FileHandler from the logger.
-    # (Assumes the file handler is the last one)
-    output_folder = os.path.dirname(logging.getLogger().handlers[-1].baseFilename)
-
-    if global_step is not None:
-        dest_filename = os.path.join(output_folder, 'images', tag_col + '_{}'.format(global_step))
-    else:
-        dest_filename = os.path.join(output_folder, 'images', tag_col)
-
+    dest_filename = os.path.join(output_folder, 'images', tag_col if multi_run is None else tag_col + '_{}'.format(multi_run))
     if not os.path.exists(os.path.dirname(dest_filename)):
         os.makedirs(os.path.dirname(dest_filename))
 
-    img = np.copy(image)
-    blue = image[:, :, 2]  # Extract just blue channel
+    img = np.copy(output_encoded)
+    blue = output_encoded[:, :, 2]  # Extract just blue channel
 
     # Colours are in RGB
     cmap = matplotlib.cm.get_cmap('Spectral')
     colors = [cmap(i / len(class_encodings), bytes=True)[:3] for i in range(len(class_encodings))]
-    #colors = get_distinct_colors(len(class_encodings))
 
-    # get the mask for each colour
+    # Get the mask for each colour
     masks = {color: (blue == i) > 0 for color, i in zip(colors, class_encodings)}
 
+    # Color the image with relative colors
     for color, mask in masks.items():
         img[mask] = color
 
-    # make and save the class color encoding
+    # Make and save the class color encoding
     color_encoding = {str(i): color for color, i in zip(colors, class_encodings)}
-    if gt_image is not None:
-        color_encoding["classified wrong"] = (0, 0, 0)
 
     make_colour_legend_image(os.path.join(os.path.dirname(dest_filename), "output_visualizations_colour_legend.png"),
                              color_encoding)
 
     # Write image to output folder
-    result = Image.fromarray(img.astype(np.uint8))
-    result.save(dest_filename)
-
-    # 3. Make a visualization that highlights the wrongfully classified pixels
-    if gt_image is not None:
-        tag_col = "errors_coloured_" + tag
-        img_overlay = np.copy(img)
-
-        dest_filename = os.path.join(output_folder, 'images', tag_col)
-
-        if not os.path.exists(os.path.dirname(dest_filename)):
-            os.makedirs(os.path.dirname(dest_filename))
-
-        # set the wrongfully classified pixels to black
-        correct_mask = blue != gt_image[:, :, 2]
-        img_overlay[correct_mask] = (0, 0, 0)
-
-        result = Image.fromarray(img_overlay.astype(np.uint8))
-        result.save(dest_filename)
-
-    return
+    Image.fromarray(img.astype(np.uint8)).save(dest_filename)
