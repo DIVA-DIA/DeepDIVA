@@ -7,21 +7,28 @@ dependencies:
   - absl-py=0.7.1=py37_0
   - asn1crypto=0.24.0=py37_1003
   - astor=0.7.1=py_0
+  - blas=1.0=mkl
   - c-ares=1.15.0=h14c3975_1001
+  - certifi=2019.3.9=py37_0
   - cffi=1.12.2=py37hf0e25f4_1
   - chardet=3.0.4=py37_1003
+  - cloudpickle=1.1.1=py_0
   - colorlog=4.0.2=py37_1000
   - cryptography=2.6.1=py37h72c5cf5_0
+  - cytoolz=0.9.0.1=py37h14c3975_1001
+  - dask-core=1.2.2=py_0
   - gast=0.2.2=py_0
   - h5py=2.9.0=nompi_py37hf008753_1102
   - hdf5=1.10.4=nompi_h3c11f04_1106
   - idna=2.8=py37_1000
+  - imageio=2.5.0=py37_0
   - jedi=0.13.3=py37_0
   - keras-applications=1.0.7=py_0
   - keras-preprocessing=1.0.9=py_0
   - libprotobuf=3.7.1=h8b12597_0
   - markdown=2.6.11=py_0
   - mock=2.0.0=py37_1001
+  - networkx=2.3=py_0
   - pbr=5.1.3=py_0
   - pexpect=4.6.0=py37_0
   - pip=19.0.3=py37_0
@@ -31,13 +38,16 @@ dependencies:
   - pyopenssl=19.0.0=py37_0
   - pysocks=1.6.8=py37_1002
   - python-wget=3.2=py_0
+  - pywavelets=1.0.3=py37hd352d35_1
   - pyyaml=5.1=py37h14c3975_0
   - requests=2.21.0=py37_1000
+  - scikit-image=0.14.2=py37hf484d3e_0
   - setuptools=40.8.0=py37_0
   - sigopt=3.6.4=py_0
   - tensorboard=1.13.1=py37_0
   - tensorboardx=1.6=py_0
   - termcolor=1.1.0=py_2
+  - toolz=0.9.0=py_1
   - tqdm=4.31.1=py_0
   - traitlets=4.3.2=py37_0
   - urllib3=1.24.1=py37_1000
@@ -45,14 +55,11 @@ dependencies:
   - wheel=0.33.1=py37_0
   - yaml=0.1.7=h14c3975_1001
   - _tflow_select=2.3.0=mkl
-  - atomicwrites=1.3.0=py37_1
-  - attrs=19.1.0=py37_1
   - backcall=0.1.0=py37_0
-  - blas=1.0=mkl
   - ca-certificates=2019.1.23=0
-  - certifi=2019.3.9=py37_0
   - cudatoolkit=10.0.130=0
   - cycler=0.10.0=py37_0
+  - cython=0.29.10=py37he6710b0_0
   - dbus=1.13.6=h746ee38_0
   - decorator=4.4.0=py37_1
   - expat=2.2.6=he6710b0_0
@@ -84,7 +91,6 @@ dependencies:
   - mkl=2019.3=199
   - mkl_fft=1.0.10=py37ha843d7b_0
   - mkl_random=1.0.2=py37hd81dba3_0
-  - more-itertools=7.0.0=py37_0
   - ncurses=6.1=he6710b0_1
   - ninja=1.9.0=py37hfd86e86_0
   - numpy=1.16.2=py37h7e9f1db_0
@@ -97,13 +103,10 @@ dependencies:
   - pcre=8.43=he6710b0_0
   - pickleshare=0.7.5=py37_0
   - pillow=5.4.1=py37h34e0f95_0
-  - pluggy=0.9.0=py37_0
   - prompt_toolkit=2.0.9=py37_0
-  - py=1.8.0=py37_0
   - pygments=2.3.1=py37_0
   - pyparsing=2.3.1=py37_0
   - pyqt=5.9.2=py37h05f1152_2
-  - pytest=4.4.1=py37_0
   - python=3.7.3=h0371630_0
   - python-dateutil=2.8.0=py37_0
   - pytz=2018.9=py37_0
@@ -128,13 +131,10 @@ dependencies:
   - pytorch=1.0.1=py3.7_cuda10.0.130_cudnn7.4.2_2
   - torchvision=0.2.2=py_3
   - pip:
-    - cython==0.29.10
-    - imageio==2.5.0
-    - networkx==2.3
+    - dask==1.2.2
     - pydensecrf==1.0rc2
-    - pywavelets==1.0.3
     - rarfile==3.0
     - torch==1.0.1.post2
     - wget==3.2
-prefix: /home/staff/albertim/.conda/envs/deepdiva
+prefix: /var/cache/fscache/pondenka/.conda/envs/DD_staging
 

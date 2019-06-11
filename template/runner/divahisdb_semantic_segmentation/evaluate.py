@@ -242,8 +242,8 @@ def test(test_loader, model, criterion, writer, epoch, class_encodings, img_name
     # Canvas MUST be empty or something was wrong with coverage of all images
     assert len(canvas) == 0
 
-    # Logging the epoch-wise meanIU
-    scalar_label = 'test/mb_meanIU' if multi_run is None else 'test/mb_meanIU_{}'.format(multi_run)
+    # Logging the overall meanIU
+    scalar_label = 'test/meanIU' if multi_run is None else 'test/meanIU_{}'.format(multi_run)
     writer.add_scalar(scalar_label, meanIU.avg, epoch)
 
     logging.info(_prettyprint_logging_label("test") +
@@ -354,8 +354,6 @@ def process_full_image(image_name, output, multi_run, dataset_folder, class_enco
     _save_output_evaluation(class_encodings, output_encoded=output_encoded, gt_image=gt, tag=scalar_label, multi_run=multi_run)
 
     return mean_iu
-
-
 
 
 def _save_output_evaluation(class_encodings, output_encoded, gt_image, tag, multi_run=None):
