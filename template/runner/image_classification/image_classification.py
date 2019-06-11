@@ -191,8 +191,14 @@ class ImageClassification:
         """
         # Load the best model before evaluating on the test set.
         logging.info('Loading the best model before evaluating on the test set.')
-        kwargs["load_model"] = os.path.join(current_log_folder,
-                                            'model_best.pth.tar')
+
+        if os.path.exists(os.path.join(current_log_folder, 'model_best.pth.tar')):
+            kwargs["load_model"] = os.path.join(current_log_folder, 'model_best.pth.tar')
+        else:
+            logging.warning('File model_best.pth.tar not found in {}'.format(current_log_folder))
+            logging.warning('Using checkpoint.pth.tar instead')
+            kwargs["load_model"] = os.path.join(current_log_folder, 'checkpoint.pth.tar')
+
         model, _, _, _ = set_up_model(num_classes=num_classes,
                                       model_name=model_name,
                                       **kwargs)
