@@ -14,7 +14,7 @@ from datasets.custom_transform_library.functional import gt_to_one_hot_hisdb as 
 from template.runner.divahisdb_semantic_segmentation.post_process import crf
 from util.evaluation.metrics.accuracy import accuracy_segmentation
 # DeepDIVA
-from util.misc import AverageMeter, _prettyprint_logging_label, make_colour_legend_image
+from util.misc import AverageMeter, _prettyprint_logging_label, make_colour_legend_image, get_distinct_colors
 from util.visualization.DIVAHisDB_layout_analysis_tool_visualization import generate_layout_analysis_output
 from .setup import output_to_class_encodings
 
@@ -406,6 +406,7 @@ def _save_output_evaluation(class_encodings, output_encoded, gt_image, tag, mult
     # Colours are in RGB
     cmap = matplotlib.cm.get_cmap('Spectral')
     colors = [cmap(i / len(class_encodings), bytes=True)[:3] for i in range(len(class_encodings))]
+    #colors = get_distinct_colors(len(class_encodings))
 
     # Get the mask for each colour
     masks = {color: (blue == i) > 0 for color, i in zip(colors, class_encodings)}
