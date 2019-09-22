@@ -1,6 +1,4 @@
 import numpy as np
-import pydensecrf.densecrf as dcrf
-from pydensecrf.utils import unary_from_softmax
 
 """
 Function which returns the labelled image after applying CRF
@@ -25,6 +23,9 @@ def crf(original_image, output, nb_iterations=1, sxy1=(3, 3), sxy2=(80, 80), com
     H x W
         map of the selected labels, [0..C] where C is the number of classes
     """
+    import pydensecrf.densecrf as dcrf
+    from pydensecrf.utils import unary_from_softmax
+
     original_image = original_image.astype(np.uint8)
 
     # The output needs to be between 0 and 1
