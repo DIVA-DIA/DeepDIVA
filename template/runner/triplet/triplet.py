@@ -127,7 +127,7 @@ class Triplet:
                                         model=model,
                                         optimizer=optimizer,
                                         log_dir=current_log_folder,
-                                        invert_best=True,
+                                        invert_best=False,
                                         checkpoint_all_epochs=checkpoint_all_epochs)
 
                 # Generate new triplets every N epochs
