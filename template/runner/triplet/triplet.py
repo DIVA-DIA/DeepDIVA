@@ -132,7 +132,7 @@ class Triplet:
 
                 # Generate new triplets every N epochs
                 if epoch % regenerate_every == 0:
-                    train_loader.dataset.generate_triplets()
+                    train_loader.triplets = train_loader.dataset.generate_triplets()
             logging.info('Training completed')
 
         # Test
