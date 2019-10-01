@@ -36,7 +36,7 @@ def apk(query, predicted, k='full'):
     assert (len(predicted) > 0)
 
     # Count the number of relevant items that could be retrieved
-    num_hits = predicted.count(query)
+    num_hits = np.sum(predicted == query)
     if num_hits == 0:
         return 0
 
@@ -67,8 +67,8 @@ def apk(query, predicted, k='full'):
     relevant = np.zeros(len(predicted))
 
     # Find all locations where the predicted value matches the query and vice-versa.
-    hit_locs = np.where(predicted == query)[0]
-    non_hit_locs = np.where(predicted != query)[0]
+    hit_locs = (predicted == query)
+    non_hit_locs = np.logical_not(hit_locs)
 
     # Set all `hit_locs` to be 1. [0,0,0,0,0,0] -> [0,1,0,1,0,1]
     relevant[hit_locs] = 1
@@ -89,8 +89,9 @@ def mapk(query, predicted, k=None, workers=1):
     ----------
     query : list
         List of queries.
-    predicted : list of list
-        Predicted responses for each query.
+    predicted : list of list, or generator to list of lists
+        Predicted responses for each query. Supports chunking with slices in
+        the first dimension.
     k : str or int
         If int, cutoff for retrieval is set to `k`
         If str, 'full' means cutoff is til the end of predicted
@@ -111,6 +112,12 @@ def mapk(query, predicted, k=None, workers=1):
     dict{label, float}
         The per class mean averages precision @k
     """
+
+    # If distances come from pairwise_distances_chunked they must be flattened
+    # since apk operates on a per-row basis.
+    if type(predicted) is types.GeneratorType:
+        predicted = [row for nested in predicted for row in nested]
+
     results = np.array([apk(q, p, k) for q, p in zip(query, predicted)])
     per_class_mapk = {str(l): np.mean(np.array(results)[np.where(query == l)[0]]) for l in np.unique(query)}
     return np.mean(results), per_class_mapk
@@ -147,6 +154,49 @@ def compute_mapk(distances, labels, k, workers=None):
         The per class mean averages precision @k
     """
 
+    def chunked_sorting(distances):
+        '''Sorts a _chunked_ pairwise distance matrix.
+
+            Parameters
+            ----------
+            distances : generator of ndarray
+                A generator yielding numpy arrays containing pairwise
+                distances between a subset of all elements. Suitable for
+                combination with sklearn.metrics.pairwise_distances_chunked
+                which slices the matrix along the first dimenstion (i.e. one
+                can iterate over entire rows easily).
+
+            Returns
+            -------
+            A generator of sorted chunks of the input matrix.
+        '''
+        for i, chunk in enumerate(distances):
+            # Fetch the index of the lowest `max_count` (k) elements
+            if k != 'full':
+                ind = np.argpartition(chunk, max_count - 1)[:, :max_count]
+                # Find the sorting sequence according to the shortest chunk selected from `ind`
+                ssd = np.argsort(np.array(chunk)[np.arange(chunk.shape[0])[:, None], ind], axis=1)
+                # Consequently sort `ind`
+                ind = ind[np.arange(ind.shape[0])[:, None], ssd]
+                # Now `ind` contains the sorted indexes of the lowest `max_count` (k) elements
+            else:
+                # If we're in full mode, just to the sorting directly
+                ind = np.argsort(chunk)
+
+            # Resolve the labels of the elements referred by `ind`
+            # sorted_predictions = [list(labels[row][1:]) for row in ind]
+            sorted_predictions = np.empty(shape=(chunk.shape[0],
+                                                 chunk.shape[1]-1),
+                                          dtype=np.int)
+            for i, row in enumerate(ind):
+                sorted_predictions[i, :] = labels[row][1:]
+
+            yield sorted_predictions
+
+    # In case of non-chunked input we wrap to ensure uniform treatment
+    if type(distances) is not types.GeneratorType:
+        distances = [distances]
+
     # Resolve k
     k = k if k == 'auto' or k == 'full' else int(k)
 
@@ -158,20 +208,10 @@ def compute_mapk(distances, labels, k, workers=None):
         # Take the highest frequency in the labels i.e. the highest possible 'auto' value for all entries
         max_count = np.max(np.unique(labels, return_counts=True)[1])
 
-    # Fetch the index of the lowest `max_count` (k) elements
-    t = time.time()
-    ind = np.argpartition(distances, max_count - 1)[:, :max_count]
-    # Find the sorting sequence according to the shortest distances selected from `ind`
-    ssd = np.argsort(np.array(distances)[np.arange(distances.shape[0])[:, None], ind], axis=1)
-    # Consequently sort `ind`
-    ind = ind[np.arange(ind.shape[0])[:, None], ssd]
-    # Now `ind` contains the sorted indexes of the lowest `max_count` (k) elements
-    # Resolve the labels of the elements referred by `ind`
-    sorted_predictions = [list(labels[row][1:]) for row in ind]
-    logging.debug('Finished computing sorted predictions in {} seconds'
-                  .format(datetime.timedelta(seconds=int(time.time() - t))))
+    # Do lazy sorting of the distance matrix
+    sorted_predictions_chunked = chunked_sorting(distances)
 
     if workers is None:
         workers = 16 if k == 'auto' or k == 'full' else 1
 
-    return mapk(labels, sorted_predictions, k, workers)
+    return mapk(labels, sorted_predictions_chunked, k, workers)

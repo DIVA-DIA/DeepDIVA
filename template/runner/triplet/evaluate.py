@@ -3,7 +3,7 @@ import datetime
 import json
 import logging
 import time
-from sklearn.metrics import pairwise_distances
+from sklearn.metrics import pairwise_distances_chunked
 import numpy as np
 
 # Torch related stuff
@@ -99,7 +99,7 @@ def _evaluate_map(data_loader, model, writer, epoch, logging_label, no_cuda, log
     outputs = np.concatenate(outputs, 0)
 
     # Cosine similarity distance
-    distances = pairwise_distances(outputs, metric='cosine', n_jobs=16)
+    distances = pairwise_distances_chunked(outputs, metric='cosine', n_jobs=16)
     logging.debug('Computed pairwise distances')
     logging.debug('Distance matrix shape: {}'.format(distances.shape))
     t = time.time()
