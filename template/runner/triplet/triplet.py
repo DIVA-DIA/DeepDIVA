@@ -88,22 +88,22 @@ class Triplet:
                 **kwargs)
 
         # Setting up model, optimizer, criterion
-        model, _, optimizer, best_value, start_epoch = set_up_model(model_name=model_name,
-                                                                    lr=lr,
-                                                                    **kwargs)
+        model, _, optimizer, best_value = set_up_model(model_name=model_name,
+                                                       lr=lr,
+                                                       **kwargs)
 
         # Set the special criterion for triplets
         criterion = nn.TripletMarginLoss(margin=margin, swap=anchor_swap)
 
-        train_value = np.zeros((epochs - start_epoch))
-        val_value = np.zeros((epochs - start_epoch))
+        train_value = np.zeros(epochs)
+        val_value = np.zeros(epochs)
 
         if not only_evaluate:
             # Core routine
 
             logging.info('Begin training')
-            Triplet._validate(val_loader, model, None, writer, -1, **kwargs)
-            for epoch in range(start_epoch, epochs):
+            Triplet._validate(val_loader, model, writer, -1, **kwargs)
+            for epoch in range(epochs):
                 # Train
                 train_value[epoch] = Triplet._train(train_loader=train_loader,
                                                     model=model,

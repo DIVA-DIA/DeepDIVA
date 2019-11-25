@@ -2,6 +2,7 @@
 import datetime
 import logging
 import time
+import types
 import numpy as np
 
 

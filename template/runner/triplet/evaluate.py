@@ -101,7 +101,6 @@ def _evaluate_map(data_loader, model, writer, epoch, logging_label, no_cuda, log
     # Cosine similarity distance
     distances = pairwise_distances_chunked(outputs, metric='cosine', n_jobs=16)
     logging.debug('Computed pairwise distances')
-    logging.debug('Distance matrix shape: {}'.format(distances.shape))
     t = time.time()
     mAP, per_class_mAP = compute_mapk(distances, labels, k=map)
     writer.add_text('Per class mAP at epoch {}\n'.format(epoch),
