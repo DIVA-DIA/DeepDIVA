@@ -1,4 +1,7 @@
-# DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments
+# Deprecated <DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments>
+DeepDIVA is no longer active maintenance, please use [Gale](https://github.com/v7labs/Gale) instead. Gale is an updated fork of DeepDIVA that has full adoption of an object oriented design with stronger isolation between individual tasks, a more polished workflow as well as an optimized inference use-case. 
+
+## DeepDIVA: A Highly-Functional Python Framework for Reproducible Experiments
 
 DeepDIVA is an infrastructure designed to enable quick and intuitive
 setup of reproducible experiments with a large range of useful analysis
